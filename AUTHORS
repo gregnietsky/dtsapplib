@@ -1,0 +1,124 @@
+Gregory Hinton Nietsky <gregory@distrotech.co.za>
+Distrotech Solutions
+
+There is code taken from other projects please note the code in this
+repository may differ from the base verify any issues against the base
+code before contacting the authors of such code.
+
+1)Iproute2 netlink library
+2)Jenkins hashing algorithm
+3)MD5 HMAC from rfc2104.txt
+4)Radius password function from freeradius project as in RFC
+5)SSL DTLS code
+6)Netfilter Queue/Conntrack Libraries
+
+it is recommended that you contact the author of this package prior to
+filing a issue with any authors listed bellow.
+
+libnetlink code included from iproute2
+--------------------------------------
+
+This project is released under GPL v2
+
+This is a set of utilities for Linux networking.
+
+Information:
+    http://www.linuxfoundation.org/collaborate/workgroups/networking/iproute2
+
+Download:
+    http://devresources.linuxfoundation.org/dev/iproute2/download
+
+Repository:
+    git://git.kernel.org/pub/scm/linux/kernel/git/shemminger/iproute2.git
+
+
+Stephen Hemminger
+shemminger@linux-foundation.org
+
+Alexey Kuznetsov
+kuznet@ms2.inr.ac.ru
+
+Iproute2 development is closely tied to Linux kernel networking
+development. Most new features require a kernel and a utility component.
+
+Please submit both to the Linux networking mailing list
+   <netdev@vger.kernel.org>
+
+The current source is in the git repository:
+    git://git.kernel.org/pub/scm/linux/kernel/git/shemminger/iproute2.git
+
+The master branch contains the source corresponding to the current
+code in the mainline Linux kernel (ie follows Linus). The net-next
+branch is a temporary branch that tracks the code intended for the
+next release; it corresponds with networking development branch in
+the kernel.
+
+Hash function
+--------------------------------------------------
+lookup3.c, by Bob Jenkins, May 2006, Public Domain.
+
+http://burtleburtle.net/bob/c/lookup3.c
+http://burtleburtle.net/bob
+
+--------------------------------------------------------------
+Acknowledgments [MD5 HMAC http://www.ietf.org/rfc/rfc2104.txt]
+
+Pau-Chen Cheng, Jeff Kraemer, and Michael Oehler, have provided
+useful comments on early drafts, and ran the first interoperability
+tests of this specification. Jeff and Pau-Chen kindly provided the
+sample code and test vectors that appear in the appendix.  Burt
+Kaliski, Bart Preneel, Matt Robshaw, Adi Shamir, and Paul van
+Oorschot have provided useful comments and suggestions during the
+investigation of the HMAC construction.
+
+-----------------------------------------------------------------------
+User password crypt function from the freeradius project (addattrpasswd)
+ * Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 The FreeRADIUS Server Project
+
+----------------
+DTLS Sample Code
+
+http://sctp.fh-muenster.de/index.html
+
+snipets of code have been used or reworked from this demo program
+
+ * Copyright (C) 2009 - 2011 Robin Seggelmann, seggelmann@fh-muenster.de,
+ *                           Michael Tuexen, tuexen@fh-muenster.de
+ *
+ * All rights reserved.
+
+
+----------------------------------------------------------------------
+
+/* libnetfilter_queue.c: generic library for access to nf_queue
+ *
+ * (C) 2005 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2005, 2008-2010 by Pablo Neira Ayuso <pablo@netfilter.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 
+ *  as published by the Free Software Foundation (or any later at your option)
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *  2006-01-23 Andreas Florath <andreas@florath.net>
+ *	Fix __set_verdict() that it can now handle payload.
+ */
+
+Pablo Neira Ayuso. Netfilter's Connection Tracking System:
+    http://people.netfilter.org/pablo/docs/login.pdf
+/*
+ * (C) 2005-2011 by Pablo Neira Ayuso <pablo@netfilter.org>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ */

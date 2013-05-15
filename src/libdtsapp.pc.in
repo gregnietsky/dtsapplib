@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@/framework
+
+Cflags: -I${includedir}
+Name: libframework
+Description: Distrotech Build Framework
+Version: 0
+Libs: -L${libdir} -lframework

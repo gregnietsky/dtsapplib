@@ -1,0 +1,137 @@
+------------------------------------------------------------------------
+r1181 | gregory | 2012-04-19 14:48:59 +0200 (Thu, 19 Apr 2012) | 1 line
+
+More use of flag functions
+------------------------------------------------------------------------
+r1180 | gregory | 2012-04-19 14:07:06 +0200 (Thu, 19 Apr 2012) | 4 lines
+
+add test/set/clear flag functions to handle flags atomically
+delay creating vlans need to check flag or something
+
+
+------------------------------------------------------------------------
+r1179 | gregory | 2012-04-19 13:22:14 +0200 (Thu, 19 Apr 2012) | 8 lines
+
+rmove list structures use ->next in struct
+remove objfree rely on ref counts to free object
+objref is now objref / objunref
+fix stupid mistake use of = instead of ==
+lots of ref/lock mods to use above
+add_kernvlan now finds taploop from threads so can be used outside taploop
+
+
+------------------------------------------------------------------------
+r1178 | gregory | 2012-04-19 00:27:15 +0200 (Thu, 19 Apr 2012) | 5 lines
+
+Fix up a problem where it was locking &threads not threads
+ref count is incremented on alloc now to get rid of all the frees
+and use counting instead
+
+
+------------------------------------------------------------------------
+r1177 | gregory | 2012-04-19 00:15:47 +0200 (Thu, 19 Apr 2012) | 9 lines
+
+Remove the last static BFL [Big Fucking Lock]
+there is a race condition if you start the first 
+thread and it spawns a thread before threads is initialised
+this is prevented by starting management thread first.
+
+the socket server that spawns threads on connection is a example 
+of a thread that threads.
+
+
+------------------------------------------------------------------------
+r1176 | gregory | 2012-04-18 23:46:47 +0200 (Wed, 18 Apr 2012) | 7 lines
+
+Add initial support for ref counted objects
+this will eliminate calls to free when the 
+ref count goes to zero the object is freed.
+
+this will move to its own file ....
+
+
+------------------------------------------------------------------------
+r1175 | gregory | 2012-04-18 22:26:40 +0200 (Wed, 18 Apr 2012) | 3 lines
+
+Locking fixups
+
+
+------------------------------------------------------------------------
+r1174 | gregory | 2012-04-18 21:45:57 +0200 (Wed, 18 Apr 2012) | 11 lines
+
+Comments for enums for  socket / thread
+Add clientsock_client thread this will be the server side of the client connex
+ - currently only prints out the socket details for testing
+Add clientsock_serv this is the server socket and listen for connex
+ - spawns clientsock_client thread
+Dummy client con thread that connex and writes to server
+ - will be moved to client app
+
+create the listen thread on init then send 3 connex to it
+for testing.
+
+------------------------------------------------------------------------
+r1173 | gregory | 2012-04-18 18:51:56 +0200 (Wed, 18 Apr 2012) | 3 lines
+
+Make VIRT a legit flag to find virtual socket
+Ad VIRT / PHY are the first 2 in the socket list its quick to find em
+
+------------------------------------------------------------------------
+r1172 | gregory | 2012-04-18 18:46:16 +0200 (Wed, 18 Apr 2012) | 3 lines
+
+Set the flags to be appropriate enum type
+
+
+------------------------------------------------------------------------
+r1171 | gregory | 2012-04-18 18:38:54 +0200 (Wed, 18 Apr 2012) | 6 lines
+
+Mark the static creation of vlans 100/150/200
+Move the thread run/done flags to new flags variable
+add enum of thread flags
+Use flags to check for existing tap before creating tap
+
+
+------------------------------------------------------------------------
+r1170 | gregory | 2012-04-18 18:07:06 +0200 (Wed, 18 Apr 2012) | 4 lines
+
+Remove virt/phy members unneeded now
+Add support for kernel 802.1Q vlans creation
+Add support for kernel 802.1Q vlan deletion
+Will need to take vlans into account created by iptools
+------------------------------------------------------------------------
+r1169 | gregory | 2012-04-18 14:56:38 +0200 (Wed, 18 Apr 2012) | 9 lines
+
+Add lock to taploop struct to protect socks when we add vlans
+Destroy lock in cleanup
+Set running with thread lock held
+Break loop unlocked when checking running
+Use tlsock used in read/recv to test locking
+Dont call cleanup from thread
+call cleanup with thread lock held
+Test thread after creation this is probably overkill
+
+------------------------------------------------------------------------
+r1168 | gregory | 2012-04-18 13:48:47 +0200 (Wed, 18 Apr 2012) | 2 lines
+
+Reworked packet processing and moved ipv4 into frame handler
+removed some debug comments replace with syslog perhaps
+------------------------------------------------------------------------
+r1167 | gregory | 2012-04-18 12:56:36 +0200 (Wed, 18 Apr 2012) | 7 lines
+
+rename topen to virtopen to be consistant
+virtopen and phyopen return struct tl_socket
+use perror instead of printf for now will be syslog soon
+size of pname/pdev need +1 take null term into account
+Add hwaddr to tap struct to be available in frame/proto handlers
+set IFF_NOARP / IFF_MULTIALL on the phy not sure if this is correct yet
+Update packet handler routine to set default output socket
+------------------------------------------------------------------------
+r1166 | gregory | 2012-04-17 19:31:26 +0200 (Tue, 17 Apr 2012) | 2 lines
+
+Rework socket structures work on the send routine
+add some comments
+------------------------------------------------------------------------
+r1165 | gregory | 2012-04-17 10:42:13 +0200 (Tue, 17 Apr 2012) | 1 line
+
+Add taploop daemon for userspace networking
+------------------------------------------------------------------------
