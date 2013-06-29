@@ -100,20 +100,7 @@ int attr_hash(const void *data, int key) {
 	return(ret);
 }
 
-extern struct xml_doc *xml_loaddoc(const char* docfile, int validate) {
-	struct xml_doc *xmldata;
-
-	xml_init();
-
-	if (!(xmldata = objalloc(sizeof(*xmldata), free_xmldata))) {
-		return NULL;
-	}
-
-	if (!(xmldata->doc = xmlParseFile(docfile))) {
-		objunref(xmldata);
-		return NULL;
-	}
-
+static struct xml_doc *xml_setup_parse(struct xml_doc *xmldata, int validate) {
 	if (validate) {
 		if (!(xmldata->ValidCtxt = xmlNewValidCtxt())) {
 			objunref(xmldata);
@@ -135,8 +122,41 @@ extern struct xml_doc *xml_loaddoc(const char* docfile, int validate) {
 		objunref(xmldata);
 		return NULL;
 	}
+    return xmldata;
+}
 
-	return xmldata;
+extern struct xml_doc *xml_loaddoc(const char* docfile, int validate) {
+	struct xml_doc *xmldata;
+
+	xml_init();
+
+	if (!(xmldata = objalloc(sizeof(*xmldata), free_xmldata))) {
+		return NULL;
+	}
+
+	if (!(xmldata->doc = xmlParseFile(docfile))) {
+		objunref(xmldata);
+		return NULL;
+	}
+
+	return xml_setup_parse(xmldata, validate);
+}
+
+extern struct xml_doc *xml_loadbuf(const char* buffer, int len, int validate) {
+	struct xml_doc *xmldata;
+
+	xml_init();
+
+	if (!(xmldata = objalloc(sizeof(*xmldata), free_xmldata))) {
+		return NULL;
+	}
+
+	if (!(xmldata->doc = xmlParseMemory(buffer, len))) {
+		objunref(xmldata);
+		return NULL;
+	}
+
+	return xml_setup_parse(xmldata, validate);
 }
 
 struct xml_node *xml_nodetohash(struct xml_doc *xmldoc, xmlNodePtr node, const char *attrkey) {

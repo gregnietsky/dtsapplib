@@ -342,6 +342,7 @@ struct xml_node {
 };
 
 extern struct xml_doc *xml_loaddoc(const char* docfile, int validate);
+extern struct xml_doc *xml_loadbuf(const char* buffer, int len, int validate);
 extern struct xml_node *xml_getfirstnode(struct xml_search *xpsearch, void **iter);
 extern struct xml_node *xml_getnextnode(void *iter);
 extern struct bucket_list *xml_getnodes(struct xml_search *xpsearch);
@@ -429,7 +430,7 @@ extern struct ldap_conn *ldap_connect(const char *uri, enum ldap_starttls startt
 extern int ldap_simplebind(struct ldap_conn *ld, const char *dn, const char *passwd);
 extern int ldap_saslbind(struct ldap_conn *ld, const char *mech, const char *realm, const char *authcid,
 				const char *passwd, const char *authzid);
-extern int ldap_simplerebind(struct ldap_conn *ld, const char *initialdn, const char* initialpw, const char *base, const char *filter, 
+extern int ldap_simplerebind(struct ldap_conn *ld, const char *initialdn, const char* initialpw, const char *base, const char *filter,
 					const char *uidrdn, const char *uid, const char *passwd);
 extern void ldap_close(struct ldap_conn *ld);
 
