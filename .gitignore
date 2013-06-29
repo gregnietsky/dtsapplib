@@ -1,0 +1,17 @@
+*.lo
+*.o
+Makefile
+.deps
+stamp-h1
+/bin
+.libs
+/obj
+config.log
+config.status
+config.h
+dtsapplib.cbp
+dtsapplib.depend
+libtool
+src/libdtsapp.la
+src/libdtsapp.pc
+src/libnetlink/libnetlink.la
