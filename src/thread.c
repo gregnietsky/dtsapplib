@@ -25,11 +25,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define THREAD_MAGIC 0xfeedf158
 
 enum threadopt {
-        TL_THREAD_NONE  = 0,
-        /* thread is marked as running*/
-        TL_THREAD_RUN   = 1 << 1,
-        /* thread is marked as complete*/
-        TL_THREAD_DONE  = 1 << 2
+	TL_THREAD_NONE  = 0,
+	/* thread is marked as running*/
+	TL_THREAD_RUN   = 1 << 1,
+	/* thread is marked as complete*/
+	TL_THREAD_DONE  = 1 << 2
 };
 
 /*
@@ -55,8 +55,8 @@ struct threadcontainer {
 } *threads = NULL;
 
 static int hash_thread(const void *data, int key) {
-        const struct thread_pvt *thread = data;
-        const pthread_t *hashkey = (key) ? data : &thread->thr;
+	const struct thread_pvt *thread = data;
+	const pthread_t *hashkey = (key) ? data : &thread->thr;
 	int ret;
 
 	ret = jenhash(hashkey, sizeof(pthread_t), 0);
@@ -131,17 +131,18 @@ static void *managethread(void **data) {
 			if (stop && (thread->flags & TL_THREAD_RUN) && !(thread->flags & TL_THREAD_DONE)) {
 				thread->flags &= ~TL_THREAD_RUN;
 				objunlock(thread);
-			} else if ((thread->flags & TL_THREAD_DONE) || pthread_kill(thread->thr, 0)){
-				objunlock(thread);
-				remove_bucket_loop(bloop);
-				if (thread->cleanup) {
-					thread->cleanup(thread->data);
+			} else
+				if ((thread->flags & TL_THREAD_DONE) || pthread_kill(thread->thr, 0)) {
+					objunlock(thread);
+					remove_bucket_loop(bloop);
+					if (thread->cleanup) {
+						thread->cleanup(thread->data);
+					}
+					objunref(thread->data);
+					objunref(thread);
+				} else {
+					objunlock(thread);
 				}
-				objunref(thread->data);
-				objunref(thread);
-			} else {
-				objunlock(thread);
-			}
 			objunref(thread);
 		}
 		stop_bucket_loop(bloop);
@@ -192,7 +193,7 @@ static void *threadwrap(void *data) {
 
 	if (!threads || !threads->manager) {
 		if (thread->cleanup) {
-				thread->cleanup(thread->data);
+			thread->cleanup(thread->data);
 		}
 		objunref(thread->data);
 		objunref(thread);

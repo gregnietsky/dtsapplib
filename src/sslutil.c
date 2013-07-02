@@ -113,7 +113,8 @@ extern void ssl_shutdown(void *data) {
 			case SSL_ERROR_NONE:
 				/* nothing to see here moving on*/
 				break;
-			default:
+			default
+					:
 				printf("SSL Shutdown unknown error %i\n", err);
 				break;
 		}
@@ -161,9 +162,10 @@ static struct ssldata *sslinit(const char *cacert, const char *cert, const char 
 	if (!stat(cacert, &finfo)) {
 		if (S_ISDIR(finfo.st_mode) && (SSL_CTX_load_verify_locations(ssl->ctx, NULL, cacert) == 1)) {
 			ret = 0;
-		} else if (SSL_CTX_load_verify_locations(ssl->ctx, cacert, NULL) == 1) {
-			ret = 0;
-		}
+		} else
+			if (SSL_CTX_load_verify_locations(ssl->ctx, cacert, NULL) == 1) {
+				ret = 0;
+			}
 	}
 
 	if (!ret && (SSL_CTX_use_certificate_file(ssl->ctx, cert, SSL_FILETYPE_PEM) == 1)) {
@@ -177,18 +179,18 @@ static struct ssldata *sslinit(const char *cacert, const char *cert, const char 
 		ret= 0;
 	}
 
-/*XXX	Should create a tmp 512 bit rsa key for RSA ciphers also need DH
-	http://www.openssl.org/docs/ssl/SSL_CTX_set_cipher_list.html
-	SSL_CTX_set_cipher_list*/
+	/*XXX	Should create a tmp 512 bit rsa key for RSA ciphers also need DH
+		http://www.openssl.org/docs/ssl/SSL_CTX_set_cipher_list.html
+		SSL_CTX_set_cipher_list*/
 
 	if (!ret) {
-/* XXX CRL verification
-		X509_VERIFY_PARAM *param;
-		param = X509_VERIFY_PARAM_new();
-		X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK);
-		SSL_CTX_set1_param(ctx, param);
-		X509_VERIFY_PARAM_free(param);
-*/
+		/* XXX CRL verification
+				X509_VERIFY_PARAM *param;
+				param = X509_VERIFY_PARAM_new();
+				X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK);
+				SSL_CTX_set1_param(ctx, param);
+				X509_VERIFY_PARAM_free(param);
+		*/
 		SSL_CTX_set_verify(ssl->ctx, verify, verify_callback);
 		SSL_CTX_set_verify_depth(ssl->ctx, 1);
 	}
@@ -229,7 +231,7 @@ extern void *dtlsv1_init(const char *cacert, const char *cert, const char *key, 
 	struct ssldata *ssl;
 
 	ssl = sslinit(cacert, cert, key, verify, meth, SSL_DTLSV1);
-/* XXX BIO_CTRL_DGRAM_MTU_DISCOVER*/
+	/* XXX BIO_CTRL_DGRAM_MTU_DISCOVER*/
 	SSL_CTX_set_read_ahead(ssl->ctx, 1);
 
 	return (ssl);
@@ -340,7 +342,8 @@ extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstr
 				printf("R syscall %i %i\n", syserr, ret);
 			}
 			break;
-		default:
+		default
+				:
 			printf("other\n");
 			break;
 	}
@@ -419,7 +422,8 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 				printf("W syscall %i %i\n", syserr, ret);
 			}
 			break;
-		default:
+		default
+				:
 			printf("other\n");
 			break;
 	}

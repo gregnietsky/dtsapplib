@@ -37,13 +37,13 @@ enum NF_CTRACK_FLAGS {
 };
 
 struct nfct_struct {
-	struct nfct_handle* nfct;
+	struct nfct_handle *nfct;
 	int fd;
 	int flags;
 } *ctrack = NULL;
 
 static void close_nfct(void *data) {
-	struct nfct_struct* nfct = data;
+	struct nfct_struct *nfct = data;
 
 	nfct_close(nfct->nfct);
 }
@@ -87,8 +87,8 @@ extern uint8_t nf_ctrack_init(void) {
 
 extern struct nf_conntrack *nf_ctrack_buildct(uint8_t *pkt) {
 	struct nf_conntrack *ct;
-	struct iphdr *ip = (struct iphdr*)pkt;
-	union l4hdr *l4 = (union l4hdr*)(pkt + (ip->ihl * 4));
+	struct iphdr *ip = (struct iphdr *)pkt;
+	union l4hdr *l4 = (union l4hdr *)(pkt + (ip->ihl * 4));
 
 	if (!(ct = nfct_new())) {
 		return (NULL);
@@ -113,7 +113,8 @@ extern struct nf_conntrack *nf_ctrack_buildct(uint8_t *pkt) {
 			nfct_set_attr_u8(ct, ATTR_ICMP_CODE, l4->icmp.code);
 			nfct_set_attr_u16(ct, ATTR_ICMP_ID, l4->icmp.un.echo.id);
 			/* no break */
-		default:
+		default
+				:
 			break;
 	};
 
@@ -148,7 +149,7 @@ extern uint8_t nf_ctrack_delete(uint8_t *pkt) {
 }
 
 extern uint8_t nf_ctrack_nat(uint8_t *pkt, uint32_t addr, uint16_t port, uint8_t dnat) {
-	struct iphdr *ip = (struct iphdr*)pkt;
+	struct iphdr *ip = (struct iphdr *)pkt;
 	struct nf_conntrack *ct;
 	uint8_t unref = 0;
 	uint8_t ret = 0;
@@ -236,9 +237,10 @@ static void *nf_ctrack_trace_th(void **data) {
 		/*returned due to interupt continue or timed out*/
 		if ((selfd < 0 && errno == EINTR) || (!selfd)) {
 			continue;
-		} else if (selfd < 0) {
-			break;
-		}
+		} else
+			if (selfd < 0) {
+				break;
+			}
 
 		if (FD_ISSET(nfct->fd, &act_set)) {
 			nfct_catch(nfct->nfct);

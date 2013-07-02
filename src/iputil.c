@@ -30,8 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern int checkipv6mask(const char *ipaddr, const char *network, uint8_t bits) {
 	uint8_t cnt, bytelen, bitlen;
 	uint32_t mask, res = 0;
-	uint32_t *nw = (uint32_t*)network;
-	uint32_t *ip = (uint32_t*)ipaddr;
+	uint32_t *nw = (uint32_t *)network;
+	uint32_t *ip = (uint32_t *)ipaddr;
 
 	/*calculate significant bytes and bits outside boundry*/
 	if ((bitlen = bits % 32)) {
@@ -42,7 +42,7 @@ extern int checkipv6mask(const char *ipaddr, const char *network, uint8_t bits) 
 	}
 
 	/*end loop on first mismatch do not check last block*/
-	for(cnt = 0;(!res && (cnt < (bytelen - 1)));cnt++) {
+	for(cnt = 0; (!res && (cnt < (bytelen - 1))); cnt++) {
 		res += nw[cnt] ^ ip[cnt];
 	}
 
@@ -69,8 +69,8 @@ struct pseudohdr {
 };
 
 extern void ipv4tcpchecksum(uint8_t *pkt) {
-	struct iphdr *ip = (struct iphdr*)pkt;
-	struct tcphdr *tcp = (struct tcphdr*)(pkt + (4 * ip->ihl));
+	struct iphdr *ip = (struct iphdr *)pkt;
+	struct tcphdr *tcp = (struct tcphdr *)(pkt + (4 * ip->ihl));
 	uint16_t plen, csum;
 	struct pseudohdr phdr;
 
@@ -87,8 +87,8 @@ extern void ipv4tcpchecksum(uint8_t *pkt) {
 }
 
 extern void ipv4udpchecksum(uint8_t *pkt) {
-	struct iphdr *ip = (struct iphdr*)pkt;
-	struct udphdr *udp = (struct udphdr*)(pkt + (4 * ip->ihl));
+	struct iphdr *ip = (struct iphdr *)pkt;
+	struct udphdr *udp = (struct udphdr *)(pkt + (4 * ip->ihl));
 	uint16_t csum, plen;
 	struct pseudohdr phdr;
 
@@ -105,22 +105,22 @@ extern void ipv4udpchecksum(uint8_t *pkt) {
 }
 
 extern void icmpchecksum(uint8_t *pkt) {
-	struct iphdr *ip = (struct iphdr*)pkt;
-	struct icmphdr *icmp = (struct icmphdr*)(pkt + (4 * ip->ihl));
+	struct iphdr *ip = (struct iphdr *)pkt;
+	struct icmphdr *icmp = (struct icmphdr *)(pkt + (4 * ip->ihl));
 
 	icmp->checksum = 0;
 	icmp->checksum = checksum(icmp, ntohs(ip->tot_len) - (ip->ihl *4));
 }
 
 extern void ipv4checksum(uint8_t *pkt) {
-	struct iphdr *ip = (struct iphdr*)pkt;
+	struct iphdr *ip = (struct iphdr *)pkt;
 
 	ip->check = 0;
 	ip->check = checksum(ip, (4 * ip->ihl));
 }
 
 extern int packetchecksumv4(uint8_t *pkt) {
-	struct iphdr *ip = (struct iphdr*)pkt;
+	struct iphdr *ip = (struct iphdr *)pkt;
 
 	ipv4checksum(pkt);
 
@@ -134,14 +134,15 @@ extern int packetchecksumv4(uint8_t *pkt) {
 		case IPPROTO_UDP:
 			ipv4udpchecksum(pkt);
 			break;
-		default:
+		default
+				:
 			return (-1);
 	}
 	return (0);
 }
 
 extern int packetchecksumv6(uint8_t *pkt) {
-	struct iphdr *ip = (struct iphdr*)pkt;
+	struct iphdr *ip = (struct iphdr *)pkt;
 	switch(ip->protocol) {
 		case IPPROTO_ICMP:
 			break;
@@ -149,14 +150,15 @@ extern int packetchecksumv6(uint8_t *pkt) {
 			break;
 		case IPPROTO_UDP:
 			break;
-		default:
+		default
+				:
 			return (-1);
 	}
 	return (0);
 }
 
 extern int packetchecksum(uint8_t *pkt) {
-	struct iphdr *ip = (struct iphdr*)pkt;
+	struct iphdr *ip = (struct iphdr *)pkt;
 
 	switch(ip->version) {
 		case IP_PROTO_V4:

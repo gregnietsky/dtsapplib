@@ -32,8 +32,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 The FreeRADIUS Server Project
  */
 
-#ifndef _FW_FRAMEWORK_H
-#define _FW_FRAMEWORK_H
+#ifndef _INCLUDE_DTSAPP_H
+#define _INCLUDE_DTSAPP_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 #include <signal.h>
@@ -42,10 +46,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /*socket structure*/
 union sockstruct {
-        struct sockaddr sa;
-        struct sockaddr_in sa4;
-        struct sockaddr_in6 sa6;
-        struct sockaddr_storage ss;
+	struct sockaddr sa;
+	struct sockaddr_in sa4;
+	struct sockaddr_in6 sa6;
+	struct sockaddr_storage ss;
 };
 
 typedef struct ssldata ssldata;
@@ -67,8 +71,8 @@ struct fwsocket {
 };
 
 struct config_entry {
-        const char *item;
-        const char *value;
+	const char *item;
+	const char *value;
 };
 
 struct zobj {
@@ -85,20 +89,20 @@ typedef struct nfct_struct nfct_struct;
 typedef struct nfqnl_msg_packet_hdr nfqnl_msg_packet_hdr;
 
 /*callback function type def's*/
-typedef void	(*radius_cb)(struct radius_packet*, void*);
-typedef void    *(*threadcleanup)(void*);
-typedef void    *(*threadfunc)(void**);
-typedef void	(*syssighandler)(int, siginfo_t*, void*);
-typedef int     (*threadsighandler)(int, void*);
-typedef	int	(*frameworkfunc)(int, char**);
-typedef int	(*blisthash)(const void*, int);
-typedef void	(*objdestroy)(void*);
-typedef void	(*socketrecv)(struct fwsocket*, void*);
-typedef void	(*blist_cb)(void*, void*);
-typedef void	(*config_filecb)(struct bucket_list*, const char*, const char*);
-typedef void	(*config_catcb)(struct bucket_list*, const char*);
-typedef void	(*config_entrycb)(const char*, const char*);
-typedef uint32_t (*nfqueue_cb)(struct nfq_data*, struct nfqnl_msg_packet_hdr*, char*, uint32_t, void*, uint32_t*, void**);
+typedef void	(*radius_cb)(struct radius_packet *, void *);
+typedef void    *(*threadcleanup)(void *);
+typedef void    *(*threadfunc)(void **);
+typedef void	(*syssighandler)(int, siginfo_t *, void *);
+typedef int     (*threadsighandler)(int, void *);
+typedef	int	(*frameworkfunc)(int, char **);
+typedef int	(*blisthash)(const void *, int);
+typedef void	(*objdestroy)(void *);
+typedef void	(*socketrecv)(struct fwsocket *, void *);
+typedef void	(*blist_cb)(void *, void *);
+typedef void	(*config_filecb)(struct bucket_list *, const char *, const char *);
+typedef void	(*config_catcb)(struct bucket_list *, const char *);
+typedef void	(*config_entrycb)(const char *, const char *);
+typedef uint32_t (*nfqueue_cb)(struct nfq_data *, struct nfqnl_msg_packet_hdr *, char *, uint32_t, void *, uint32_t *, void **);
 
 /*these can be set int the application */
 struct framework_core {
@@ -194,6 +198,8 @@ extern uint16_t checksum_add(const uint16_t checksum, const void *data, int len)
 extern uint16_t verifysum(const void *data, int len, const uint16_t check);
 extern struct zobj *zcompress(uint8_t *buff, uint16_t len, uint8_t level);
 extern void zuncompress(struct zobj *buff, uint8_t *obuff);
+extern uint8_t *gzinflatebuf(uint8_t *buf_in, int buf_size, uint32_t *len);
+extern int is_gzip(uint8_t *buf, int buf_size);
 extern void touch(const char *filename, uid_t user, gid_t group);
 extern char *b64enc(const char *message, int nonl);
 extern char *b64enc_buf(const char *message, uint32_t len, int nonl);
@@ -341,7 +347,8 @@ struct xml_node {
 	void			*nodeptr;
 };
 
-extern struct xml_doc *xml_loaddoc(const char* docfile, int validate);
+extern struct xml_doc *xml_loaddoc(const char *docfile, int validate);
+extern struct xml_doc *xml_loadbuf(const uint8_t *buffer, uint32_t len);
 extern struct xml_node *xml_getfirstnode(struct xml_search *xpsearch, void **iter);
 extern struct xml_node *xml_getnextnode(void *iter);
 extern struct bucket_list *xml_getnodes(struct xml_search *xpsearch);
@@ -351,7 +358,7 @@ extern struct xml_node *xml_getnode(struct xml_search *xsearch, const char *key)
 extern const char *xml_getattr(struct xml_node *xnode, const char *attr);
 extern void xml_modify(struct xml_doc *xmldoc, struct xml_node *xnode, const char *value);
 extern void xml_setattr(struct xml_doc *xmldoc, struct xml_node *xnode, const char *name, const char *value);
-extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, const char *name, const char *value, const char* attrkey, const char* keyval);
+extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, const char *name, const char *value, const char *attrkey, const char *keyval);
 extern void xml_delete(struct xml_node *xnode);
 extern char *xml_getbuffer(void *buffer);
 extern void *xml_doctobuffer(struct xml_doc *xmldoc);
@@ -392,13 +399,13 @@ struct ldap_rdn {
 struct ldap_attrval {
 	int	len;
 	enum ldap_attrtype type;
-        char *buffer;
+	char *buffer;
 };
 
 struct ldap_attr {
-        const char *name;
+	const char *name;
 	int count;
-        struct ldap_attrval **vals;
+	struct ldap_attrval **vals;
 	struct ldap_attr *next;
 	struct ldap_attr *prev;
 };
@@ -428,9 +435,9 @@ typedef struct ldap_add ldap_add;
 extern struct ldap_conn *ldap_connect(const char *uri, enum ldap_starttls starttls,int timelimit, int limit, int debug, int *err);
 extern int ldap_simplebind(struct ldap_conn *ld, const char *dn, const char *passwd);
 extern int ldap_saslbind(struct ldap_conn *ld, const char *mech, const char *realm, const char *authcid,
-				const char *passwd, const char *authzid);
-extern int ldap_simplerebind(struct ldap_conn *ld, const char *initialdn, const char* initialpw, const char *base, const char *filter, 
-					const char *uidrdn, const char *uid, const char *passwd);
+						 const char *passwd, const char *authzid);
+extern int ldap_simplerebind(struct ldap_conn *ld, const char *initialdn, const char *initialpw, const char *base, const char *filter,
+							 const char *uidrdn, const char *uid, const char *passwd);
 extern void ldap_close(struct ldap_conn *ld);
 
 extern const char *ldap_errmsg(int res);
@@ -454,6 +461,31 @@ extern int ldap_mod_remattr(struct ldap_conn *ldap, const char *dn, const char *
 extern int ldap_mod_delattr(struct ldap_conn *ldap, const char *dn, const char *attr, const char *value);
 extern int ldap_mod_addattr(struct ldap_conn *ldap, const char *dn, const char *attr, const char *value);
 extern int ldap_mod_repattr(struct ldap_conn *ldap, const char *dn, const char *attr, const char *value);
+
+/*
+ * CURL Bits
+ */
+struct basic_auth {
+	const char *user;
+	const char *passwd;
+};
+
+struct curlbuf {
+	uint8_t *header;
+	uint8_t *body;
+	char *c_type;
+	size_t hsize;
+	size_t bsize;
+};
+
+typedef struct basic_auth *(*curl_authcb)(const char *user, const char *passwd, void *data);
+
+int curlinit(void);
+void curlclose(void);
+struct basic_auth *curl_newauth(const char *user, const char *passwd);
+struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *data);
+struct curlbuf *curl_ungzip(struct curlbuf *cbuf);
+
 
 /*easter egg copied from <linux/jhash.h>*/
 #define JHASH_INITVAL           0xdeadbeef
@@ -492,4 +524,7 @@ extern int ldap_mod_repattr(struct ldap_conn *ldap, const char *dn, const char *
 		} \
 	}
 
+#ifdef __cplusplus
+}
+#endif
 #endif

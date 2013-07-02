@@ -79,7 +79,7 @@ extern void *objalloc(int size,objdestroy destructor) {
 
 	if ((robj = malloc(asize))) {
 		memset(robj, 0, asize);
-		ref = (struct ref_obj*)robj;
+		ref = (struct ref_obj *)robj;
 		if (!(ref->lock = malloc(sizeof(pthread_mutex_t)))) {
 			free(robj);
 			return NULL;
@@ -102,7 +102,7 @@ extern int objref(void *data) {
 	int ret = 0;
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	if (!data || !ref || (ref->magic != REFOBJ_MAGIC)) {
 		return (ret);
@@ -131,7 +131,7 @@ extern int objunref(void *data) {
 	}
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	if ((ref->magic == REFOBJ_MAGIC) && (ref->cnt)) {
 		pthread_mutex_lock(ref->lock);
@@ -168,7 +168,7 @@ extern int objcnt(void *data) {
 	}
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	if (ref->magic == REFOBJ_MAGIC) {
 		pthread_mutex_lock(ref->lock);
@@ -188,7 +188,7 @@ extern int objsize(void *data) {
 	}
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	if (ref->magic == REFOBJ_MAGIC) {
 		pthread_mutex_lock(ref->lock);
@@ -203,7 +203,7 @@ extern int objlock(void *data) {
 	struct ref_obj *ref;
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	if (data && ref->magic == REFOBJ_MAGIC) {
 		pthread_mutex_lock(ref->lock);
@@ -216,7 +216,7 @@ extern int objtrylock(void *data) {
 	struct ref_obj *ref;
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	if (ref->magic == REFOBJ_MAGIC) {
 		return ((pthread_mutex_trylock(ref->lock)) ? -1 : 0);
@@ -229,7 +229,7 @@ extern int objunlock(void *data) {
 	struct ref_obj *ref;
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	if (ref->magic == REFOBJ_MAGIC) {
 		pthread_mutex_unlock(ref->lock);
@@ -262,13 +262,13 @@ extern void *create_bucketlist(int bitmask, blisthash hash_function) {
 	buckets = (1 << bitmask);
 
 	/* allocate session bucket list memory*/
-	if (!(new = objalloc(sizeof(*new) + (sizeof(void*) + sizeof(pthread_mutex_t) + sizeof(int)) * buckets, empty_buckets))) {
+	if (!(new = objalloc(sizeof(*new) + (sizeof(void *) + sizeof(pthread_mutex_t) + sizeof(int)) * buckets, empty_buckets))) {
 		return NULL;
 	}
 
 	/*initialise each bucket*/
 	new->bucketbits = bitmask;
-	new->list = (void *)((char*)new + sizeof(*new));
+	new->list = (void *)((char *)new + sizeof(*new));
 	for (cnt = 0; cnt < buckets; cnt++) {
 		if ((new->list[cnt] = malloc(sizeof(*new->list[cnt])))) {
 			memset(new->list[cnt], 0, sizeof(*new->list[cnt]));
@@ -311,13 +311,14 @@ static int gethash(struct bucket_list *blist, const void *data, int key) {
 	int hash = 0;
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	if (blist->hash_func) {
 		hash = blist->hash_func(data, key);
-	} else if (ref && (ref->magic == REFOBJ_MAGIC)) {
-		hash = jenhash(data, ref->size, 0);
-	}
+	} else
+		if (ref && (ref->magic == REFOBJ_MAGIC)) {
+			hash = jenhash(data, ref->size, 0);
+		}
 	return (hash);
 }
 
@@ -340,7 +341,7 @@ extern int addtobucket(struct bucket_list *blist, void *data) {
 	}
 
 	ptr = ptr - refobj_offset;
-	ref = (struct ref_obj*)ptr;
+	ref = (struct ref_obj *)ptr;
 
 	hash = gethash(blist, data, 0);
 	bucket = ((hash >> (32 - blist->bucketbits)) & ((1 << blist->bucketbits) - 1));
@@ -364,31 +365,33 @@ extern int addtobucket(struct bucket_list *blist, void *data) {
 			blist->list[bucket] = tmp;
 			tmp->prev = tmp;
 			tmp->next = NULL;
-		/*become new head*/
-		} else if (hash < lhead->hash) {
-			tmp->next = lhead;
-			tmp->prev = lhead->prev;
-			lhead->prev = tmp;
-			blist->list[bucket] = tmp;
-		/*new tail*/
-		} else if (hash > lhead->prev->hash) {
-			tmp->prev = lhead->prev;
-			tmp->next = NULL;
-			lhead->prev->next = tmp;
-			lhead->prev = tmp;
-		/*insert entry*/
-		} else {
-			lhead = blist_gotohash(lhead, hash, blist->bucketbits);
-			tmp->next = lhead->next;
-			tmp->prev = lhead;
+			/*become new head*/
+		} else
+			if (hash < lhead->hash) {
+				tmp->next = lhead;
+				tmp->prev = lhead->prev;
+				lhead->prev = tmp;
+				blist->list[bucket] = tmp;
+				/*new tail*/
+			} else
+				if (hash > lhead->prev->hash) {
+					tmp->prev = lhead->prev;
+					tmp->next = NULL;
+					lhead->prev->next = tmp;
+					lhead->prev = tmp;
+					/*insert entry*/
+				} else {
+					lhead = blist_gotohash(lhead, hash, blist->bucketbits);
+					tmp->next = lhead->next;
+					tmp->prev = lhead;
 
-			if (lhead->next) {
-				lhead->next->prev = tmp;
-			} else {
-				blist->list[bucket]->prev = tmp;
-			}
-			lhead->next = tmp;
-		}
+					if (lhead->next) {
+						lhead->next->prev = tmp;
+					} else {
+						blist->list[bucket]->prev = tmp;
+					}
+					lhead->next = tmp;
+				}
 	} else {
 		/*set NULL head*/
 		lhead->data = ref;
@@ -497,15 +500,17 @@ extern void remove_bucket_item(struct bucket_list *blist, void *data) {
 		if (entry->next && (entry == blist->list[bucket])) {
 			entry->next->prev = entry->prev;
 			blist->list[bucket] = entry->next;
-		} else if (entry->next) {
-			entry->next->prev = entry->prev;
-			entry->prev->next = entry->next;
-		} else if (entry == blist->list[bucket]) {
-			blist->list[bucket] = NULL;
-		} else {
-			entry->prev->next = NULL;
-			blist->list[bucket]->prev = entry->prev;
-		}
+		} else
+			if (entry->next) {
+				entry->next->prev = entry->prev;
+				entry->prev->next = entry->next;
+			} else
+				if (entry == blist->list[bucket]) {
+					blist->list[bucket] = NULL;
+				} else {
+					entry->prev->next = NULL;
+					blist->list[bucket]->prev = entry->prev;
+				}
 		objunref(entry->data->data);
 		free(entry);
 	}
@@ -537,15 +542,17 @@ extern void remove_bucket_loop(struct bucket_loop *bloop) {
 	if (bloop->cur->next && (bloop->cur == blist->list[bucket])) {
 		bloop->cur->next->prev = bloop->cur->prev;
 		blist->list[bucket] = bloop->cur->next;
-	} else if (bloop->cur->next) {
-		bloop->cur->next->prev = bloop->cur->prev;
-		bloop->cur->prev->next = bloop->cur->next;
-	} else if (bloop->cur == blist->list[bucket]) {
-		blist->list[bucket] = NULL;
-	} else {
-		bloop->cur->prev->next = NULL;
-		blist->list[bucket]->prev = bloop->cur->prev;
-	}
+	} else
+		if (bloop->cur->next) {
+			bloop->cur->next->prev = bloop->cur->prev;
+			bloop->cur->prev->next = bloop->cur->next;
+		} else
+			if (bloop->cur == blist->list[bucket]) {
+				blist->list[bucket] = NULL;
+			} else {
+				bloop->cur->prev->next = NULL;
+				blist->list[bucket]->prev = bloop->cur->prev;
+			}
 
 	objunref(bloop->cur->data->data);
 	free(bloop->cur);
@@ -586,18 +593,20 @@ extern void *bucket_list_find_key(struct bucket_list *blist, const void *key) {
 	entry = blist_gotohash(blist->list[bucket], hash + 1, blist->bucketbits);
 	if (entry && entry->data) {
 		objref(entry->data->data);
-	} else if (!entry) {
-		pthread_mutex_unlock(&blist->locks[bucket]);
-		return NULL;
-	}
+	} else
+		if (!entry) {
+			pthread_mutex_unlock(&blist->locks[bucket]);
+			return NULL;
+		}
 
 	pthread_mutex_unlock(&blist->locks[bucket]);
 
 	if (entry->data && (entry->hash == hash)) {
 		return (entry->data->data);
-	} else if (entry->data) {
-		objunref(entry->data->data);
-	}
+	} else
+		if (entry->data) {
+			objunref(entry->data->data);
+		}
 
 	return NULL;
 }

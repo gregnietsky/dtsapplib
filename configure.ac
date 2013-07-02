@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([dtsapplib],[0.1],[gregory@distrotech.co.za])
+AC_INIT([dtsapplib],[0.2],[gregory@distrotech.co.za])
 AC_CONFIG_SRCDIR([src/thread.c])
 AC_CONFIG_HEADERS([config.h])
 
@@ -69,6 +69,8 @@ AC_SUBST(DEVELOPER_CFLAGS)
 
 AM_CONDITIONAL([FRAMEWORK_INSTALL], [test "x$enable_framework_install" = xyes])
 AM_CONDITIONAL([FRAMEWORK_SYSTEM], [test "x$ac_cv_lib_framework_framework_mkthread" != "xyes"])
+
+LIBCURL_CHECK_CONFIG
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h netinet/in.h stdint.h stdlib.h string.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h unistd.h syslog.h sys/time.h netdb.h arpa/inet.h])

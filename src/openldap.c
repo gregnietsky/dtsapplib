@@ -74,7 +74,7 @@ void free_simple(void *data) {
 		free(bv);
 	}
 	if (simple->dn) {
-		free((void*)simple->dn);
+		free((void *)simple->dn);
 	}
 }
 
@@ -82,7 +82,7 @@ void free_modval(void *data) {
 	struct ldap_modval *modv = data;
 
 	if (modv->value) {
-		free((void*)modv->value);
+		free((void *)modv->value);
 	}
 }
 
@@ -91,7 +91,7 @@ void free_modreq(void *data) {
 	struct ldap_modval *modv;
 
 	if (modr->attr) {
-		free((void*)modr->attr);
+		free((void *)modr->attr);
 	}
 	for(modv = modr->first; modv; modv = modv->next) {
 		objunref(modv);
@@ -102,10 +102,10 @@ void free_modify(void *data) {
 	struct ldap_modify *lmod = data;
 	int cnt;
 	if (lmod->dn) {
-		free((void*)lmod->dn);
+		free((void *)lmod->dn);
 	}
 
-	for(cnt=0; cnt < 3;cnt++) {
+	for(cnt=0; cnt < 3; cnt++) {
 		if (lmod->bl[cnt]) {
 			objunref(lmod->bl[cnt]);
 		}
@@ -116,7 +116,7 @@ void free_add(void *data) {
 	struct ldap_add *lmod = data;
 
 	if (lmod->dn) {
-		free((void*)lmod->dn);
+		free((void *)lmod->dn);
 	}
 
 	if (lmod->bl) {
@@ -128,19 +128,19 @@ void free_sasl(void *data) {
 	struct sasl_defaults *sasl = data;
 
 	if (sasl->mech) {
-		free((void*)sasl->mech);
+		free((void *)sasl->mech);
 	}
 	if (sasl->realm) {
-		free((void*)sasl->realm);
+		free((void *)sasl->realm);
 	}
 	if (sasl->authcid) {
-		free((void*)sasl->authcid);
+		free((void *)sasl->authcid);
 	}
 	if (sasl->passwd) {
-		free((void*)sasl->passwd);
+		free((void *)sasl->passwd);
 	}
 	if (sasl->authzid) {
-		free((void*)sasl->authzid);
+		free((void *)sasl->authzid);
 	}
 }
 
@@ -181,13 +181,13 @@ void free_entry(void *data) {
 	}
 
 	if (ent->dn) {
-		ldap_memfree((void*)ent->dn);
+		ldap_memfree((void *)ent->dn);
 	}
 	if (ent->rdn) {
 		objunref(ent->rdn);
 	}
 	if (ent->dnufn) {
-		free((void*)ent->dnufn);
+		free((void *)ent->dnufn);
 	}
 	if (ent->attrs) {
 		objunref(ent->attrs);
@@ -211,10 +211,10 @@ void free_rdn(void *data) {
 	struct ldap_rdn *rdn = data;
 
 	if (rdn->name) {
-		objunref((void*)rdn->name);
+		objunref((void *)rdn->name);
 	}
 	if (rdn->value) {
-		objunref((void*)rdn->value);
+		objunref((void *)rdn->value);
 	}
 }
 
@@ -226,7 +226,7 @@ void free_attr(void *data) {
 	if (la->prev) {
 		la->prev->next = la->next;
 	}
-	ldap_memfree((char*)la->name);
+	ldap_memfree((char *)la->name);
 	if (la->vals) {
 		objunref(la->vals);
 	}
@@ -234,7 +234,7 @@ void free_attr(void *data) {
 
 void free_attrvalarr(void *data) {
 	struct ldap_attrval **av = data;
-	for(;*av;av++) {
+	for(; *av; av++) {
 		objunref(*av);
 	}
 }
@@ -249,22 +249,22 @@ void free_attrval(void *data) {
 void free_entarr(void *data) {
 	struct ldap_entry **entarr = data;
 
-	for(;*entarr;entarr++) {
+	for(; *entarr; entarr++) {
 		objunref(*entarr);
 	}
 }
 
 int modify_hash(const void *data, int key) {
-        int ret;
-        const struct ldap_modreq *modr = data;
-        const char* hashkey = (key) ? data : modr->attr;
+	int ret;
+	const struct ldap_modreq *modr = data;
+	const char *hashkey = (key) ? data : modr->attr;
 
-        if (hashkey) {
-                ret = jenhash(hashkey, strlen(hashkey), 0);
-        } else { 
-                ret = jenhash(modr, sizeof(modr), 0);
-        }
-        return(ret);
+	if (hashkey) {
+		ret = jenhash(hashkey, strlen(hashkey), 0);
+	} else {
+		ret = jenhash(modr, sizeof(modr), 0);
+	}
+	return(ret);
 }
 
 int ldap_rebind_proc(LDAP *ld, LDAP_CONST char *url, ber_tag_t request, ber_int_t msgid, void *params) {
@@ -280,11 +280,12 @@ int ldap_rebind_proc(LDAP *ld, LDAP_CONST char *url, ber_tag_t request, ber_int_
 		struct sasl_defaults *sasl = ldap->sasl;
 
 		res = ldap_sasl_interactive_bind_s(ld, NULL, sasl->mech, ldap->sctrlsp , NULL, sasl_flags, dts_sasl_interact, sasl);
-	} else if (ldap->simple) {
-		struct ldap_simple *simple = ldap->simple;
+	} else
+		if (ldap->simple) {
+			struct ldap_simple *simple = ldap->simple;
 
-		res = ldap_sasl_bind_s(ld, simple->dn, LDAP_SASL_SIMPLE, simple->cred, ldap->sctrlsp, NULL, NULL);
-	}
+			res = ldap_sasl_bind_s(ld, simple->dn, LDAP_SASL_SIMPLE, simple->cred, ldap->sctrlsp, NULL, NULL);
+		}
 
 	objunref(ldap);
 	return res;
@@ -317,7 +318,7 @@ extern struct ldap_conn *ldap_connect(const char *uri, enum ldap_starttls startt
 		if (timelimit) {
 			timeout.tv_sec = timelimit;
 			timeout.tv_usec = 0;
-			ldap_set_option(ld->ldap, LDAP_OPT_NETWORK_TIMEOUT, (void*)&timeout);
+			ldap_set_option(ld->ldap, LDAP_OPT_NETWORK_TIMEOUT, (void *)&timeout);
 		}
 		ldap_set_option(ld->ldap, LDAP_OPT_PROTOCOL_VERSION, &version);
 		ldap_set_option(ld->ldap, LDAP_OPT_REFERRALS, (void *)LDAP_OPT_ON);
@@ -380,7 +381,7 @@ int dts_sasl_interact(LDAP *ld, unsigned flags, void *defaults, void *in ) {
 			return rc;
 		}
 		interact++;
-	}	
+	}
 	return LDAP_SUCCESS;
 }
 
@@ -395,7 +396,7 @@ extern int ldap_simplebind(struct ldap_conn *ld, const char *dn, const char *pas
 
 	if (passwd) {
 		len = strlen(passwd);
-	}	
+	}
 	simple = objalloc(sizeof(*simple), free_simple);
 	cred = calloc(sizeof(*cred), 1);
 	cred->bv_val = malloc(len);
@@ -415,8 +416,8 @@ extern int ldap_simplebind(struct ldap_conn *ld, const char *dn, const char *pas
 	return res;
 }
 
-extern int ldap_simplerebind(struct ldap_conn *ldap, const char *initialdn, const char* initialpw, const char *base, const char *filter,
-                                        const char *uidrdn, const char *uid, const char *passwd) {
+extern int ldap_simplerebind(struct ldap_conn *ldap, const char *initialdn, const char *initialpw, const char *base, const char *filter,
+							 const char *uidrdn, const char *uid, const char *passwd) {
 	int res, flen;
 	struct ldap_results *results;
 	const char *sfilt;
@@ -432,14 +433,14 @@ extern int ldap_simplerebind(struct ldap_conn *ldap, const char *initialdn, cons
 
 	flen=strlen(uidrdn) + strlen(filter) + strlen(uid) + 7;
 	sfilt = malloc(flen);
-	snprintf((char*)sfilt, flen, "(&(%s=%s)%s)", uidrdn, uid, filter);
+	snprintf((char *)sfilt, flen, "(&(%s=%s)%s)", uidrdn, uid, filter);
 
 	if (!(results = ldap_search_sub(ldap, base, sfilt, 0, &res, uidrdn, NULL))) {
-		free((void*)sfilt);
+		free((void *)sfilt);
 		objunref(ldap);
 		return res;
 	}
-	free((void*)sfilt);
+	free((void *)sfilt);
 
 	if (results->count != 1) {
 		objunref(results);
@@ -454,7 +455,7 @@ extern int ldap_simplerebind(struct ldap_conn *ldap, const char *initialdn, cons
 }
 
 extern int ldap_saslbind(struct ldap_conn *ld, const char *mech, const char *realm, const char *authcid,
-				const char *passwd, const char *authzid ) {
+						 const char *passwd, const char *authzid ) {
 	struct sasl_defaults *sasl;
 	int res, sasl_flags = LDAP_SASL_AUTOMATIC | LDAP_SASL_QUIET;
 
@@ -512,16 +513,16 @@ extern const char *ldap_errmsg(int res) {
 }
 
 int searchresults_hash(const void *data, int key) {
-        int ret;
-        const struct ldap_entry *ent = data;
-        const char* hashkey = (key) ? data : ent->dn;
+	int ret;
+	const struct ldap_entry *ent = data;
+	const char *hashkey = (key) ? data : ent->dn;
 
-        if (hashkey) {
-                ret = jenhash(hashkey, strlen(hashkey), 0);
-        } else { 
-                ret = jenhash(ent, sizeof(ent), 0);
-        }
-        return(ret);
+	if (hashkey) {
+		ret = jenhash(hashkey, strlen(hashkey), 0);
+	} else {
+		ret = jenhash(ent, sizeof(ent), 0);
+	}
+	return(ret);
 }
 
 struct ldap_results *dts_ldapsearch(struct ldap_conn *ld, const char *base, int scope, const char *filter, char *attrs[], int b64enc, int *err) {
@@ -550,7 +551,7 @@ struct ldap_results *dts_ldapsearch(struct ldap_conn *ld, const char *base, int 
 
 	objlock(ld);
 	if (!results || !results->entries ||
-	    (res = ldap_search_ext_s(ld->ldap, base, scope, filter, attrs, 0, ld->sctrlsp, NULL, &timeout, ld->limit, &result))) {
+			(res = ldap_search_ext_s(ld->ldap, base, scope, filter, attrs, 0, ld->sctrlsp, NULL, &timeout, ld->limit, &result))) {
 		objunlock(ld);
 		objunref(ld);
 		objunref(results);
@@ -573,7 +574,7 @@ struct ldap_results *dts_ldapsearch(struct ldap_conn *ld, const char *base, int 
 		objunref(ld);
 		objunref(results);
 		ldap_msgfree(result);
-		return NULL;	
+		return NULL;
 	}
 
 	while((lent = ldap_getent(ld->ldap, &message, result, b64enc, err))) {
@@ -616,16 +617,16 @@ extern struct ldap_results *ldap_search_sub(struct ldap_conn *ld, const char *ba
 	int cnt = 1;
 
 	va_start(a_list, res);
-	while (( attr=va_arg(a_list, void*))) {
+	while (( attr=va_arg(a_list, void *))) {
 		cnt++;
 	}
 	va_end(a_list);
 
 	if (cnt > 1) {
-		tmp = attrs = malloc(sizeof(void*)*cnt);
+		tmp = attrs = malloc(sizeof(void *)*cnt);
 
 		va_start(a_list, res);
-		while (( attr=va_arg(a_list, char*))) {
+		while (( attr=va_arg(a_list, char *))) {
 			*tmp = attr;
 			tmp++;
 		}
@@ -642,16 +643,16 @@ extern struct ldap_results *ldap_search_one(struct ldap_conn *ld, const char *ba
 	int cnt = 1;
 
 	va_start(a_list, res);
-	while (( attr=va_arg(a_list, void*))) {
+	while (( attr=va_arg(a_list, void *))) {
 		cnt++;
 	}
 	va_end(a_list);
 
 	if (cnt > 1) {
-		tmp = attrs = malloc(sizeof(void*)*cnt);
+		tmp = attrs = malloc(sizeof(void *)*cnt);
 
 		va_start(a_list, res);
-		while (( attr=va_arg(a_list, char*))) {
+		while (( attr=va_arg(a_list, char *))) {
 			*tmp = attr;
 			tmp++;
 		}
@@ -668,16 +669,16 @@ extern struct ldap_results *ldap_search_base(struct ldap_conn *ld, const char *b
 	int cnt = 1;
 
 	va_start(a_list, res);
-	while (( attr=va_arg(a_list, void*))) {
+	while (( attr=va_arg(a_list, void *))) {
 		cnt++;
 	}
 	va_end(a_list);
 
 	if (cnt > 1) {
-		tmp = attrs = malloc(sizeof(void*)*cnt);
+		tmp = attrs = malloc(sizeof(void *)*cnt);
 
 		va_start(a_list, res);
-		while (( attr=va_arg(a_list, char*))) {
+		while (( attr=va_arg(a_list, char *))) {
 			*tmp = attr;
 			tmp++;
 		}
@@ -715,7 +716,7 @@ char *ldap_getdn(LDAP *ld, LDAPMessage *message, int *err) {
 	objlock(ld);
 	dn = ldap_get_dn(ld, message);
 	objunlock(ld);
-	
+
 	if (!err) {
 		return dn;
 	}
@@ -762,19 +763,21 @@ char *ldap_encattr(void *attrval, int b64enc, enum ldap_attrtype *type) {
 	int len, pos, atype;
 
 	len = val->bv_len;
-	for(pos=0; isprint(val->bv_val[pos]); pos++);
+	for(pos=0; isprint(val->bv_val[pos]); pos++)
+		;
 	if (pos == len) {
 		aval = objalloc(val->bv_len+1, NULL);
 		strncpy(aval, val->bv_val, objsize(aval));
 		atype = LDAP_ATTRTYPE_CHAR;
-	} else if (b64enc) {
-		aval = b64enc_buf(val->bv_val, val->bv_len, 0);
-		atype = LDAP_ATTRTYPE_B64;
-	} else {
-		aval = objalloc(val->bv_len, NULL);
-		memcpy(aval, val->bv_val, objsize(aval));
-		atype = LDAP_ATTRTYPE_OCTET;
-	}
+	} else
+		if (b64enc) {
+			aval = b64enc_buf(val->bv_val, val->bv_len, 0);
+			atype = LDAP_ATTRTYPE_B64;
+		} else {
+			aval = objalloc(val->bv_len, NULL);
+			memcpy(aval, val->bv_val, objsize(aval));
+			atype = LDAP_ATTRTYPE_OCTET;
+		}
 
 	if (type) {
 		*type = atype;
@@ -808,16 +811,16 @@ struct berval **ldap_attrvals(LDAP *ld, LDAPMessage *message, char *attr, int *c
 }
 
 int ldapattr_hash(const void *data, int key) {
-        int ret;
-        const struct ldap_attr *la = data;
-        const char* hashkey = (key) ? data : la->name;
+	int ret;
+	const struct ldap_attr *la = data;
+	const char *hashkey = (key) ? data : la->name;
 
-        if (hashkey) {
-                ret = jenhash(hashkey, strlen(hashkey), 0);
-        } else { 
-                ret = jenhash(la, sizeof(la), 0);
-        }
-        return(ret);
+	if (hashkey) {
+		ret = jenhash(hashkey, strlen(hashkey), 0);
+	} else {
+		ret = jenhash(la, sizeof(la), 0);
+	}
+	return(ret);
 }
 
 struct bucket_list *attr2bl(LDAP *ld, LDAPMessage *message, struct ldap_attr **first, int b64enc, int *res) {
@@ -852,7 +855,7 @@ struct bucket_list *attr2bl(LDAP *ld, LDAPMessage *message, struct ldap_attr **f
 			la->prev = NULL;
 		}
 		prev = la;
-		lavals = objalloc(sizeof(void*) * (cnt+1), free_attrvalarr);
+		lavals = objalloc(sizeof(void *) * (cnt+1), free_attrvalarr);
 		if (!lavals || !la) {
 			if (res) {
 				*res = LDAP_NO_MEMORY;
@@ -935,14 +938,15 @@ struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *resu
 			*err = LDAP_NO_MEMORY;
 		}
 		return NULL;
-	} else if (!message) {
-		if (err) {
-			objlock(ld);
-			ldap_get_option(ld, LDAP_OPT_RESULT_CODE, err);
-			objunlock(ld);
+	} else
+		if (!message) {
+			if (err) {
+				objlock(ld);
+				ldap_get_option(ld, LDAP_OPT_RESULT_CODE, err);
+				objunlock(ld);
+			}
+			return NULL;
 		}
-		return NULL;
-	}
 
 	if (!(ent->dn = ldap_getdn(ld, message, &res))) {
 		if (err) {
@@ -959,7 +963,7 @@ struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *resu
 			*err = res;
 		}
 		objunref(ent);
-		return NULL;		
+		return NULL;
 	}
 	objunlock(ld);
 
@@ -968,7 +972,7 @@ struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *resu
 		rdnarr = dnarr[cnt];
 		for (; *rdnarr; rdnarr++) {
 			if (!(lrdn = objalloc(sizeof(*lrdn), free_rdn))) {
-				for(lrdn = first;lrdn;lrdn=lrdn->next) {
+				for(lrdn = first; lrdn; lrdn=lrdn->next) {
 					objunref(lrdn);
 				}
 				objunref(ent);
@@ -986,7 +990,7 @@ struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *resu
 
 			rdn = *rdnarr;
 			ALLOC_CONST(lrdn->name, rdn->la_attr.bv_val);
-			ALLOC_CONST(lrdn->value, rdn->la_value.bv_val); 
+			ALLOC_CONST(lrdn->value, rdn->la_value.bv_val);
 
 			if (!strcmp("dc", rdn->la_attr.bv_val)) {
 				dccnt++;
@@ -1005,10 +1009,10 @@ struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *resu
 	ldap_dnfree(dnarr);
 
 	ent->dnufn = calloc(tlen + (ent->rdncnt-dccnt)*2+dccnt, 1);
-	ent->rdn = rdns = objalloc(sizeof(void*) * (ent->rdncnt+1), free_rdnarr);
+	ent->rdn = rdns = objalloc(sizeof(void *) * (ent->rdncnt+1), free_rdnarr);
 
 	if (!ent->dnufn || !ent->rdn) {
-		for(lrdn = first;lrdn;lrdn=lrdn->next) {
+		for(lrdn = first; lrdn; lrdn=lrdn->next) {
 			objunref(lrdn);
 		}
 		objunref(ent);
@@ -1017,13 +1021,14 @@ struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *resu
 		}
 	}
 
-	for(lrdn = first;lrdn ;lrdn = lrdn->next) {
-		strcat((char*)ent->dnufn, lrdn->value);
+	for(lrdn = first; lrdn ; lrdn = lrdn->next) {
+		strcat((char *)ent->dnufn, lrdn->value);
 		if (lrdn->next && !strcmp(lrdn->name, "dc")) {
-			strcat((char*)ent->dnufn, ".");
-		} else if (lrdn->next) {
-			strcat((char*)ent->dnufn, ", ");
-		}
+			strcat((char *)ent->dnufn, ".");
+		} else
+			if (lrdn->next) {
+				strcat((char *)ent->dnufn, ", ");
+			}
 		*rdns = lrdn;
 		rdns++;
 	}
@@ -1078,14 +1083,14 @@ extern struct ldap_entry *ldap_getentry(struct ldap_results *results, const char
 	if (!results || !dn) {
 		return NULL;
 	}
-	return (struct ldap_entry*)bucket_list_find_key(results->entries, dn);
+	return (struct ldap_entry *)bucket_list_find_key(results->entries, dn);
 }
 
 extern struct ldap_attr *ldap_getattr(struct ldap_entry *entry, const char *attr) {
 	if (!entry || !entry->attrs) {
 		return NULL;
 	}
-	return (struct ldap_attr*)bucket_list_find_key(entry->attrs, attr);
+	return (struct ldap_attr *)bucket_list_find_key(entry->attrs, attr);
 }
 
 extern struct ldap_modify *ldap_modifyinit(const char *dn) {
@@ -1102,7 +1107,7 @@ extern struct ldap_modify *ldap_modifyinit(const char *dn) {
 		return NULL;
 	}
 
-	for(cnt=0; cnt < 3;cnt++) {
+	for(cnt=0; cnt < 3; cnt++) {
 		if (!(mod->bl[cnt] = create_bucketlist(4, modify_hash))) {
 			objunref(mod);
 			return NULL;
@@ -1186,7 +1191,7 @@ extern int ldap_mod_del(struct ldap_modify *lmod, const char *attr, ...) {
 	}
 
 	va_start(a_list, attr);
-	while((val = va_arg(a_list, void*))) {
+	while((val = va_arg(a_list, void *))) {
 		if (add_modifyval(modr, val)) {
 			objunref(modr);
 			return(1);
@@ -1208,7 +1213,7 @@ extern int ldap_mod_add(struct ldap_modify *lmod, const char *attr, ...) {
 	}
 
 	va_start(a_list, attr);
-	while((val = va_arg(a_list, void*))) {
+	while((val = va_arg(a_list, void *))) {
 		if (add_modifyval(modr, val)) {
 			objunref(modr);
 			return(1);
@@ -1230,7 +1235,7 @@ extern int ldap_mod_rep(struct ldap_modify *lmod, const char *attr, ...) {
 	}
 
 	va_start(a_list, attr);
-	while((val = va_arg(a_list, void*))) {
+	while((val = va_arg(a_list, void *))) {
 		if (add_modifyval(modr, val)) {
 			objunref(modr);
 			return(1);
@@ -1251,19 +1256,24 @@ LDAPMod *ldap_reqtoarr(struct ldap_modreq *modr, int type) {
 		return NULL;
 	}
 
-	if (!(modi->mod_values = calloc(sizeof(void*), modr->cnt+1))) {
+	if (!(modi->mod_values = calloc(sizeof(void *), modr->cnt+1))) {
 		free(modi);
 		return NULL;
 	}
 
 	switch (type) {
-		case 0: modi->mod_op = LDAP_MOD_REPLACE;
+		case 0:
+			modi->mod_op = LDAP_MOD_REPLACE;
 			break;
-		case 1: modi->mod_op = LDAP_MOD_DELETE;
+		case 1:
+			modi->mod_op = LDAP_MOD_DELETE;
 			break;
-		case 2: modi->mod_op = LDAP_MOD_ADD;
+		case 2:
+			modi->mod_op = LDAP_MOD_ADD;
 			break;
-		default: modi->mod_op = 0;
+		default
+				:
+			modi->mod_op = 0;
 			break;
 	}
 
@@ -1272,7 +1282,7 @@ LDAPMod *ldap_reqtoarr(struct ldap_modreq *modr, int type) {
 		return NULL;
 	}
 
-	mval = (const char**)modi->mod_values;
+	mval = (const char **)modi->mod_values;
 	for(modv = modr->first; modv; modv=modv->next) {
 		if (!(*mval = strdup(modv->value))) {
 			ldap_mods_free(&modi, 0);
@@ -1295,12 +1305,12 @@ extern int ldap_domodify(struct ldap_conn *ld, struct ldap_modify *lmod) {
 		return LDAP_UNAVAILABLE;
 	}
 
-	for(cnt = 0;cnt < 3;cnt++) {
+	for(cnt = 0; cnt < 3; cnt++) {
 		tot += bucket_list_cnt(lmod->bl[cnt]);
 	}
-	tmp = modarr = calloc(sizeof(void*), (tot+1));
+	tmp = modarr = calloc(sizeof(void *), (tot+1));
 
-	for(cnt = 0;cnt < 3;cnt++) {
+	for(cnt = 0; cnt < 3; cnt++) {
 		bloop = init_bucket_loop(lmod->bl[cnt]);
 		while(bloop && ((modr = next_bucket_loop(bloop)))) {
 			if (!(item = ldap_reqtoarr(modr, cnt))) {
@@ -1333,7 +1343,7 @@ extern int ldap_mod_delattr(struct ldap_conn *ldap, const char *dn, const char *
 	}
 	if (ldap_mod_del(lmod, attr, value, NULL)) {
 		objunref(lmod);
-		return LDAP_NO_MEMORY;		
+		return LDAP_NO_MEMORY;
 	}
 
 	res = ldap_domodify(ldap, lmod);
@@ -1355,7 +1365,7 @@ extern int ldap_mod_addattr(struct ldap_conn *ldap, const char *dn, const char *
 
 	if (ldap_mod_add(lmod, attr, value, NULL)) {
 		objunref(lmod);
-		return LDAP_NO_MEMORY;	
+		return LDAP_NO_MEMORY;
 	}
 
 	res = ldap_domodify(ldap, lmod);
@@ -1373,7 +1383,7 @@ extern int ldap_mod_repattr(struct ldap_conn *ldap, const char *dn, const char *
 
 	if (ldap_mod_rep(lmod, attr, value, NULL)) {
 		objunref(lmod);
-		return LDAP_NO_MEMORY;	
+		return LDAP_NO_MEMORY;
 	}
 
 	res = ldap_domodify(ldap, lmod);
@@ -1424,7 +1434,7 @@ extern int ldap_add_attr(struct ldap_add *ladd, const char *attr, ...) {
 	}
 
 	va_start(a_list, attr);
-	while((val = va_arg(a_list, void*))) {
+	while((val = va_arg(a_list, void *))) {
 		if (add_modifyval(modr, val)) {
 			objunref(modr);
 			return(1);
@@ -1443,7 +1453,7 @@ extern int ldap_doadd(struct ldap_conn *ld, struct ldap_add *ladd) {
 	int tot=0, res;
 
 	tot = bucket_list_cnt(ladd->bl);
-	tmp = modarr = calloc(sizeof(void*), (tot+1));
+	tmp = modarr = calloc(sizeof(void *), (tot+1));
 
 	bloop = init_bucket_loop(ladd->bl);
 	while(bloop && ((modr = next_bucket_loop(bloop)))) {

@@ -37,13 +37,13 @@ struct socket_handler {
 };
 
 static int hash_socket(const void *data, int key) {
-        int ret;
+	int ret;
 	const struct fwsocket *sock = data;
 	const int *hashkey = (key) ? data : &sock->sock;
 
-        ret = *hashkey;
+	ret = *hashkey;
 
-        return (ret);
+	return (ret);
 }
 
 extern void closesocket(struct fwsocket *sock) {
@@ -145,7 +145,7 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 			continue;
 		}
 		if ((!ctype && !connect(sock->sock, rp->ai_addr, rp->ai_addrlen)) ||
-		    (ctype && !bind(sock->sock, rp->ai_addr, rp->ai_addrlen))) {
+				(ctype && !bind(sock->sock, rp->ai_addr, rp->ai_addrlen))) {
 			break;
 		}
 		objunref(sock);
@@ -173,7 +173,8 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 			case SOCK_SEQPACKET:
 				listen(sock->sock, backlog);
 				/* no break */
-			default:
+			default
+					:
 				break;
 		}
 	} else {
@@ -255,10 +256,11 @@ static void *_socket_handler(void **data) {
 			if ((type == SOCK_DGRAM) && (flags & SOCK_FLAG_BIND)) {
 				dtlshandltimeout(sock);
 			}
-     			continue;
-		} else if (selfd < 0) {
-			break;
-		}
+			continue;
+		} else
+			if (selfd < 0) {
+				break;
+			}
 
 		if (FD_ISSET(sockfd, &act_set)) {
 			if (flags & SOCK_FLAG_BIND) {
@@ -270,7 +272,8 @@ static void *_socket_handler(void **data) {
 					case SOCK_DGRAM:
 						newsock = dtls_listenssl(sock);
 						break;
-					default:
+					default
+							:
 						newsock = NULL;
 						break;
 				}
@@ -316,7 +319,7 @@ static void *_socket_handler(void **data) {
 }
 
 static void _start_socket_handler(struct fwsocket *sock, socketrecv read,
-				socketrecv acceptfunc, threadcleanup cleanup, void *data) {
+								  socketrecv acceptfunc, threadcleanup cleanup, void *data) {
 	struct socket_handler *sockh;
 
 	if (!sock || !read || !(sockh = objalloc(sizeof(*sockh), NULL))) {
@@ -337,7 +340,7 @@ static void _start_socket_handler(struct fwsocket *sock, socketrecv read,
 }
 
 extern void socketserver(struct fwsocket *sock, socketrecv read,
-				socketrecv acceptfunc, threadcleanup cleanup, void *data) {
+						 socketrecv acceptfunc, threadcleanup cleanup, void *data) {
 
 	objlock(sock);
 	if (sock->flags & SOCK_FLAG_BIND) {

@@ -33,11 +33,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "include/dtsapp.h"
 
 struct radius_packet {
-        unsigned char code;
-        unsigned char id;
-        unsigned short len;
-        unsigned char token[RAD_AUTH_TOKEN_LEN];
-        unsigned char attrs[RAD_AUTH_PACKET_LEN - RAD_AUTH_HDR_LEN];
+	unsigned char code;
+	unsigned char id;
+	unsigned short len;
+	unsigned char token[RAD_AUTH_TOKEN_LEN];
+	unsigned char attrs[RAD_AUTH_PACKET_LEN - RAD_AUTH_HDR_LEN];
 };
 
 /*
@@ -109,18 +109,18 @@ extern void addradattrint(struct radius_packet *packet, char type, unsigned int 
 	unsigned int tval;
 
 	tval = htonl(val);
-	addradattr(packet, type, (unsigned char*)&tval, sizeof(tval));
+	addradattr(packet, type, (unsigned char *)&tval, sizeof(tval));
 }
 
 extern void addradattrip(struct radius_packet *packet, char type, char *ipaddr) {
 	unsigned int tval;
 
 	tval = inet_addr(ipaddr);
-	addradattr(packet, type, (unsigned char*)&tval, sizeof(tval));
+	addradattr(packet, type, (unsigned char *)&tval, sizeof(tval));
 }
 
 extern void addradattrstr(struct radius_packet *packet, char type, char *str) {
-	addradattr(packet, type, (unsigned char*)str, strlen(str));
+	addradattr(packet, type, (unsigned char *)str, strlen(str));
 }
 
 static void addradattrpasswd(struct radius_packet *packet, const char *pw, const char *secret) {
@@ -140,10 +140,11 @@ static void addradattrpasswd(struct radius_packet *packet, const char *pw, const
 	/* pad len to RAD_AUTH_TOKEN_LEN*/
 	if (!len) {
 		len = RAD_AUTH_TOKEN_LEN;
-	}  else if (!(len & 0xf)) {
-		len += 0xf;
-		len &= ~0xf;
-	}
+	}  else
+		if (!(len & 0xf)) {
+			len += 0xf;
+			len &= ~0xf;
+		}
 
 	MD5_Init(&c);
 	MD5_Update(&c, secret, strlen(secret));
@@ -154,7 +155,7 @@ static void addradattrpasswd(struct radius_packet *packet, const char *pw, const
 		if (n > 0) {
 			c = old;
 			MD5_Update(&c, pwbuff + n - RAD_AUTH_TOKEN_LEN, RAD_AUTH_TOKEN_LEN);
-                }
+		}
 		MD5_Final(digest, &c);
 		for (i = 0; i < RAD_AUTH_TOKEN_LEN; i++) {
 			pwbuff[i + n] ^= digest[i];
@@ -249,7 +250,7 @@ static void del_radsession(void *data) {
 	struct radius_session *session = data;
 
 	if (session->passwd) {
-		free((void*)session->passwd);
+		free((void *)session->passwd);
 	}
 	if (session->packet) {
 		free(session->packet);
@@ -257,7 +258,7 @@ static void del_radsession(void *data) {
 }
 
 static struct radius_session *rad_session(struct radius_packet *packet, struct radius_connection *connex,
-					const char *passwd, radius_cb read_cb, void *cb_data) {
+		const char *passwd, radius_cb read_cb, void *cb_data) {
 	struct radius_session *session = NULL;
 
 	if ((session = objalloc(sizeof(*session), del_radsession))) {
@@ -278,9 +279,9 @@ static struct radius_session *rad_session(struct radius_packet *packet, struct r
 }
 
 static int _send_radpacket(struct radius_packet *packet, const char *userpass, struct radius_session *hint,
-			radius_cb read_cb, void *cb_data) {
+						   radius_cb read_cb, void *cb_data) {
 	int scnt;
-	unsigned char* vector;
+	unsigned char *vector;
 	unsigned short len;
 	struct radius_server *server;
 	struct radius_session *session;
@@ -295,7 +296,7 @@ static int _send_radpacket(struct radius_packet *packet, const char *userpass, s
 	while (sloop && (server = next_bucket_loop(sloop))) {
 		objlock(server);
 		if ((hint && (server->id <= hint->minserver)) ||
-		    (server->service.tv_sec > curtime.tv_sec)) {
+				(server->service.tv_sec > curtime.tv_sec)) {
 			objunlock(server);
 			objunref(server);
 			continue;
@@ -395,7 +396,7 @@ static void rad_resend(struct radius_connection *connex) {
 	struct bucket_loop *bloop;
 	struct timeval tv;
 	unsigned int tdiff, len, scnt;
-	unsigned char* vector;
+	unsigned char *vector;
 
 	gettimeofday(&tv, NULL);
 
@@ -450,15 +451,16 @@ static void radius_recv(void **data) {
 		if (errno == ECONNREFUSED) {
 			printf("Connection Bad\n");
 		}
-	} else if (chk == 0) {
-		objlock(connex->server);
-		printf("Taking server off line for %is\n", connex->server->timeout);
-		gettimeofday(&connex->server->service, NULL);
-		connex->server->service.tv_sec += connex->server->timeout;
-		objunlock(connex->server);
-	}
+	} else
+		if (chk == 0) {
+			objlock(connex->server);
+			printf("Taking server off line for %is\n", connex->server->timeout);
+			gettimeofday(&connex->server->service, NULL);
+			connex->server->service.tv_sec += connex->server->timeout;
+			objunlock(connex->server);
+		}
 
-	packet = (struct radius_packet*)&buff;
+	packet = (struct radius_packet *)&buff;
 	plen = ntohs(packet->len);
 
 	if ((chk < plen) || (chk <= RAD_AUTH_HDR_LEN)) {
@@ -510,9 +512,10 @@ static void *rad_return(void **data) {
 		if ((selfd < 0 && errno == EINTR) || (!selfd)) {
 			rad_resend(connex);
 			continue;
-		} else if (selfd < 0) {
-			break;
-		}
+		} else
+			if (selfd < 0) {
+				break;
+			}
 
 		if (FD_ISSET(connex->socket->sock, &act_set)) {
 			radius_recv(data);
@@ -540,7 +543,7 @@ extern struct radius_connection *radconnect(struct radius_server *server) {
 			if (!server->connex) {
 				server->connex = create_bucketlist(0, hash_connex);
 			}
-			setsockopt(connex->socket->sock, SOL_IP, IP_RECVERR,(char*)&val, sizeof(val));
+			setsockopt(connex->socket->sock, SOL_IP, IP_RECVERR,(char *)&val, sizeof(val));
 			connex->server = server;
 			genrand(&connex->id, sizeof(connex->id));
 			addtobucket(server->connex, connex);

@@ -37,21 +37,21 @@ static struct bucket_list *configfiles = NULL;
 static int hash_files(const void *data, int key) {
 	int ret;
 	const struct config_file *file = data;
-	const char* hashkey = (key) ? data : file->filename;
+	const char *hashkey = (key) ? data : file->filename;
 
-        ret = jenhash(hashkey, strlen(hashkey), 0);
+	ret = jenhash(hashkey, strlen(hashkey), 0);
 
-        return(ret);
+	return(ret);
 }
 
 static int hash_cats(const void *data, int key) {
 	int ret;
 	const struct config_category *cat = data;
-	const char* hashkey = (key) ? data : cat->name;
+	const char *hashkey = (key) ? data : cat->name;
 
-        ret = jenhash(hashkey, strlen(hashkey), 0);
+	ret = jenhash(hashkey, strlen(hashkey), 0);
 
-        return(ret);
+	return(ret);
 }
 
 extern void initconfigfiles(void) {
@@ -70,10 +70,10 @@ static void free_config_entry(void *data) {
 	struct config_entry *entry = data;
 
 	if (entry->item) {
-		free((void*)entry->item);
+		free((void *)entry->item);
 	}
 	if (entry->value) {
-		free((void*)entry->value);
+		free((void *)entry->value);
 	}
 }
 
@@ -95,7 +95,7 @@ static void free_config_category(void *data) {
 	struct config_category *cat = data;
 
 	if (cat->name) {
-		free((void*)cat->name);
+		free((void *)cat->name);
 	}
 	if (cat->entries) {
 		objunref(cat->entries);
@@ -119,10 +119,10 @@ static void free_config_file(void *data) {
 	struct config_file *file = data;
 
 	if (file->filename) {
-		free((void*)file->filename);
+		free((void *)file->filename);
 	}
 	if (file->filepath) {
-		free((void*)file->filepath);
+		free((void *)file->filepath);
 	}
 	if (file->cat) {
 		objunref(file->cat);
@@ -217,7 +217,7 @@ extern int process_config(const char *configname, const char *configfile) {
 			continue;
 		}
 
-		if (sscanf(tmp, "%[^=] %*[=] %[^\n]", (char*)&item, (char*)&value) != 2) {
+		if (sscanf(tmp, "%[^=] %*[=] %[^\n]", (char *)&item, (char *)&value) != 2) {
 			continue;
 		}
 

@@ -32,9 +32,9 @@ void free_parser(void *data) {
 }
 
 int xslt_hash(const void *data, int key) {
-	int ret;   
+	int ret;
 	const struct xslt_param *xp = data;
-	const char* hashkey = (key) ? data : xp->name;
+	const char *hashkey = (key) ? data : xp->name;
 
 	if (hashkey) {
 		ret = jenhash(hashkey, strlen(hashkey), 0);
@@ -52,18 +52,18 @@ extern struct xslt_doc *xslt_open(const char *xsltfile) {
 	}
 	xslt_init();
 
-	xsltdoc->doc = xsltParseStylesheetFile((const xmlChar*)xsltfile);
+	xsltdoc->doc = xsltParseStylesheetFile((const xmlChar *)xsltfile);
 	xsltdoc->params = create_bucketlist(0, xslt_hash);
 	return xsltdoc;
 }
 
 void free_param(void *data) {
-	struct xslt_param *param = data;	
+	struct xslt_param *param = data;
 	if (param->name) {
-		free((void*)param->name);
+		free((void *)param->name);
 	}
 	if (param->value) {
-		free((void*)param->value);
+		free((void *)param->value);
 	}
 }
 
@@ -114,7 +114,7 @@ extern void xslt_apply(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc, const c
 	}
 
 	objlock(xsltdoc);
-	params = malloc(sizeof(void*) * (bucket_list_cnt(xsltdoc->params)*2 + 2));
+	params = malloc(sizeof(void *) * (bucket_list_cnt(xsltdoc->params)*2 + 2));
 	bloop = init_bucket_loop(xsltdoc->params);
 	while(bloop && (xparam = next_bucket_loop(bloop))) {
 		params[cnt] = xparam->name;

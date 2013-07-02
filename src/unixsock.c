@@ -104,10 +104,11 @@ static void *unsock_serv(void **data) {
 
 		/*returned due to interupt continue or timed out*/
 		if ((selfd < 0 && errno == EINTR) || (!selfd)) {
-     			continue;
-		} else if (selfd < 0) {
-			break;
-		}
+			continue;
+		} else
+			if (selfd < 0) {
+				break;
+			}
 
 		if (FD_ISSET(fd, &act_set)) {
 			clfd = objalloc(sizeof(int), NULL);

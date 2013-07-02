@@ -35,17 +35,17 @@ struct natmap {
 struct bucket_list *nptv6tbl = NULL;
 
 static int nptv6_hash(const void *data, int key) {
-        const struct natmap *map = data;
+	const struct natmap *map = data;
 	const void *hashkey = (key) ? data : map->ipre;
 	int ret;
 
 	ret = jenhash(hashkey, sizeof(map->ipre), 0);
 
-        return (ret);
+	return (ret);
 }
 
 extern void rfc6296_map(struct natmap *map, struct in6_addr *ipaddr, int out) {
-	uint16_t *addr_16 = (uint16_t*)&ipaddr->s6_addr;
+	uint16_t *addr_16 = (uint16_t *)&ipaddr->s6_addr;
 	uint32_t calc;
 	uint8_t cnt, *prefix, bitlen, bytelen;
 	uint16_t adj;
@@ -68,26 +68,27 @@ extern void rfc6296_map(struct natmap *map, struct in6_addr *ipaddr, int out) {
 		if (! ~addr_16[3]) {
 			addr_16[3] = 0;
 		}
-	} else if ((bytelen > 6) && (bytelen < 15)) {
-		/* find first non 0xFFFF word in lower 64 bits*/
-		for(cnt = ((bytelen-1) >> 1) + 1; cnt < 8; cnt++) {
-			if (! ~addr_16[cnt]) {
-				continue;
+	} else
+		if ((bytelen > 6) && (bytelen < 15)) {
+			/* find first non 0xFFFF word in lower 64 bits*/
+			for(cnt = ((bytelen-1) >> 1) + 1; cnt < 8; cnt++) {
+				if (! ~addr_16[cnt]) {
+					continue;
+				}
+				if (bitlen) {
+					ipaddr->s6_addr[bytelen-1] = prefix[bytelen-1] | (ipaddr->s6_addr[bytelen-1] & ((1 << (8 - bitlen)) -1));
+				} else {
+					ipaddr->s6_addr[bytelen-1] = prefix[bytelen-1];
+				}
+				memcpy(&ipaddr->s6_addr, prefix, bytelen - 1);
+				calc = ntohs(addr_16[cnt]) + adj;
+				addr_16[cnt] = htons((calc & 0xFFFF) + (calc >> 16));
+				if (! ~addr_16[cnt]) {
+					addr_16[cnt] = 0;
+				}
+				break;
 			}
-			if (bitlen) {
-				ipaddr->s6_addr[bytelen-1] = prefix[bytelen-1] | (ipaddr->s6_addr[bytelen-1] & ((1 << (8 - bitlen)) -1));
-			} else {
-				ipaddr->s6_addr[bytelen-1] = prefix[bytelen-1];
-			}
-			memcpy(&ipaddr->s6_addr, prefix, bytelen - 1);
-			calc = ntohs(addr_16[cnt]) + adj;
-			addr_16[cnt] = htons((calc & 0xFFFF) + (calc >> 16));
-			if (! ~addr_16[cnt]) {
-				addr_16[cnt] = 0;
-			}
-			break;
 		}
-	}
 }
 
 extern int rfc6296_map_add(char *intaddr, char *extaddr) {
@@ -173,7 +174,7 @@ extern int rfc6296_map_add(char *intaddr, char *extaddr) {
 
 extern void rfc6296_test(blist_cb callback, struct in6_addr *internal) {
 	/*find and run map*/
-        bucketlist_callback(nptv6tbl, callback, internal);
+	bucketlist_callback(nptv6tbl, callback, internal);
 
-        objunref(nptv6tbl);
+	objunref(nptv6tbl);
 }

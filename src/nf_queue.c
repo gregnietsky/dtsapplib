@@ -96,7 +96,7 @@ static void nfqueue_close_q(void *data) {
 }
 
 static void *nfqueue_thread(void **data) {
-        struct nfq_struct *nfq = *data;
+	struct nfq_struct *nfq = *data;
 	fd_set  rd_set, act_set;
 	struct timeval tv;
 	int len, selfd;
@@ -118,12 +118,13 @@ static void *nfqueue_thread(void **data) {
 		/*returned due to interupt continue or timed out*/
 		if ((selfd < 0 && errno == EINTR) || (!selfd)) {
 			continue;
-		} else if (selfd < 0) {
-			break;
-		}
+		} else
+			if (selfd < 0) {
+				break;
+			}
 
 		if ((FD_ISSET(nfq->fd, &act_set)) &&
-		    ((len = recv(nfq->fd, buf, sizeof(buf), 0)) >= 0)) {
+				((len = recv(nfq->fd, buf, sizeof(buf), 0)) >= 0)) {
 			objlock(nfq);
 			nfq_handle_packet(nfq->h, buf, len);
 			objunlock(nfq);
@@ -163,14 +164,15 @@ static struct nfq_struct *nfqueue_init(uint16_t pf) {
 
 	if (nfqueues) {
 		objref(nfqueues);
-	} else if (!(nfqueues = objalloc(sizeof(*nfqueues), nfqueues_close))) {
-		objunref(nfq);
-		return (NULL);
-	}
+	} else
+		if (!(nfqueues = objalloc(sizeof(*nfqueues), nfqueues_close))) {
+			objunref(nfq);
+			return (NULL);
+		}
 
 	objlock(nfqueues);
 	if ((nfqueues->queues || (nfqueues->queues = create_bucketlist(0, nfqueue_hash))) &&
-	    !addtobucket(nfqueues->queues, nfq)) {
+			!addtobucket(nfqueues->queues, nfq)) {
 		objunref(nfqueues);
 		objunref(nfq);
 		return (NULL);
@@ -188,7 +190,7 @@ static int nfqueue_callback(struct nfq_q_handle *qh, struct nfgenmsg *msg, struc
 	struct nfqnl_msg_packet_hdr *ph;
 	void *mangle = NULL;
 	uint32_t ret, mark;
-        uint32_t id = 0;
+	uint32_t id = 0;
 	uint32_t len = 0;
 	uint32_t verdict = NF_DROP;
 
@@ -227,7 +229,7 @@ extern struct nfq_queue *nfqueue_attach(uint16_t pf, uint16_t num, uint8_t mode,
 
 	objlock(nfqueues);
 	if (!(nfqueues && (nfq_q->nfq = bucket_list_find_key(nfqueues->queues, &pf))) &&
-	    !(nfq_q->nfq || (nfq_q->nfq = nfqueue_init(pf)))) {
+			!(nfq_q->nfq || (nfq_q->nfq = nfqueue_init(pf)))) {
 		objunlock(nfqueues);
 		objunref(nfq_q);
 		return (NULL);
@@ -253,7 +255,7 @@ extern struct nfq_queue *nfqueue_attach(uint16_t pf, uint16_t num, uint8_t mode,
 }
 
 extern uint16_t snprintf_pkt(struct nfq_data *tb, struct nfqnl_msg_packet_hdr *ph, uint8_t *pkt, char *buff, uint16_t len) {
-	struct iphdr *ip = (struct iphdr*)pkt;
+	struct iphdr *ip = (struct iphdr *)pkt;
 	char *tmp = buff;
 	uint32_t id, mark, ifi;
 	uint16_t tlen, left = len;
@@ -262,7 +264,7 @@ extern uint16_t snprintf_pkt(struct nfq_data *tb, struct nfqnl_msg_packet_hdr *p
 	if (ph) {
 		id = ntohl(ph->packet_id);
 		snprintf(tmp, left, "hw_protocol=0x%04x hook=%u id=%u ",
-			ntohs(ph->hw_protocol), ph->hook, id);
+				 ntohs(ph->hw_protocol), ph->hook, id);
 		tlen = strlen(tmp);
 		tmp += tlen;
 		left -= tlen;
@@ -290,7 +292,7 @@ extern uint16_t snprintf_pkt(struct nfq_data *tb, struct nfqnl_msg_packet_hdr *p
 	}
 
 	if (pkt && (ip->version == 4)) {
-		union l4hdr *l4 = (union l4hdr*)(pkt + (ip->ihl*4));
+		union l4hdr *l4 = (union l4hdr *)(pkt + (ip->ihl*4));
 
 		inet_ntop(AF_INET, &ip->saddr, saddr, INET_ADDRSTRLEN);
 		inet_ntop(AF_INET, &ip->daddr, daddr, INET_ADDRSTRLEN);

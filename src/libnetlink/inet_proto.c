@@ -22,14 +22,14 @@
 
 #include "utils.h"
 
-char *inet_proto_n2a(int proto, char *buf, int len)
-{
+char *inet_proto_n2a(int proto, char *buf, int len) {
 	static char ncache[16];
 	static int icache = -1;
 	struct protoent *pe;
 
-	if (proto == icache)
+	if (proto == icache) {
 		return ncache;
+	}
 
 	pe = getprotobynumber(proto);
 	if (pe) {
@@ -42,19 +42,20 @@ char *inet_proto_n2a(int proto, char *buf, int len)
 	return buf;
 }
 
-int inet_proto_a2n(char *buf)
-{
+int inet_proto_a2n(char *buf) {
 	static char ncache[16];
 	static int icache = -1;
 	struct protoent *pe;
 
-	if (icache>=0 && strcmp(ncache, buf) == 0)
+	if (icache>=0 && strcmp(ncache, buf) == 0) {
 		return icache;
+	}
 
 	if (buf[0] >= '0' && buf[0] <= '9') {
 		__u8 ret;
-		if (get_u8(&ret, buf, 10))
+		if (get_u8(&ret, buf, 10)) {
 			return -1;
+		}
 		return ret;
 	}
 
