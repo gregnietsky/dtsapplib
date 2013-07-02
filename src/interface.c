@@ -107,7 +107,7 @@ static int delete_interface(char *iface) {
 
 	/*check ifname grab a ref to nlh or open it*/
 	if (strlenzero(iface) || (strlen(iface) > IFNAMSIZ) ||
-	    (!objref(nlh) && !(nlh = nlhandle(0)))) {
+			(!objref(nlh) && !(nlh = nlhandle(0)))) {
 		return (-1);
 	}
 
@@ -158,7 +158,7 @@ extern int create_kernvlan(char *ifname, unsigned short vid) {
 	int ifindex, ret;
 
 	if (strlenzero(ifname) || (strlen(ifname) > IFNAMSIZ) ||
-	    (!objref(nlh) && !(nlh = nlhandle(0)))) {
+			(!objref(nlh) && !(nlh = nlhandle(0)))) {
 		return (-1);
 	}
 
@@ -192,8 +192,8 @@ extern int create_kernvlan(char *ifname, unsigned short vid) {
 	addattr_l(&req->n, sizeof(*req), IFLA_INFO_DATA, NULL, 0);
 	addattr_l(&req->n, sizeof(*req), IFLA_VLAN_ID, &vid, sizeof(vid));
 
-	data->rta_len = (char*)NLMSG_TAIL(&req->n) - (char*)data;
-	linkinfo->rta_len = (char*)NLMSG_TAIL(&req->n) - (char*)linkinfo;
+	data->rta_len = (char *)NLMSG_TAIL(&req->n) - (char *)data;
+	linkinfo->rta_len = (char *)NLMSG_TAIL(&req->n) - (char *)linkinfo;
 
 	objlock(nlh);
 	ret = rtnl_talk(nlh, &req->n, 0, 0, NULL);
@@ -221,8 +221,8 @@ extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	int ifindex, ret;
 
 	if (strlenzero(ifname) || (strlen(ifname) > IFNAMSIZ) ||
-	    strlenzero(macdev) || (strlen(macdev) > IFNAMSIZ) ||
-	    (!objref(nlh) && !(nlh = nlhandle(0)))) {
+			strlenzero(macdev) || (strlen(macdev) > IFNAMSIZ) ||
+			(!objref(nlh) && !(nlh = nlhandle(0)))) {
 		return (-1);
 	}
 
@@ -235,7 +235,7 @@ extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	if (!mac) {
 		randhwaddr(lmac);
 	} else {
-		strncpy((char*)lmac, (char*)mac, ETH_ALEN);
+		strncpy((char *)lmac, (char *)mac, ETH_ALEN);
 	}
 
 	if (!(req = objalloc(sizeof(*req), NULL))) {
@@ -261,8 +261,8 @@ extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	data = NLMSG_TAIL(&req->n);
 	addattr_l(&req->n, sizeof(*req), IFLA_INFO_DATA, NULL, 0);
 	addattr32(&req->n, sizeof(*req), IFLA_MACVLAN_MODE, MACVLAN_MODE_PRIVATE);
-	data->rta_len = (char*)NLMSG_TAIL(&req->n) - (char*)data;
-	linkinfo->rta_len = (char*)NLMSG_TAIL(&req->n) - (char*)linkinfo;
+	data->rta_len = (char *)NLMSG_TAIL(&req->n) - (char *)data;
+	linkinfo->rta_len = (char *)NLMSG_TAIL(&req->n) - (char *)linkinfo;
 
 	objlock(nlh);
 	ret = rtnl_talk(nlh, &req->n, 0, 0, NULL);
@@ -391,7 +391,7 @@ extern int interface_bind(char *iface, int protocol, int flags) {
 	sll.sll_family = PF_PACKET;
 	sll.sll_protocol = proto;
 	sll.sll_ifindex = ifindex;
-	if (bind(fd, (struct sockaddr*)&sll, sizeof(sll)) < 0) {
+	if (bind(fd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
 		perror("bind failed");
 		close(fd);
 		return (-1);
@@ -437,7 +437,7 @@ extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
 	ntpts = tvtontp64(&tv);
 
 	eui48to64(mac48, eui64);
-	sha1sum2(sha1, (void*)&ntpts, sizeof(ntpts), (void*)eui64, sizeof(eui64));
+	sha1sum2(sha1, (void *)&ntpts, sizeof(ntpts), (void *)eui64, sizeof(eui64));
 
 	prefix[0] = 0xFD; /*0xFC | 0x01 FC00/7 with local bit set [8th bit]*/
 	memcpy(prefix + 1, sha1+15, 5); /*LSD 40 bits of the SHA hash*/
@@ -460,12 +460,12 @@ extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags
 	char *tundev = "/dev/net/tun";
 
 	/* open the tun/tap clone dev*/
- 	if ((fd = open(tundev, O_RDWR)) < 0) {
+	if ((fd = open(tundev, O_RDWR)) < 0) {
 		return (-1);
- 	}
+	}
 
 	/* configure the device*/
- 	memset(&ifr, 0, sizeof(ifr));
+	memset(&ifr, 0, sizeof(ifr));
 	ifr.ifr_flags = flags;
 	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 	if (ioctl(fd, TUNSETIFF, (void *)&ifr) < 0 ) {
@@ -534,7 +534,7 @@ extern int ifhwaddr(const char *ifname, unsigned char *hwaddr) {
 	int ifindex;
 
 	if (!hwaddr || strlenzero(ifname) || (strlen(ifname) > IFNAMSIZ) ||
-	    (!objref(nlh) && !(nlh = nlhandle(0)))) {
+			(!objref(nlh) && !(nlh = nlhandle(0)))) {
 		return (-1);
 	}
 

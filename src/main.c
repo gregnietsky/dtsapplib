@@ -47,7 +47,8 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
 		case SIGINT:
 			framework_shutdown();
 			/* no break */
-		default:
+		default
+				:
 			if (framework_core_info->sig_handler) {
 				framework_core_info->sig_handler(sig, si, unused);
 			}
@@ -60,10 +61,10 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
  */
 static void printgnu(struct framework_core *ci) {
 	printf("%s\n\nCopyright (C) %i %s <%s>\n"
-"        %s\n\n"
-"    This program comes with ABSOLUTELY NO WARRANTY\n"
-"    This is free software, and you are welcome to redistribute it\n"
-"    under certain condition\n\n", ci->progname, ci->year, ci->developer, ci->email, ci->www);
+		   "        %s\n\n"
+		   "    This program comes with ABSOLUTELY NO WARRANTY\n"
+		   "    This is free software, and you are welcome to redistribute it\n"
+		   "    under certain condition\n\n", ci->progname, ci->year, ci->developer, ci->email, ci->www);
 }
 
 static pid_t daemonize() {
@@ -74,10 +75,11 @@ static pid_t daemonize() {
 	if (forkpid > 0) {
 		/* im all grown up and can pass onto child*/
 		exit(0);
-	} else if (forkpid < 0) {
-		/* could not fork*/
-		exit(-1);
-	}
+	} else
+		if (forkpid < 0) {
+			/* could not fork*/
+			exit(-1);
+		}
 
 	/* Dont want these as a daemon*/
 	signal(SIGTSTP, SIG_IGN);
@@ -97,19 +99,20 @@ static int lockpidfile(struct framework_core *ci) {
 
 	sprintf(pidstr,"%i\n", (int)ci->my_pid);
 	if (ci->runfile &&
-	    ((lck_fd = open(ci->runfile, O_RDWR|O_CREAT, 0640)) > 0) &&
-	    (!flock(lck_fd, LOCK_EX | LOCK_NB))) {
+			((lck_fd = open(ci->runfile, O_RDWR|O_CREAT, 0640)) > 0) &&
+			(!flock(lck_fd, LOCK_EX | LOCK_NB))) {
 		if (write(lck_fd, pidstr, strlen(pidstr)) < 0) {
 			close(lck_fd);
 			lck_fd = -1;
 		}
-	} else if (lck_fd) {
-		close(lck_fd);
-		lck_fd = -1;
-	} else {
-		ci->flock = -1;
-		return (0);
-	}
+	} else
+		if (lck_fd) {
+			close(lck_fd);
+			lck_fd = -1;
+		} else {
+			ci->flock = -1;
+			return (0);
+		}
 	ci->flock = lck_fd;
 	return (lck_fd);
 }

@@ -40,7 +40,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "include/dtsapp.h"
 
-typedef void	(*hmacfunc)(unsigned char*, const void*, unsigned long, const void*, unsigned long);
+typedef void	(*hmacfunc)(unsigned char *, const void *, unsigned long, const void *, unsigned long);
 
 extern void seedrand(void) {
 	int fd = open("/dev/random", O_RDONLY);
@@ -67,7 +67,7 @@ extern void sha512sum2(unsigned char *buff, const void *data, unsigned long len,
 }
 
 extern void sha512sum(unsigned char *buff, const void *data, unsigned long len) {
-        sha512sum2(buff, data, len, NULL, 0);
+	sha512sum2(buff, data, len, NULL, 0);
 }
 
 extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2) {
@@ -82,7 +82,7 @@ extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len,
 }
 
 extern void sha256sum(unsigned char *buff, const void *data, unsigned long len) {
-        sha256sum2(buff, data, len, NULL, 0);
+	sha256sum2(buff, data, len, NULL, 0);
 }
 
 extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2) {
@@ -97,7 +97,7 @@ extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, c
 }
 
 extern void sha1sum(unsigned char *buff, const void *data, unsigned long len) {
-        sha1sum2(buff, data, len, NULL, 0);
+	sha1sum2(buff, data, len, NULL, 0);
 }
 
 extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2) {
@@ -112,7 +112,7 @@ extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, co
 }
 
 extern void md5sum(unsigned char *buff, const void *data, unsigned long len) {
-        md5sum2(buff, data, len, NULL, 0);
+	md5sum2(buff, data, len, NULL, 0);
 }
 
 extern int _digest_cmp(unsigned char *md51, unsigned char *md52, int len) {
@@ -143,7 +143,7 @@ extern int sha512cmp(unsigned char *digest1, unsigned char *digest2) {
 }
 
 extern void _hmac(unsigned char *buff, const void *data, unsigned long len, const void *key, unsigned long klen,
-		hmacfunc func, short alglen) {
+				  hmacfunc func, short alglen) {
 	unsigned char	okey[64], ikey[64];
 	int		bcnt;
 
@@ -222,7 +222,7 @@ extern char *rtrim(const char *str) {
 }
 
 extern char *trim(const char *str) {
-	char *cur = (char*)str;
+	char *cur = (char *)str;
 
 	cur = ltrim(cur);
 	cur = rtrim(cur);
@@ -238,24 +238,24 @@ extern uint64_t tvtontp64(struct timeval *tv) {
  */
 extern uint16_t _checksum(const void *data, int len, const uint16_t check) {
 	uint64_t csum = 0;
-	const uint32_t *arr = (uint32_t*)data;
+	const uint32_t *arr = (uint32_t *)data;
 
 	/*handle 32bit chunks*/
- 	while(len > 3) {
+	while(len > 3) {
 		csum += *arr++;
 		len -= 4;
 	}
 
 	/*handle left over 16 bit chunk*/
 	if (len > 1) {
-		csum += *(uint16_t*)arr;
-		arr = (uint32_t*)((uint16_t*)arr + 1);
+		csum += *(uint16_t *)arr;
+		arr = (uint32_t *)((uint16_t *)arr + 1);
 		len -= 2;
 	}
 
 	/*handle odd byte*/
 	if (len) {
-		csum += *(uint8_t*)arr;
+		csum += *(uint8_t *)arr;
 	}
 
 	/*add checksum when called as verify*/

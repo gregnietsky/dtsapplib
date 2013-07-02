@@ -25,8 +25,7 @@
 
 extern unsigned int if_nametoindex (const char *);
 
-struct ll_cache
-{
+struct ll_cache {
 	struct ll_cache   *idx_next;
 	unsigned	flags;
 	int		index;
@@ -39,39 +38,42 @@ struct ll_cache
 #define IDXMAP_SIZE	1024
 static struct ll_cache *idx_head[IDXMAP_SIZE];
 
-static inline struct ll_cache *idxhead(int idx)
-{
+static inline struct ll_cache *idxhead(int idx) {
 	return idx_head[idx & (IDXMAP_SIZE - 1)];
 }
 
 int ll_remember_index(const struct sockaddr_nl *who,
-		      struct nlmsghdr *n, void *arg)
-{
+					  struct nlmsghdr *n, void *arg) {
 	int h;
 	struct ifinfomsg *ifi = NLMSG_DATA(n);
 	struct ll_cache *im, **imp;
 	struct rtattr *tb[IFLA_MAX+1];
 
-	if (n->nlmsg_type != RTM_NEWLINK)
+	if (n->nlmsg_type != RTM_NEWLINK) {
 		return 0;
+	}
 
-	if (n->nlmsg_len < NLMSG_LENGTH(sizeof(ifi)))
+	if (n->nlmsg_len < NLMSG_LENGTH(sizeof(ifi))) {
 		return -1;
+	}
 
 	memset(tb, 0, sizeof(tb));
 	parse_rtattr(tb, IFLA_MAX, IFLA_RTA(ifi), IFLA_PAYLOAD(n));
-	if (tb[IFLA_IFNAME] == NULL)
+	if (tb[IFLA_IFNAME] == NULL) {
 		return 0;
+	}
 
 	h = ifi->ifi_index & (IDXMAP_SIZE - 1);
 	for (imp = &idx_head[h]; (im=*imp)!=NULL; imp = &im->idx_next)
-		if (im->index == ifi->ifi_index)
+		if (im->index == ifi->ifi_index) {
 			break;
+		}
 
 	if (im == NULL) {
 		im = malloc(sizeof(*im));
-		if (im == NULL)
+		if (im == NULL) {
 			return 0;
+		}
 		im->idx_next = *imp;
 		im->index = ifi->ifi_index;
 		*imp = im;
@@ -82,8 +84,9 @@ int ll_remember_index(const struct sockaddr_nl *who,
 	if (tb[IFLA_ADDRESS]) {
 		int alen;
 		im->alen = alen = RTA_PAYLOAD(tb[IFLA_ADDRESS]);
-		if (alen > sizeof(im->addr))
+		if (alen > sizeof(im->addr)) {
 			alen = sizeof(im->addr);
+		}
 		memcpy(im->addr, RTA_DATA(tb[IFLA_ADDRESS]), alen);
 	} else {
 		im->alen = 0;
@@ -93,68 +96,72 @@ int ll_remember_index(const struct sockaddr_nl *who,
 	return 0;
 }
 
-const char *ll_idx_n2a(unsigned idx, char *buf)
-{
+const char *ll_idx_n2a(unsigned idx, char *buf) {
 	const struct ll_cache *im;
 
-	if (idx == 0)
+	if (idx == 0) {
 		return "*";
+	}
 
 	for (im = idxhead(idx); im; im = im->idx_next)
-		if (im->index == idx)
+		if (im->index == idx) {
 			return im->name;
+		}
 
 	snprintf(buf, IFNAMSIZ, "if%d", idx);
 	return buf;
 }
 
 
-const char *ll_index_to_name(unsigned idx)
-{
+const char *ll_index_to_name(unsigned idx) {
 	static char nbuf[IFNAMSIZ];
 
 	return ll_idx_n2a(idx, nbuf);
 }
 
-int ll_index_to_type(unsigned idx)
-{
+int ll_index_to_type(unsigned idx) {
 	const struct ll_cache *im;
 
-	if (idx == 0)
+	if (idx == 0) {
 		return -1;
+	}
 	for (im = idxhead(idx); im; im = im->idx_next)
-		if (im->index == idx)
+		if (im->index == idx) {
 			return im->type;
+		}
 	return -1;
 }
 
-unsigned ll_index_to_flags(unsigned idx)
-{
+unsigned ll_index_to_flags(unsigned idx) {
 	const struct ll_cache *im;
 
-	if (idx == 0)
+	if (idx == 0) {
 		return 0;
+	}
 
 	for (im = idxhead(idx); im; im = im->idx_next)
-		if (im->index == idx)
+		if (im->index == idx) {
 			return im->flags;
+		}
 	return 0;
 }
 
 unsigned ll_index_to_addr(unsigned idx, unsigned char *addr,
-			  unsigned alen)
-{
+						  unsigned alen) {
 	const struct ll_cache *im;
 
-	if (idx == 0)
+	if (idx == 0) {
 		return 0;
+	}
 
 	for (im = idxhead(idx); im; im = im->idx_next) {
 		if (im->index == idx) {
-			if (alen > sizeof(im->addr))
+			if (alen > sizeof(im->addr)) {
 				alen = sizeof(im->addr);
-			if (alen > im->alen)
+			}
+			if (alen > im->alen) {
 				alen = im->alen;
+			}
 			memcpy(addr, im->addr, alen);
 			return alen;
 		}
@@ -162,19 +169,20 @@ unsigned ll_index_to_addr(unsigned idx, unsigned char *addr,
 	return 0;
 }
 
-unsigned ll_name_to_index(const char *name)
-{
+unsigned ll_name_to_index(const char *name) {
 	static char ncache[IFNAMSIZ];
 	static int icache;
 	struct ll_cache *im;
 	int i;
 	unsigned idx;
 
-	if (name == NULL)
+	if (name == NULL) {
 		return 0;
+	}
 
-	if (icache && strcmp(name, ncache) == 0)
+	if (icache && strcmp(name, ncache) == 0) {
 		return icache;
+	}
 
 	for (i=0; i<IDXMAP_SIZE; i++) {
 		for (im = idx_head[i]; im; im = im->idx_next) {
@@ -187,17 +195,18 @@ unsigned ll_name_to_index(const char *name)
 	}
 
 	idx = if_nametoindex(name);
-	if (idx == 0)
+	if (idx == 0) {
 		sscanf(name, "if%u", &idx);
+	}
 	return idx;
 }
 
-int ll_init_map(struct rtnl_handle *rth, int reinit)
-{
+int ll_init_map(struct rtnl_handle *rth, int reinit) {
 	static int initialized;
 
-	if (initialized && !reinit)
+	if (initialized && !reinit) {
 		return 0;
+	}
 
 	if (rtnl_wilddump_request(rth, AF_UNSPEC, RTM_GETLINK) < 0) {
 		perror("Cannot send dump request");
