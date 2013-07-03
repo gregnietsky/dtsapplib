@@ -39,9 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-#include <stdint.h>
 #include <signal.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 
 /*socket structure*/
