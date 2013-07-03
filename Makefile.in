@@ -191,7 +191,6 @@ am__relativize = \
   reldir="$$dir2"
 DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
-DIST_TARGETS = dist-gzip
 distuninstallcheck_listfiles = find . -type f -print
 am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
   | sed 's|^\./|$(prefix)/|' | grep -v '$(infodir)/dir$$'
@@ -338,6 +337,7 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src
 EXTRA_DIST = LICENSE
+DIST_TARGETS = dist-gzip dist-bzip2 dist-xz dist-zip
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
