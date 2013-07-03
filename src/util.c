@@ -284,11 +284,15 @@ extern uint16_t verifysum(const void *data, int len, const uint16_t check) {
 }
 
 extern void touch(const char *filename, uid_t user, gid_t group) {
-	int fd;
+	int fd ,res;
 
 	fd = creat(filename, 0600);
 	close(fd);
-	chown(filename, user, group);
+	res = chown(filename, user, group);
+	if (res) {
+		return;
+	}
+	return;
 }
 
 #include <openssl/bio.h>

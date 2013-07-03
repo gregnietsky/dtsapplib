@@ -18,8 +18,5 @@ src/libnetlink/libnetlink.la
 *cbTemp
 autom4te.cache
 config.h.in~
-dtsapplib.layout
-dtsapplib-*.tar.bz2
-dtsapplib-*.tar.gz
-dtsapplib-*.tar.xz
-dtsapplib-*.zip
+/*.layout
+/dtsapplib-*.*
