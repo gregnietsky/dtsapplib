@@ -6,6 +6,12 @@ AC_INIT([dtsapplib],[0.2],[gregory@distrotech.co.za])
 AC_CONFIG_SRCDIR([src/thread.c])
 AC_CONFIG_HEADERS([config.h])
 
+#x:y:z z <= x
+#so.x.z.y
+
+LT_LIBVER=2:1:0
+AC_SUBST(LT_LIBVER)
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_AWK

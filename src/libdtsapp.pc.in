@@ -7,4 +7,4 @@ Cflags: -I${includedir}
 Name: libdtsapp
 Description: Distrotech Application Library
 Version: @VERSION@
-Libs: -L${libdir} -ldtsapp-@VERSION@
+Libs: -L${libdir} -ldtsapp
