@@ -40,7 +40,13 @@ extern "C" {
 #endif
 
 #include <signal.h>
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <ws2ipdef.h>
+#include <ws2ipdef.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 /*socket structure*/
 union sockstruct {
@@ -90,7 +96,9 @@ typedef struct nfqnl_msg_packet_hdr nfqnl_msg_packet_hdr;
 typedef void	(*radius_cb)(struct radius_packet *, void *);
 typedef void    *(*threadcleanup)(void *);
 typedef void    *(*threadfunc)(void **);
+#ifndef __WIN32__
 typedef void	(*syssighandler)(int, siginfo_t *, void *);
+#endif
 typedef int     (*threadsighandler)(int, void *);
 typedef	int	(*frameworkfunc)(int, char **);
 typedef int	(*blisthash)(const void *, int);
@@ -113,13 +121,19 @@ struct framework_core {
 	int  flock;
 	long	my_pid;
 	struct sigaction *sa;
+#ifndef __WIN32__
 	syssighandler	sig_handler;
+#endif
 };
 
 /*Initialise the framework */
 extern int framework_init(int argc, char *argv[], frameworkfunc callback, struct framework_core *core_info);
 /* Setup the run enviroment*/
+#ifndef __WIN32__
 extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, syssighandler sigfunc);
+#else
+extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile);
+#endif
 /* Run a thread under the framework */
 extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data);
 /* Shutdown framework*/
@@ -198,7 +212,11 @@ extern struct zobj *zcompress(uint8_t *buff, uint16_t len, uint8_t level);
 extern void zuncompress(struct zobj *buff, uint8_t *obuff);
 extern uint8_t *gzinflatebuf(uint8_t *buf_in, int buf_size, uint32_t *len);
 extern int is_gzip(uint8_t *buf, int buf_size);
+#ifdef __WIN32__
+extern void touch(const char *filename);
+#else
 extern void touch(const char *filename, uid_t user, gid_t group);
+#endif
 extern char *b64enc(const char *message, int nonl);
 extern char *b64enc_buf(const char *message, uint32_t len, int nonl);
 
@@ -210,7 +228,7 @@ extern struct fwsocket *tcpconnect(const char *ipaddr, const char *port, void *s
 extern struct fwsocket *sockbind(int family, int stype, int proto, const char *ipaddr, const char *port, void *ssl, int backlog);
 extern struct fwsocket *udpbind(const char *ipaddr, const char *port, void *ssl);
 extern struct fwsocket *tcpbind(const char *ipaddr, const char *port, void *ssl, int backlog);
-extern void closesocket(struct fwsocket *sock);
+extern void close_socket(struct fwsocket *sock);
 
 extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, threadcleanup cleanup);
 extern void socketserver(struct fwsocket *sock, socketrecv connectfunc, socketrecv acceptfunc, threadcleanup cleanup, void *data);

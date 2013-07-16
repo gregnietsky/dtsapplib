@@ -16,13 +16,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef __WIN32__
 #include <netdb.h>
+#endif
 #include <unistd.h>
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 #include "include/dtsapp.h"
 #include "include/private.h"
@@ -46,7 +54,7 @@ static int hash_socket(const void *data, int key) {
 	return (ret);
 }
 
-extern void closesocket(struct fwsocket *sock) {
+extern void close_socket(struct fwsocket *sock) {
 	if (sock) {
 		setflag(sock, SOCK_FLAG_CLOSE);
 		objunref(sock);
@@ -129,7 +137,9 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 	struct	addrinfo hint, *result, *rp;
 	struct fwsocket *sock = NULL;
 	socklen_t salen = sizeof(union sockstruct);
+#ifndef __WIN32__
 	int on = 1;
+#endif
 
 	memset(&hint, 0, sizeof(hint));
 	hint.ai_family = family;
@@ -164,9 +174,11 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 	if (ctype) {
 		sock->flags |= SOCK_FLAG_BIND;
 		memcpy(&sock->addr.ss, rp->ai_addr, sizeof(sock->addr.ss));
+#ifndef __WIN32__
 		setsockopt(sock->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 #ifdef SO_REUSEPORT
 		setsockopt(sock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
+#endif
 #endif
 		switch(sock->type) {
 			case SOCK_STREAM:
@@ -308,7 +320,7 @@ static void *_socket_handler(void **data) {
 				newsock->parent = NULL;
 			}
 			objunlock(newsock);
-			closesocket(newsock); /*remove ref*/
+			close_socket(newsock); /*remove ref*/
 		}
 		stop_bucket_loop(bloop);
 	}

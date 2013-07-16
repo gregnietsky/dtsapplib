@@ -1,4 +1,8 @@
 #include <string.h>
+#include <stdint.h>
+#ifdef __WIN32__
+#include <sec_api/string_s.h>
+#endif
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -447,7 +451,11 @@ extern void xml_createpath(struct xml_doc *xmldoc, const char *xpath) {
 	cpath[0] = '\0';
 	lpath[0] = '\0';
 
-	for (tok = strtok_r(dup, "/", &save); tok ; tok = strtok_r(NULL, "/", &save)) {
+#ifndef __WIN32__
+		for (tok = strtok_r(dup, "/", &save); tok ; tok = strtok_r(NULL, "/", &save)) {
+#else
+		for (tok = strtok_s(dup, "/", &save); tok ; tok = strtok_s(NULL, "/", &save)) {
+#endif
 		strcat(cpath,"/");
 		strcat(cpath, tok);
 		if (!strcmp(tok, root)) {

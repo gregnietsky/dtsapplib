@@ -19,6 +19,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#include <stdint.h>
+
+#ifndef SIGHUP
+#define SIGHUP		1
+#endif
 
 #include "include/dtsapp.h"
 
@@ -146,7 +151,11 @@ static void *managethread(void **data) {
 			objunref(thread);
 		}
 		stop_bucket_loop(bloop);
+#ifdef __WIN32__
+		Sleep(100);
+#else
 		sleep(1);
+#endif
 	}
 	objunref(threads);
 

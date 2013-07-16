@@ -16,7 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef __WIN32__
+#include <winsock2.h>
+#else
 #include <sys/socket.h>
+#endif
 #include <sys/stat.h>
 #include <linux/un.h>
 #include <linux/limits.h>

@@ -27,7 +27,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <errno.h>
 
+#ifdef __WIN32__
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include <uuid/uuid.h>
 #include <openssl/md5.h>
 #include "include/dtsapp.h"

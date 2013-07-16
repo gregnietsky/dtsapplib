@@ -62,6 +62,15 @@
 /* Define to 1 if you have the `z' library (-lz). */
 #undef HAVE_LIBZ
 
+/* Define to 1 if you have the <linux/ip.h> header file. */
+#undef HAVE_LINUX_IP_H
+
+/* Define to 1 if you have the <linux/un.h> header file. */
+#undef HAVE_LINUX_UN_H
+
+/* Define to 1 if you have the <linux/version.h> header file. */
+#undef HAVE_LINUX_VERSION_H
+
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
 #undef HAVE_MALLOC
@@ -93,6 +102,9 @@
 
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
+
+/* Define to 1 if you have the <signal.h> header file. */
+#undef HAVE_SIGNAL_H
 
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
