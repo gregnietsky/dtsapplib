@@ -226,6 +226,15 @@ extern int packetchecksumv6(uint8_t *pkt);
 extern int packetchecksum(uint8_t *pkt);
 extern void rfc6296_map(struct natmap *map, struct in6_addr *ipaddr, int out);
 extern int rfc6296_map_add(char *intaddr, char *extaddr);
+const char *cidrtosn(int bitlen, const char *buf, int size);
+const char *getnetaddr(const char *ipaddr, int cidr, const char *buf, int size);
+const char *getbcaddr(const char *ipaddr, int cidr, const char *buf, int size);
+const char *getfirstaddr(const char *ipaddr, int cidr, const char *buf, int size);
+const char *getlastaddr(const char *ipaddr, int cidr, const char *buf, int size);
+uint32_t cidrcnt(int bitlen);
+int reservedip(const char *ipaddr);
+char* ipv6to4prefix(const char *ipaddr);
+int check_ipv4(const char* ip, int cidr, const char *test);
 
 /*netfilter queue*/
 extern struct nfq_queue *nfqueue_attach(uint16_t pf, uint16_t num, uint8_t mode, uint32_t range, nfqueue_cb cb, void *data);
@@ -484,6 +493,11 @@ struct basic_auth *curl_newauth(const char *user, const char *passwd);
 struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *data);
 struct curlbuf *curl_ungzip(struct curlbuf *cbuf);
 
+/*File Utils*/
+extern int is_file(const char *path);
+extern int is_dir(const char *path);
+extern int is_exec(const char *path);
+extern int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 
 /*easter egg copied from <linux/jhash.h>*/
 #define JHASH_INITVAL           0xdeadbeef
@@ -514,9 +528,9 @@ struct curlbuf *curl_ungzip(struct curlbuf *cbuf);
 #define ALLOC_CONST(const_var, val) { \
 		char *tmp_char; \
 		if (val) { \
-			tmp_char = malloc(strlen(val) + 1); \
+			tmp_char = (char*)malloc(strlen(val) + 1); \
 			strcpy(tmp_char, val); \
-			const_var = tmp_char; \
+			const_var = (const char*)tmp_char; \
 		} else { \
 			const_var = NULL; \
 		} \
