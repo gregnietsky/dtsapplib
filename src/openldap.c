@@ -3,6 +3,7 @@
 #include <lber.h>
 #include <sasl/sasl.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <sys/time.h>

@@ -1,3 +1,8 @@
+#include <stdint.h>
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
 #include <string.h>
 
 #include <libxslt/xsltutils.h>
@@ -124,7 +129,11 @@ extern void xslt_apply(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc, const c
 		objunref(xparam);
 	};
 	params[cnt] = NULL;
+#ifndef __WIN32__
 	touch(filename, 80, 80);
+#else
+	touch(filename);
+#endif
 	objlock(xmldoc);
 	res = xsltApplyStylesheet(xsltdoc->doc, xmldoc->doc, params);
 	xsltSaveResultToFilename(filename, res, xsltdoc->doc, comp);

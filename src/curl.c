@@ -5,7 +5,7 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
-#include <dtsapp.h>
+#include "dtsapp.h"
 
 static void *curl_isinit = NULL;
 static CURL *curl = NULL;

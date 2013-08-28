@@ -19,10 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _FW_PRIVATE_H
 #define _FW_PRIVATE_H
 
+#ifdef HAVE_LINUX_IP_H
 #include <linux/ip.h>
 #include <linux/icmp.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
+#endif
 
 /*from sslutils iputil is the only consumer*/
 void dtsl_serveropts(struct fwsocket *sock);
@@ -33,10 +35,12 @@ int startthreads(void);
 void jointhreads(void);
 int thread_signal(int sig);
 
+#ifdef HAVE_LINUX_IP_H
 union l4hdr {
 	struct tcphdr tcp;
 	struct udphdr udp;
 	struct icmphdr icmp;
 };
+#endif
 
 #endif

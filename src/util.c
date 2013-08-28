@@ -27,6 +27,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *      investigation of the HMAC construction.
  */
 
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
@@ -283,15 +288,18 @@ extern uint16_t verifysum(const void *data, int len, const uint16_t check) {
 	return (_checksum(data, len, check));
 }
 
+#ifdef __WIN32__
+extern void touch(const char *filename) {
+#else
 extern void touch(const char *filename, uid_t user, gid_t group) {
-	int fd ,res;
+#endif
+	int fd;
 
 	fd = creat(filename, 0600);
 	close(fd);
-	res = chown(filename, user, group);
-	if (res) {
-		return;
-	}
+#ifndef __WIN32__
+	chown(filename, user, group);
+#endif
 	return;
 }
 
