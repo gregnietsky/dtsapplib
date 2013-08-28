@@ -145,6 +145,7 @@ struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_
 					break;
 				case 200:
 					curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &writebuf->c_type);
+					break;
 			}
 		}
 		i++;
