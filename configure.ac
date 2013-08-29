@@ -9,7 +9,7 @@ AC_CONFIG_HEADERS([config.h])
 #x:y:z z <= x
 #so.x.z.y
 
-LT_LIBVER=2:1:0
+LT_LIBVER=2:2:0
 AC_SUBST(LT_LIBVER)
 
 # Checks for programs.

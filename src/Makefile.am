@@ -13,7 +13,7 @@ includeinstdir = $(includedir)/dtsapplib
 includeinst_DATA = include/dtsapp.h
 
 libdtsapp_la_SOURCES = refobj.c lookup3.c thread.c main.c util.c socket.c sslutil.c config.c \
-                       zlib.c libxml2.c libxslt.c openldap.c curl.c $(LINSOURCE)
+                       zlib.c libxml2.c libxslt.c openldap.c curl.c $(LINSOURCE) fileutil.c
 
 libdtsapp_la_LIBADD = $(NLLIB) $(XSLT_LIBS) $(XML_LIBS) $(LDAP_LIBS) $(LIBS) $(LIBCURL)
 libdtsapp_la_CFLAGS = $(AM_CFLAGS) -I./libnetlink/include $(DEVELOPER_CFLAGS) $(XSLT_CFLAGS) $(XML_CFLAGS) $(LIBCURL_CPPFLAGS)
