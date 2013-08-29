@@ -510,12 +510,14 @@ void curlclose(void);
 struct basic_auth *curl_newauth(const char *user, const char *passwd);
 struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *data);
 struct curlbuf *curl_ungzip(struct curlbuf *cbuf);
+char *url_escape(char *url);
+char *url_unescape(char *url);
 
 /*File Utils*/
-extern int is_file(const char *path);
-extern int is_dir(const char *path);
-extern int is_exec(const char *path);
-extern int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
+int is_file(const char *path);
+int is_dir(const char *path);
+int is_exec(const char *path);
+int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 
 /*easter egg copied from <linux/jhash.h>*/
 #define JHASH_INITVAL           0xdeadbeef
