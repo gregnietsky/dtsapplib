@@ -210,3 +210,31 @@ struct basic_auth *curl_newauth(const char *user, const char *passwd) {
 	}
 	return bauth;
 }
+
+extern char *url_escape(char *url) {
+	char *esc;
+
+	if (!curlinit()) {
+		return NULL;
+	}
+
+	objlock(curl_isinit);
+	esc = curl_easy_escape(curl, url, 0);
+	objunlock(curl_isinit);
+	objunref(curl_isinit);
+	return esc; 
+}
+
+extern char *url_unescape(char *url) {
+	char *uesc;
+
+	if (!curlinit()) {
+		return NULL;
+	}
+
+	objlock(curl_isinit);
+	uesc = curl_easy_unescape(curl, url, 0, 0);
+	objunlock(curl_isinit);
+	objunref(curl_isinit);
+	return uesc;
+}
