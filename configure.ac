@@ -6,6 +6,12 @@ AC_INIT([dtsapplib],[0.2],[gregory@distrotech.co.za])
 AC_CONFIG_SRCDIR([src/thread.c])
 AC_CONFIG_HEADERS([config.h])
 
+#x:y:z z <= x
+#so.x.z.y
+
+LT_LIBVER=2:2:0
+AC_SUBST(LT_LIBVER)
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_AWK
@@ -67,13 +73,11 @@ AC_SUBST(FRAMEWORK_INCL)
 AC_SUBST(FRAMEWORK_SOURCES)
 AC_SUBST(DEVELOPER_CFLAGS)
 
-AM_CONDITIONAL([FRAMEWORK_INSTALL], [test "x$enable_framework_install" = xyes])
-AM_CONDITIONAL([FRAMEWORK_SYSTEM], [test "x$ac_cv_lib_framework_framework_mkthread" != "xyes"])
-
 LIBCURL_CHECK_CONFIG
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h netinet/in.h stdint.h stdlib.h string.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h unistd.h syslog.h sys/time.h netdb.h arpa/inet.h])
+AC_CHECK_HEADERS([signal.h fcntl.h netinet/in.h stdint.h stdlib.h string.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h \
+                  unistd.h syslog.h sys/time.h netdb.h arpa/inet.h linux/ip.h linux/un.h linux/version.h])
 
 AC_CHECK_FUNCS([gethostbyaddr])
 AC_CHECK_FUNCS([gettimeofday])
@@ -106,6 +110,10 @@ AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([memset munmap select socket])
+
+AM_CONDITIONAL([FRAMEWORK_INSTALL], [test "x$enable_framework_install" = xyes])
+AM_CONDITIONAL([FRAMEWORK_SYSTEM], [test "x$ac_cv_lib_framework_framework_mkthread" != "xyes"])
+AM_CONDITIONAL([LINUXSYSTEM], [test "x$ac_cv_header_linux_version_h" = "xyes"])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile

@@ -16,3 +16,7 @@ src/libdtsapp.la
 src/libdtsapp.pc
 src/libnetlink/libnetlink.la
 *cbTemp
+autom4te.cache
+config.h.in~
+/*.layout
+/dtsapplib-*.*

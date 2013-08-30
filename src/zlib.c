@@ -116,6 +116,7 @@ extern uint8_t *gzinflatebuf(uint8_t *buf_in, int buf_size, uint32_t *len) {
 		*len = 0;
 		buf = NULL;
 	}
+	inflateEnd(&zdat);
 
 	return buf;
 }

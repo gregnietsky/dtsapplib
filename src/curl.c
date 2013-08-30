@@ -5,7 +5,7 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
-#include <dtsapp.h>
+#include "dtsapp.h"
 
 static void *curl_isinit = NULL;
 static CURL *curl = NULL;
@@ -51,7 +51,9 @@ int curlinit(void) {
 		return 0;
 	}
 
+	objlock(curl_isinit);
 	if (!(curl = curl_easy_init())) {
+		objunlock(curl_isinit);
 		objunref(curl_isinit);
 		return 0;
 	}
@@ -63,6 +65,7 @@ int curlinit(void) {
 
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodytobuffer);
 	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headertobuffer);
+	objunlock(curl_isinit);
 	return 1;
 }
 
@@ -110,6 +113,7 @@ struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_
 		return NULL;
 	}
 
+	objlock(curl_isinit);
 	curl_easy_setopt(curl, CURLOPT_URL, def_url);
 	/*    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, buffer);*/
 
@@ -141,6 +145,7 @@ struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_
 					break;
 				case 200:
 					curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &writebuf->c_type);
+					break;
 			}
 		}
 		i++;
@@ -154,6 +159,7 @@ struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_
 	if (!bauth) {
 		objunref(auth);
 	}
+	objunlock(curl_isinit);
 	objunref(curl_isinit);
 	return writebuf;
 }
@@ -203,4 +209,32 @@ struct basic_auth *curl_newauth(const char *user, const char *passwd) {
 		bauth->passwd = NULL;
 	}
 	return bauth;
+}
+
+extern char *url_escape(char *url) {
+	char *esc;
+
+	if (!curlinit()) {
+		return NULL;
+	}
+
+	objlock(curl_isinit);
+	esc = curl_easy_escape(curl, url, 0);
+	objunlock(curl_isinit);
+	objunref(curl_isinit);
+	return esc; 
+}
+
+extern char *url_unescape(char *url) {
+	char *uesc;
+
+	if (!curlinit()) {
+		return NULL;
+	}
+
+	objlock(curl_isinit);
+	uesc = curl_easy_unescape(curl, url, 0, 0);
+	objunlock(curl_isinit);
+	objunref(curl_isinit);
+	return uesc;
 }

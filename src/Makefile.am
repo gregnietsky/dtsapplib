@@ -1,18 +1,23 @@
 ACLOCAL_AMFLAGS = -I m4
-AM_CFLAGS = -I./include $(DEVELOPER_CFLAGS)
+AM_CFLAGS = -I$(srcdir)/include $(DEVELOPER_CFLAGS)
 EXTRA_DIST = include
-SUBDIRS = libnetlink
-       
+if LINUXSYSTEM
+  NLSUBDIR = libnetlink
+  LINSOURCE = unixsock.c nf_queue.c nf_ctrack.c radius.c interface.c iputil.c rfc6296.c
+  NLLIB = ./libnetlink/libnetlink.la
+endif
+SUBDIRS = $(NLSUBDIR)
+
 lib_LTLIBRARIES = libdtsapp.la
-includeinstdir = $(oldincludedir)/dtsapplib
+includeinstdir = $(includedir)/dtsapplib
 includeinst_DATA = include/dtsapp.h
 
-libdtsapp_la_SOURCES = refobj.c lookup3.c thread.c main.c unixsock.c util.c radius.c socket.c sslutil.c interface.c config.c \
-                          iputil.c nf_queue.c nf_ctrack.c zlib.c rfc6296.c libxml2.c libxslt.c openldap.c curl.c
+libdtsapp_la_SOURCES = refobj.c lookup3.c thread.c main.c util.c socket.c sslutil.c config.c \
+                       zlib.c libxml2.c libxslt.c openldap.c curl.c $(LINSOURCE) fileutil.c
 
-libdtsapp_la_LIBADD = ./libnetlink/libnetlink.la $(XSLT_LIBS) $(XML_LIBS) $(LDAP_LIBS) $(LIBS) $(LIBCURL)
-libdtsapp_la_CFLAGS = -I./include -I./libnetlink/include $(DEVELOPER_CFLAGS) $(XSLT_CFLAGS) $(XML_CFLAGS) $(LIBCURL_CPPFLAGS)
-libdtsapp_la_LDFLAGS = -version-info 2:0:0 -release $(VERSION)
+libdtsapp_la_LIBADD = $(NLLIB) $(XSLT_LIBS) $(XML_LIBS) $(LDAP_LIBS) $(LIBS) $(LIBCURL)
+libdtsapp_la_CFLAGS = $(AM_CFLAGS) -I./libnetlink/include $(DEVELOPER_CFLAGS) $(XSLT_CFLAGS) $(XML_CFLAGS) $(LIBCURL_CPPFLAGS)
+libdtsapp_la_LDFLAGS = -version-info $(LT_LIBVER) -release $(VERSION)
 
 # Here are a set of rules to help you update your library version information:
 #

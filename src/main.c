@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/file.h>
@@ -29,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 static struct framework_core *framework_core_info;
 
+#ifndef __WIN32__
 /*
  * handle signals to cleanup gracefully on exit
  */
@@ -55,6 +57,7 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
 			/* no break */
 	}
 }
+#endif
 
 /*
  * Print gnu snippet at program run
@@ -68,6 +71,7 @@ static void printgnu(struct framework_core *ci) {
 }
 
 static pid_t daemonize() {
+#ifndef __WIN32__
 	pid_t	forkpid;
 
 	/* fork and die daemonize*/
@@ -88,6 +92,9 @@ static pid_t daemonize() {
 	/*set pid for consistancy i was 0 when born*/
 	forkpid = getpid();
 	return (forkpid);
+#else
+	return -1;
+#endif
 }
 
 /*
@@ -95,6 +102,7 @@ static pid_t daemonize() {
  */
 static int lockpidfile(struct framework_core *ci) {
 	int lck_fd = -1;
+#ifndef __WIN32__
 	char pidstr[12];
 
 	sprintf(pidstr,"%i\n", (int)ci->my_pid);
@@ -114,9 +122,12 @@ static int lockpidfile(struct framework_core *ci) {
 			return (0);
 		}
 	ci->flock = lck_fd;
+#endif
 	return (lck_fd);
 }
 
+
+#ifndef __WIN32__
 /*
  * set up signal handler
  */
@@ -133,21 +144,28 @@ static void configure_sigact(struct sigaction *sa) {
 	sigaction(SIGHUP, sa, NULL);
 	sigaction(SIGALRM, sa, NULL);
 }
+#endif
 
 /*
  * initialise core
  */
+#ifdef __WIN32__
+extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile) {
+#else
 extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, syssighandler sigfunc) {
+#endif
 	struct framework_core *core_info = NULL;
 
 	if (!(core_info = malloc(sizeof(*core_info)))) {
 		return NULL;
 	}
 
+#ifndef __WIN32__
 	if (core_info && !(core_info->sa = malloc(sizeof(*core_info->sa)))) {
 		free(core_info);
 		return NULL;
 	}
+#endif
 
 	ALLOC_CONST(core_info->developer, name);
 	ALLOC_CONST(core_info->email, email);
@@ -155,7 +173,9 @@ extern struct framework_core *framework_mkcore(char *progname, char *name, char 
 	ALLOC_CONST(core_info->runfile, runfile);
 	ALLOC_CONST(core_info->progname, progname);
 	core_info->year = year;
+#ifndef __WIN32__
 	core_info->sig_handler = sigfunc;
+#endif
 
 	return (core_info);
 }
@@ -214,8 +234,10 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback, struct
 		return (-1);
 	}
 
+#ifndef __WIN32__
 	/* interupt handler close clean on term so physical is reset*/
 	configure_sigact(core_info->sa);
+#endif
 
 	/*init the threadlist start thread manager*/
 	if (!startthreads()) {

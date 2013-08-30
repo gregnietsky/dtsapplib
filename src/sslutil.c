@@ -16,12 +16,20 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdint.h>
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <windows.h>
+#include <ws2tcpip.h>
+#endif
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifndef __WIN32__
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#endif
 
 #include "include/dtsapp.h"
 
@@ -363,6 +371,7 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 		return (-1);
 	}
 
+#ifndef __WIN32__
 	if (!ssl || !ssl->ssl) {
 		objlock(sock);
 		if (addr && (sock->type == SOCK_DGRAM)) {
@@ -383,6 +392,7 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 		objunlock(sock);
 		return (ret);
 	}
+#endif
 
 	objlock(ssl);
 	if (SSL_state(ssl->ssl) != SSL_ST_OK) {
@@ -522,7 +532,9 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 	struct ssldata *newssl;
 	struct fwsocket *newsock;
 	union sockstruct client;
+#ifndef __WIN32__
 	int on = 1;
+#endif
 
 	if (!(newssl = objalloc(sizeof(*newssl), free_ssldata))) {
 		return NULL;
@@ -545,12 +557,12 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 	}
 	objunlock(sock);
 	memcpy(&newsock->addr, &client, sizeof(newsock->addr));
-
+#ifndef __WIN32__
 	setsockopt(newsock->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 #ifdef SO_REUSEPORT
 	setsockopt(newsock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
 #endif
-
+#endif
 	objlock(sock);
 	bind(newsock->sock, &sock->addr.sa, sizeof(sock->addr));
 	objunlock(sock);

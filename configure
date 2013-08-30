@@ -636,13 +636,15 @@ ac_header_list=
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
-LIBCURL
-LIBCURL_CPPFLAGS
-_libcurl_config
+LINUXSYSTEM_FALSE
+LINUXSYSTEM_TRUE
 FRAMEWORK_SYSTEM_FALSE
 FRAMEWORK_SYSTEM_TRUE
 FRAMEWORK_INSTALL_FALSE
 FRAMEWORK_INSTALL_TRUE
+LIBCURL
+LIBCURL_CPPFLAGS
+_libcurl_config
 DEVELOPER_CFLAGS
 FRAMEWORK_SOURCES
 FRAMEWORK_INCL
@@ -742,6 +744,7 @@ CPPFLAGS
 LDFLAGS
 CXXFLAGS
 CXX
+LT_LIBVER
 target_alias
 host_alias
 build_alias
@@ -2510,6 +2513,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 ac_config_headers="$ac_config_headers config.h"
+
+
+#x:y:z z <= x
+#so.x.z.y
+
+LT_LIBVER=2:2:0
 
 
 # Checks for programs.
@@ -5860,8 +5869,7 @@ else
     ;;
   *)
     lt_cv_sys_max_cmd_len=`(getconf ARG_MAX) 2> /dev/null`
-    if test -n "$lt_cv_sys_max_cmd_len" && \
-	test undefined != "$lt_cv_sys_max_cmd_len"; then
+    if test -n "$lt_cv_sys_max_cmd_len"; then
       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \* 3`
     else
@@ -6262,6 +6270,10 @@ freebsd* | dragonfly*)
   fi
   ;;
 
+gnu*)
+  lt_cv_deplibs_check_method=pass_all
+  ;;
+
 haiku*)
   lt_cv_deplibs_check_method=pass_all
   ;;
@@ -6300,11 +6312,11 @@ irix5* | irix6* | nonstopux*)
   ;;
 
 # This must be glibc/ELF.
-linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+linux* | k*bsd*-gnu | kopensolaris*-gnu)
   lt_cv_deplibs_check_method=pass_all
   ;;
 
-netbsd* | netbsdelf*-gnu)
+netbsd*)
   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
     lt_cv_deplibs_check_method='match_pattern /lib[^/]+(\.so\.[0-9]+\.[0-9]+|_pic\.a)$'
   else
@@ -7397,14 +7409,7 @@ s390*-*linux*|s390*-*tpf*|sparc*-*linux*)
 	    LD="${LD-ld} -m elf_i386_fbsd"
 	    ;;
 	  x86_64-*linux*)
-	    case `/usr/bin/file conftest.o` in
-	      *x86-64*)
-		LD="${LD-ld} -m elf32_x86_64"
-		;;
-	      *)
-		LD="${LD-ld} -m elf_i386"
-		;;
-	    esac
+	    LD="${LD-ld} -m elf_i386"
 	    ;;
 	  ppc64-*linux*|powerpc64-*linux*)
 	    LD="${LD-ld} -m elf32ppclinux"
@@ -8977,7 +8982,7 @@ lt_prog_compiler_static=
       lt_prog_compiler_static='-non_shared'
       ;;
 
-    linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+    linux* | k*bsd*-gnu | kopensolaris*-gnu)
       case $cc_basename in
       # old Intel for x86_64 which still supported -KPIC.
       ecc*)
@@ -9455,9 +9460,6 @@ $as_echo_n "checking whether the $compiler linker ($LD) supports shared librarie
   openbsd*)
     with_gnu_ld=no
     ;;
-  linux* | k*bsd*-gnu | gnu*)
-    link_all_deplibs=no
-    ;;
   esac
 
   ld_shlibs=yes
@@ -9679,7 +9681,7 @@ _LT_EOF
       fi
       ;;
 
-    netbsd* | netbsdelf*-gnu)
+    netbsd*)
       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
 	archive_cmds='$LD -Bshareable $libobjs $deplibs $linker_flags -o $lib'
 	wlarc=
@@ -9856,7 +9858,6 @@ _LT_EOF
 	if test "$aix_use_runtimelinking" = yes; then
 	  shared_flag="$shared_flag "'${wl}-G'
 	fi
-	link_all_deplibs=no
       else
 	# not using gcc
 	if test "$host_cpu" = ia64; then
@@ -10310,7 +10311,7 @@ $as_echo "$lt_cv_irix_exported_symbol" >&6; }
       link_all_deplibs=yes
       ;;
 
-    netbsd* | netbsdelf*-gnu)
+    netbsd*)
       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
 	archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
       else
@@ -11147,6 +11148,17 @@ freebsd* | dragonfly*)
   esac
   ;;
 
+gnu*)
+  version_type=linux # correct to gnu/linux during the next big refactor
+  need_lib_prefix=no
+  need_version=no
+  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
+  soname_spec='${libname}${release}${shared_ext}$major'
+  shlibpath_var=LD_LIBRARY_PATH
+  shlibpath_overrides_runpath=no
+  hardcode_into_libs=yes
+  ;;
+
 haiku*)
   version_type=linux # correct to gnu/linux during the next big refactor
   need_lib_prefix=no
@@ -11263,7 +11275,7 @@ linux*oldld* | linux*aout* | linux*coff*)
   ;;
 
 # This must be glibc/ELF.
-linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+linux* | k*bsd*-gnu | kopensolaris*-gnu)
   version_type=linux # correct to gnu/linux during the next big refactor
   need_lib_prefix=no
   need_version=no
@@ -11325,18 +11337,6 @@ fi
   # people can always --disable-shared, the test was removed, and we
   # assume the GNU/Linux dynamic linker is in use.
   dynamic_linker='GNU/Linux ld.so'
-  ;;
-
-netbsdelf*-gnu)
-  version_type=linux
-  need_lib_prefix=no
-  need_version=no
-  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
-  soname_spec='${libname}${release}${shared_ext}$major'
-  shlibpath_var=LD_LIBRARY_PATH
-  shlibpath_overrides_runpath=no
-  hardcode_into_libs=yes
-  dynamic_linker='NetBSD ld.elf_so'
   ;;
 
 netbsd*)
@@ -13086,6 +13086,9 @@ fi
         ld_shlibs_CXX=yes
         ;;
 
+      gnu*)
+        ;;
+
       haiku*)
         archive_cmds_CXX='$CC -shared $libobjs $deplibs $compiler_flags ${wl}-soname $wl$soname -o $lib'
         link_all_deplibs_CXX=yes
@@ -13247,7 +13250,7 @@ fi
         inherit_rpath_CXX=yes
         ;;
 
-      linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+      linux* | k*bsd*-gnu | kopensolaris*-gnu)
         case $cc_basename in
           KCC*)
 	    # Kuck and Associates, Inc. (KAI) C++ Compiler
@@ -14107,7 +14110,7 @@ lt_prog_compiler_static_CXX=
 	    ;;
 	esac
 	;;
-      linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+      linux* | k*bsd*-gnu | kopensolaris*-gnu)
 	case $cc_basename in
 	  KCC*)
 	    # KAI C++ Compiler
@@ -14171,7 +14174,7 @@ lt_prog_compiler_static_CXX=
 	    ;;
 	esac
 	;;
-      netbsd* | netbsdelf*-gnu)
+      netbsd*)
 	;;
       *qnx* | *nto*)
         # QNX uses GNU C++, but need to define -shared option too, otherwise
@@ -14541,9 +14544,6 @@ $as_echo_n "checking whether the $compiler linker ($LD) supports shared librarie
       exclude_expsyms_CXX='[_]+GLOBAL_OFFSET_TABLE_|[_]+GLOBAL__[FID]_.*|[_]+head_[A-Za-z0-9_]+_dll|[A-Za-z0-9_]+_dll_iname'
       ;;
     esac
-    ;;
-  linux* | k*bsd*-gnu | gnu*)
-    link_all_deplibs_CXX=no
     ;;
   *)
     export_symbols_cmds_CXX='$NM $libobjs $convenience | $global_symbol_pipe | $SED '\''s/.* //'\'' | sort | uniq > $export_symbols'
@@ -14979,6 +14979,17 @@ freebsd* | dragonfly*)
   esac
   ;;
 
+gnu*)
+  version_type=linux # correct to gnu/linux during the next big refactor
+  need_lib_prefix=no
+  need_version=no
+  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
+  soname_spec='${libname}${release}${shared_ext}$major'
+  shlibpath_var=LD_LIBRARY_PATH
+  shlibpath_overrides_runpath=no
+  hardcode_into_libs=yes
+  ;;
+
 haiku*)
   version_type=linux # correct to gnu/linux during the next big refactor
   need_lib_prefix=no
@@ -15095,7 +15106,7 @@ linux*oldld* | linux*aout* | linux*coff*)
   ;;
 
 # This must be glibc/ELF.
-linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+linux* | k*bsd*-gnu | kopensolaris*-gnu)
   version_type=linux # correct to gnu/linux during the next big refactor
   need_lib_prefix=no
   need_version=no
@@ -15157,18 +15168,6 @@ fi
   # people can always --disable-shared, the test was removed, and we
   # assume the GNU/Linux dynamic linker is in use.
   dynamic_linker='GNU/Linux ld.so'
-  ;;
-
-netbsdelf*-gnu)
-  version_type=linux
-  need_lib_prefix=no
-  need_version=no
-  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
-  soname_spec='${libname}${release}${shared_ext}$major'
-  shlibpath_var=LD_LIBRARY_PATH
-  shlibpath_overrides_runpath=no
-  hardcode_into_libs=yes
-  dynamic_linker='NetBSD ld.elf_so'
   ;;
 
 netbsd*)
@@ -16459,23 +16458,6 @@ fi
 
 
 
- if test "x$enable_framework_install" = xyes; then
-  FRAMEWORK_INSTALL_TRUE=
-  FRAMEWORK_INSTALL_FALSE='#'
-else
-  FRAMEWORK_INSTALL_TRUE='#'
-  FRAMEWORK_INSTALL_FALSE=
-fi
-
- if test "x$ac_cv_lib_framework_framework_mkthread" != "xyes"; then
-  FRAMEWORK_SYSTEM_TRUE=
-  FRAMEWORK_SYSTEM_FALSE='#'
-else
-  FRAMEWORK_SYSTEM_TRUE='#'
-  FRAMEWORK_SYSTEM_FALSE=
-fi
-
-
 
 
 
@@ -16862,7 +16844,8 @@ _ACEOF
 
 
 # Checks for header files.
-for ac_header in fcntl.h netinet/in.h stdint.h stdlib.h string.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h unistd.h syslog.h sys/time.h netdb.h arpa/inet.h
+for ac_header in signal.h fcntl.h netinet/in.h stdint.h stdlib.h string.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h \
+                  unistd.h syslog.h sys/time.h netdb.h arpa/inet.h linux/ip.h linux/un.h linux/version.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -17813,6 +17796,31 @@ fi
 done
 
 
+ if test "x$enable_framework_install" = xyes; then
+  FRAMEWORK_INSTALL_TRUE=
+  FRAMEWORK_INSTALL_FALSE='#'
+else
+  FRAMEWORK_INSTALL_TRUE='#'
+  FRAMEWORK_INSTALL_FALSE=
+fi
+
+ if test "x$ac_cv_lib_framework_framework_mkthread" != "xyes"; then
+  FRAMEWORK_SYSTEM_TRUE=
+  FRAMEWORK_SYSTEM_FALSE='#'
+else
+  FRAMEWORK_SYSTEM_TRUE='#'
+  FRAMEWORK_SYSTEM_FALSE=
+fi
+
+ if test "x$ac_cv_header_linux_version_h" = "xyes"; then
+  LINUXSYSTEM_TRUE=
+  LINUXSYSTEM_FALSE='#'
+else
+  LINUXSYSTEM_TRUE='#'
+  LINUXSYSTEM_FALSE=
+fi
+
+
 ac_config_files="$ac_config_files Makefile src/Makefile src/libnetlink/Makefile src/libdtsapp.pc"
 
 cat >confcache <<\_ACEOF
@@ -17958,6 +17966,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${FRAMEWORK_SYSTEM_TRUE}" && test -z "${FRAMEWORK_SYSTEM_FALSE}"; then
   as_fn_error $? "conditional \"FRAMEWORK_SYSTEM\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${LINUXSYSTEM_TRUE}" && test -z "${LINUXSYSTEM_FALSE}"; then
+  as_fn_error $? "conditional \"LINUXSYSTEM\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
