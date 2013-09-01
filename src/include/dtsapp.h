@@ -373,7 +373,7 @@ struct xml_node {
 };
 
 extern struct xml_doc *xml_loaddoc(const char *docfile, int validate);
-extern struct xml_doc *xml_loadbuf(const uint8_t *buffer, uint32_t len);
+extern struct xml_doc *xml_loadbuf(const uint8_t *buffer, uint32_t len, int validate);
 extern struct xml_node *xml_getfirstnode(struct xml_search *xpsearch, void **iter);
 extern struct xml_node *xml_getnextnode(void *iter);
 extern struct bucket_list *xml_getnodes(struct xml_search *xpsearch);
