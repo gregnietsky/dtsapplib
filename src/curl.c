@@ -120,18 +120,18 @@ struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, writebuf);
 	curl_easy_setopt(curl, CURLOPT_WRITEHEADER, writebuf);
 
-	/*    if (auth && auth->user && auth->passwd) {
-	        snprintf(userpass, 63, "%s:%s", auth->user, auth->passwd);
-	        curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
-	    }*/
+	if (auth && auth->user && auth->passwd) {
+		snprintf(userpass, 63, "%s:%s", auth->user, auth->passwd);
+	   	curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
+		i++;
+	}
 
 	do {
 		if (!(res = curl_easy_perform(curl))) {
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &res);
 			switch (res) {
 				case 401:
-					if ((authcb) &&
-							((auth = authcb((auth) ? auth->user : NULL, (auth) ? auth->passwd : NULL, data)))) {
+					if ((authcb) && ((auth = authcb((auth) ? auth->user : "", (auth) ? auth->passwd : "", data)))) {
 						snprintf(userpass, 63, "%s:%s", auth->user, auth->passwd);
 						curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 						emptybuffer(writebuf);
