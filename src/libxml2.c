@@ -146,13 +146,20 @@ extern struct xml_doc *xml_loaddoc(const char *docfile, int validate) {
 	return xml_setup_parse(xmldata, validate);
 }
 
-extern struct xml_doc *xml_loadbuf(const uint8_t *buffer, uint32_t len) {
+extern struct xml_doc *xml_loadbuf(const uint8_t *buffer, uint32_t len, int validate) {
 	struct xml_doc *xmldata;
+	int flags;
 
 	xml_init();
 
 	if (!(xmldata = objalloc(sizeof(*xmldata), free_xmldata))) {
 		return NULL;
+	}
+
+	if (validate) {
+		flags = XML_PARSE_DTDLOAD | XML_PARSE_DTDVALID;
+	} else {
+		flags = XML_PARSE_DTDVALID;
 	}
 
 	if (!(xmldata->doc = xmlReadMemory((const char *)buffer, len, NULL, NULL, XML_PARSE_NONET))) {
