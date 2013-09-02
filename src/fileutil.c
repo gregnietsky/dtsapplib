@@ -26,7 +26,10 @@
 #include <math.h>
 #include <fcntl.h>
 #include <ctype.h>
+#ifdef __WIN32
+#else
 #include <grp.h>
+#endif
 
 extern int is_file(const char *path) {
 	struct stat sr;
@@ -55,10 +58,18 @@ extern int is_exec(const char *path) {
 	}
 }
 
+#ifdef __WIN32
+extern int mk_dir(const char *dir) {
+#else
 extern int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group) {
+#endif
 	struct stat sr;
 
+#ifdef __WIN32
+	if ((stat(dir, &sr) && (errno == ENOENT)) && !mkdir(dir)) {
+#else
 	if ((stat(dir, &sr) && (errno == ENOENT)) && !mkdir(dir, mode) && !chown(dir, user, group)) {
+#endif
 		return 0;
 	}
 	return -1;
