@@ -517,7 +517,11 @@ char *url_unescape(char *url);
 int is_file(const char *path);
 int is_dir(const char *path);
 int is_exec(const char *path);
+#ifdef __WIN32__
+int mk_dir(const char *dir);
+#else
 int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
+#endif
 
 /*easter egg copied from <linux/jhash.h>*/
 #define JHASH_INITVAL           0xdeadbeef
