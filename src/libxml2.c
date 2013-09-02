@@ -162,7 +162,7 @@ extern struct xml_doc *xml_loadbuf(const uint8_t *buffer, uint32_t len, int vali
 		flags = XML_PARSE_DTDVALID;
 	}
 
-	if (!(xmldata->doc = xmlReadMemory((const char *)buffer, len, NULL, NULL, XML_PARSE_NONET))) {
+	if (!(xmldata->doc = xmlReadMemory((const char *)buffer, len, NULL, NULL, flags))) {
 		objunref(xmldata);
 		return NULL;
 	}
