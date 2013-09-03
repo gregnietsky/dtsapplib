@@ -509,7 +509,8 @@ typedef struct basic_auth *(*curl_authcb)(const char *user, const char *passwd, 
 int curlinit(void);
 void curlclose(void);
 struct basic_auth *curl_newauth(const char *user, const char *passwd);
-struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *data);
+struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *data);
+struct curlbuf *curl_posturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *data);
 struct curlbuf *curl_ungzip(struct curlbuf *cbuf);
 char *url_escape(char *url);
 char *url_unescape(char *url);

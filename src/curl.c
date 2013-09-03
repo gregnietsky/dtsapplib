@@ -99,7 +99,7 @@ static void emptybuffer(void *data) {
 	writebuf->hsize = 0;
 }
 
-struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *auth_data) {
+static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *auth_data) {
 	long res;
 	int i = 0;
 	struct basic_auth *auth = bauth;
@@ -167,6 +167,14 @@ struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, struc
 	objunlock(curl_isinit);
 	objunref(curl_isinit);
 	return writebuf;
+}
+
+struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *auth_data) {
+	return curl_sendurl(def_url, bauth, NULL, authcb, auth_data);
+}
+
+struct curlbuf *curl_posturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *auth_data) {
+	return curl_sendurl(def_url, bauth, post, authcb, auth_data);
 }
 
 struct curlbuf *curl_ungzip(struct curlbuf *cbuf) {
