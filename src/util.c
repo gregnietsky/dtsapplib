@@ -292,13 +292,15 @@ extern uint16_t verifysum(const void *data, int len, const uint16_t check) {
 extern void touch(const char *filename) {
 #else
 extern void touch(const char *filename, uid_t user, gid_t group) {
+	int res;
 #endif
 	int fd;
 
 	fd = creat(filename, 0600);
 	close(fd);
 #ifndef __WIN32__
-	chown(filename, user, group);
+	res = chown(filename, user, group);
+	res++;
 #endif
 	return;
 }

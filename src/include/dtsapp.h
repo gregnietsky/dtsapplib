@@ -510,10 +510,13 @@ int curlinit(void);
 void curlclose(void);
 struct basic_auth *curl_newauth(const char *user, const char *passwd);
 struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *data);
+struct curl_post *curl_newpost(void);
+void curl_postitem(struct curl_post *post, const char *name, const char *item);
 struct curlbuf *curl_posturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *data);
 struct curlbuf *curl_ungzip(struct curlbuf *cbuf);
 char *url_escape(char *url);
 char *url_unescape(char *url);
+
 
 /*File Utils*/
 int is_file(const char *path);
