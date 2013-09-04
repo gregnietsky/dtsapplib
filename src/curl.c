@@ -10,6 +10,11 @@
 static void *curl_isinit = NULL;
 static CURL *curl = NULL;
 
+struct curl_post {
+	struct curl_httppost* first;
+	struct curl_httppost* last;
+};
+
 static size_t bodytobuffer(void *ptr, size_t size, size_t nmemb, void *userdata) {
 	size_t bufsize = size * nmemb;
 	struct curlbuf *mem = (struct curlbuf *)userdata;
@@ -94,7 +99,7 @@ static void emptybuffer(void *data) {
 	writebuf->hsize = 0;
 }
 
-struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *data) {
+static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *auth_data) {
 	long res;
 	int i = 0;
 	struct basic_auth *auth = bauth;
@@ -131,7 +136,7 @@ struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &res);
 			switch (res) {
 				case 401:
-					if ((authcb) && ((auth = authcb((auth) ? auth->user : "", (auth) ? auth->passwd : "", data)))) {
+					if ((authcb) && ((auth = authcb((auth) ? auth->user : "", (auth) ? auth->passwd : "", auth_data)))) {
 						snprintf(userpass, 63, "%s:%s", auth->user, auth->passwd);
 						curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 						emptybuffer(writebuf);
@@ -162,6 +167,14 @@ struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_
 	objunlock(curl_isinit);
 	objunref(curl_isinit);
 	return writebuf;
+}
+
+struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *auth_data) {
+	return curl_sendurl(def_url, bauth, NULL, authcb, auth_data);
+}
+
+struct curlbuf *curl_posturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *auth_data) {
+	return curl_sendurl(def_url, bauth, post, authcb, auth_data);
 }
 
 struct curlbuf *curl_ungzip(struct curlbuf *cbuf) {

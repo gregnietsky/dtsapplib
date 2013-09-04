@@ -503,12 +503,14 @@ struct curlbuf {
 	size_t bsize;
 };
 
+typedef struct curl_post curl_post;
 typedef struct basic_auth *(*curl_authcb)(const char *user, const char *passwd, void *data);
 
 int curlinit(void);
 void curlclose(void);
 struct basic_auth *curl_newauth(const char *user, const char *passwd);
 struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *data);
+struct curlbuf *curl_posturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *data);
 struct curlbuf *curl_ungzip(struct curlbuf *cbuf);
 char *url_escape(char *url);
 char *url_unescape(char *url);
@@ -517,7 +519,11 @@ char *url_unescape(char *url);
 int is_file(const char *path);
 int is_dir(const char *path);
 int is_exec(const char *path);
+#ifdef __WIN32__
+int mk_dir(const char *dir);
+#else
 int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
+#endif
 
 /*easter egg copied from <linux/jhash.h>*/
 #define JHASH_INITVAL           0xdeadbeef
