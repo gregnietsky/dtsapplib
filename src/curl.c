@@ -11,8 +11,8 @@ static void *curl_isinit = NULL;
 static CURL *curl = NULL;
 
 struct curl_post {
-	struct curl_httppost* first;
-	struct curl_httppost* last;
+	struct curl_httppost *first;
+	struct curl_httppost *last;
 };
 
 static size_t bodytobuffer(void *ptr, size_t size, size_t nmemb, void *userdata) {
@@ -125,29 +125,45 @@ static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *baut
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, writebuf);
 	curl_easy_setopt(curl, CURLOPT_WRITEHEADER, writebuf);
 
+	if (post) {
+		objlock(post);
+		curl_easy_setopt(curl, CURLOPT_HTTPPOST, post->first);
+	}
+
 	if (auth && auth->user && auth->passwd) {
 		snprintf(userpass, 63, "%s:%s", auth->user, auth->passwd);
 	   	curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 		i++;
+	} else if (!auth) {
+		auth = curl_newauth(NULL, NULL);
 	}
 
 	do {
 		if (!(res = curl_easy_perform(curl))) {
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &res);
 			switch (res) {
+				/*needs auth*/
 				case 401:
 					if ((authcb) && ((auth = authcb((auth) ? auth->user : "", (auth) ? auth->passwd : "", auth_data)))) {
 						snprintf(userpass, 63, "%s:%s", auth->user, auth->passwd);
 						curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 						emptybuffer(writebuf);
+					} else {
+						i=3;
 					}
 					break;
+				/*not found*/
+				case 300:
+					i=3;
+					break;
+				/*redirect*/
 				case 301:
 					curl_easy_getinfo(curl,CURLINFO_REDIRECT_URL, &url);
 					curl_easy_setopt(curl, CURLOPT_URL, url);
 					emptybuffer(writebuf);
 					i--;
 					break;
+				/*ok*/
 				case 200:
 					curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &writebuf->c_type);
 					break;
@@ -163,6 +179,11 @@ static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *baut
 
 	if (!bauth) {
 		objunref(auth);
+	}
+
+	if (post) {
+		objunlock(post);
+		objunref(post);
 	}
 	objunlock(curl_isinit);
 	objunref(curl_isinit);
@@ -214,14 +235,43 @@ struct basic_auth *curl_newauth(const char *user, const char *passwd) {
 	if (user) {
 		bauth->user = strdup(user);
 	} else {
-		bauth->user = NULL;
+		bauth->user = strdup("");
 	}
 	if (passwd) {
 		bauth->passwd = strdup(passwd);
 	} else {
-		bauth->passwd = NULL;
+		bauth->passwd = strdup("");
 	}
 	return bauth;
+}
+
+void free_post(void *data) {
+	struct curl_post *post = data;
+	if (post->first) {
+		curl_formfree(post->first);
+	}
+}
+
+extern struct curl_post *curl_newpost(void) {
+	struct curl_post *post;
+	if (!(post = objalloc(sizeof(*post), free_post))) {
+		return NULL;
+	}
+	post->first = NULL;
+	post->last = NULL;
+	return post;
+}
+
+void curl_postitem(struct curl_post *post, const char *name, const char *item) {
+	if (!name || !item) {
+		return;
+	}
+	objlock(post);
+	curl_formadd(&post->first, &post->last,
+		CURLFORM_COPYNAME, name,
+		CURLFORM_COPYCONTENTS, item,
+		CURLFORM_END);
+	objunlock(post);
 }
 
 extern char *url_escape(char *url) {
@@ -235,7 +285,7 @@ extern char *url_escape(char *url) {
 	esc = curl_easy_escape(curl, url, 0);
 	objunlock(curl_isinit);
 	objunref(curl_isinit);
-	return esc; 
+	return esc;
 }
 
 extern char *url_unescape(char *url) {
