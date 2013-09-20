@@ -576,17 +576,19 @@ extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, c
 
 	encval = xmlEncodeSpecialChars(xmldoc->doc, (const xmlChar *)value);
 	child = xmlNewDocNode(xmldoc->doc, NULL, (const xmlChar *)name, encval);
-	xmlAddChild(parent,child);
-	objunlock(xmldoc);
 	xmlFree(encval);
+	xmlAddChild(parent,child);
+
+	if (attrkey && keyval) {
+		encval = xmlEncodeSpecialChars(xmldoc->doc, (const xmlChar *)keyval);
+		xmlSetProp(child, (const xmlChar *)attrkey, (const xmlChar *)encval);
+		xmlFree(encval);
+	}
+	objunlock(xmldoc);
 
 	if (!(newnode = xml_nodetohash(xmldoc, child, attrkey))) {
 		objunref(xmldoc);
 		return NULL;
-	}
-
-	if (attrkey && keyval) {
-		xml_setattr(xmldoc, newnode, attrkey, keyval);
 	}
 
 	objunref(xmldoc);
