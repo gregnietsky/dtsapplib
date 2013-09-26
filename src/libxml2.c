@@ -407,11 +407,20 @@ extern const char *xml_getrootname(struct xml_doc *xmldoc) {
 
 extern void xml_modify(struct xml_doc *xmldoc, struct xml_node *xnode, const char *value) {
 	xmlChar *encval;
+	xmlNodePtr node;
 
 	objlock(xmldoc);
+	node = xnode->nodeptr;
 	encval = xmlEncodeSpecialChars(xmldoc->doc, (const xmlChar *)value);
-	xmlNodeSetContent(xnode->nodeptr, encval);
+	xmlNodeSetContent(node, encval);
+	xmlFree(encval);
+	encval = xmlNodeListGetString(xmldoc->doc, node->xmlChildrenNode, 1);
 	objunlock(xmldoc);
+
+	if (xnode->value) {
+		free((void*)xnode->value);
+	}
+	ALLOC_CONST(xnode->value, (const char *)encval);
 	xmlFree(encval);
 }
 
