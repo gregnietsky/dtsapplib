@@ -498,38 +498,24 @@ extern void xml_createpath(struct xml_doc *xmldoc, const char *xpath) {
 	objunref(xmldoc);
 }
 
-extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, const char *name, const char *value,
-									const char *attrkey, const char *keyval) {
+
+static xmlNodePtr xml_getparent(struct xml_doc *xmldoc, const char *xpath) {
 	xmlXPathObjectPtr xpathObj;
-	struct xml_node *newnode;
-	xmlNodeSetPtr nodes;
 	xmlNodePtr parent = NULL;
-	xmlNodePtr child;
-	xmlChar *encval;
-	int i,cnt;
+	xmlNodeSetPtr nodes;
+	int i, cnt;
 
-	if (!objref(xmldoc)) {
-		return NULL;
-	}
-
-	objlock(xmldoc);
 	if (!(xpathObj = xmlXPathEvalExpression((const xmlChar *)xpath, xmldoc->xpathCtx))) {
-		objunlock(xmldoc);
-		objunref(xmldoc);
 		return NULL;
 	}
 
 	if (xmlXPathNodeSetIsEmpty(xpathObj->nodesetval)) {
-		objunlock(xmldoc);
 		xmlXPathFreeObject(xpathObj);
-		objunref(xmldoc);
 		return NULL;
 	}
 
 	if (!(nodes = xpathObj->nodesetval)) {
-		objunlock(xmldoc);
 		xmlXPathFreeObject(xpathObj);
-		objunref(xmldoc);
 		return NULL;
 	}
 
@@ -543,31 +529,77 @@ extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, c
 	}
 
 	if (!parent) {
-		objunlock(xmldoc);
 		xmlXPathFreeObject(xpathObj);
+		return NULL;
+	}
+
+	xmlXPathFreeObject(xpathObj);
+	return parent;
+}
+
+
+extern void xml_appendnode(struct xml_doc *xmldoc, const char *xpath, struct  xml_node *child) {
+	xmlNodePtr parent;
+
+	if (!objref(xmldoc)) {
+		return;
+	}
+
+	objlock(xmldoc);
+	if (!(parent = xml_getparent(xmldoc, xpath))) {
+		objunlock(xmldoc);
+		objunref(xmldoc);
+	}
+
+	xmlAddChild(parent,child->nodeptr);
+	objunlock(xmldoc);
+	objunref(xmldoc);
+}
+
+extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, const char *name, const char *value,
+									const char *attrkey, const char *keyval) {
+	struct xml_node *newnode;
+	xmlNodePtr parent;
+	xmlNodePtr child;
+	xmlChar *encval;
+
+	if (!objref(xmldoc)) {
+		return NULL;
+	}
+
+	objlock(xmldoc);
+	if (!(parent = xml_getparent(xmldoc, xpath))) {
+		objunlock(xmldoc);
 		objunref(xmldoc);
 		return NULL;
 	}
 
 	encval = xmlEncodeSpecialChars(xmldoc->doc, (const xmlChar *)value);
 	child = xmlNewDocNode(xmldoc->doc, NULL, (const xmlChar *)name, encval);
-	xmlAddChild(parent,child);
-	objunlock(xmldoc);
 	xmlFree(encval);
-	xmlXPathFreeObject(xpathObj);
+	xmlAddChild(parent,child);
+
+	if (attrkey && keyval) {
+		encval = xmlEncodeSpecialChars(xmldoc->doc, (const xmlChar *)keyval);
+		xmlSetProp(child, (const xmlChar *)attrkey, (const xmlChar *)encval);
+		xmlFree(encval);
+	}
+	objunlock(xmldoc);
 
 	if (!(newnode = xml_nodetohash(xmldoc, child, attrkey))) {
 		objunref(xmldoc);
 		return NULL;
 	}
 
-	if (attrkey && keyval) {
-		xml_setattr(xmldoc, newnode, attrkey, keyval);
-	}
-
 	objunref(xmldoc);
 
 	return newnode;
+}
+
+extern void xml_unlink(struct xml_node *xnode) {
+	objlock(xnode);
+	xmlUnlinkNode(xnode->nodeptr);
+	objunlock(xnode);
 }
 
 extern void xml_delete(struct xml_node *xnode) {

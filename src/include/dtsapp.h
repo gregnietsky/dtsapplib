@@ -384,6 +384,8 @@ extern const char *xml_getattr(struct xml_node *xnode, const char *attr);
 extern void xml_modify(struct xml_doc *xmldoc, struct xml_node *xnode, const char *value);
 extern void xml_setattr(struct xml_doc *xmldoc, struct xml_node *xnode, const char *name, const char *value);
 extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, const char *name, const char *value, const char *attrkey, const char *keyval);
+void xml_appendnode(struct xml_doc *xmldoc, const char *xpath, struct xml_node *child);
+void xml_unlink(struct xml_node *xnode);
 extern void xml_delete(struct xml_node *xnode);
 extern char *xml_getbuffer(void *buffer);
 extern void *xml_doctobuffer(struct xml_doc *xmldoc);
