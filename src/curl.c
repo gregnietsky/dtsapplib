@@ -10,6 +10,14 @@
 static void *curl_isinit = NULL;
 static CURL *curl = NULL;
 
+static struct curl_progress {
+	void *data;
+	curl_progress_func cb;
+	curl_progress_newdata d_cb;
+	curl_progress_pause p_cb;
+} *curlprogress = NULL;
+
+
 struct curl_post {
 	struct curl_httppost *first;
 	struct curl_httppost *last;
@@ -64,6 +72,7 @@ int curlinit(void) {
 	}
 
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
 	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
 
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0 [Distro Solutions]");
@@ -76,6 +85,9 @@ int curlinit(void) {
 
 void curlclose(void) {
 	objunref(curl_isinit);
+	if (curlprogress) {
+		objunref(curlprogress);
+	}
 }
 
 static void emptybuffer(void *data) {
@@ -106,6 +118,7 @@ static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *baut
 	struct curlbuf *writebuf;
 	char userpass[64];
 	char *url;
+	void *p_data = NULL;
 	/*    char buffer[1024];
 	    struct curl_slist *cookies, *nc;*/
 
@@ -138,18 +151,31 @@ static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *baut
 		auth = curl_newauth(NULL, NULL);
 	}
 
+	if (curlprogress && ((p_data = curlprogress->d_cb(curlprogress->data)))) {
+		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
+		curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, curlprogress->cb);
+		curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, p_data);
+	}
+
 	do {
 		if (!(res = curl_easy_perform(curl))) {
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &res);
 			switch (res) {
 				/*needs auth*/
 				case 401:
+					if (curlprogress && curlprogress->p_cb) {
+						curlprogress->p_cb(p_data, 1);
+					}
 					if ((authcb) && ((auth = authcb((auth) ? auth->user : "", (auth) ? auth->passwd : "", auth_data)))) {
 						snprintf(userpass, 63, "%s:%s", auth->user, auth->passwd);
 						curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 						emptybuffer(writebuf);
 					} else {
 						i=3;
+					}
+
+					if (curlprogress && curlprogress->p_cb) {
+						curlprogress->p_cb(p_data, 0);
 					}
 					break;
 				/*not found*/
@@ -185,6 +211,15 @@ static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *baut
 		objunlock(post);
 		objunref(post);
 	}
+
+	if (curlprogress && curlprogress->p_cb) {
+		curlprogress->p_cb(p_data, -1);
+	}
+
+	if (p_data) {
+		objunref(p_data);
+	}
+
 	objunlock(curl_isinit);
 	objunref(curl_isinit);
 	return writebuf;
@@ -300,4 +335,27 @@ extern char *url_unescape(char *url) {
 	objunlock(curl_isinit);
 	objunref(curl_isinit);
 	return uesc;
+}
+
+void free_progress(void *data) {
+	if (data) {
+		objunref(data);
+	}
+}
+
+void curl_setprogress(curl_progress_func cb, curl_progress_pause p_cb, curl_progress_newdata d_cb, void *data) {
+	if (curlprogress) {
+		objunref(curlprogress);
+		curlprogress = NULL;
+	}
+
+	if (!(curlprogress = objalloc(sizeof(*curlprogress), free_progress))) {
+		return;
+	}
+	curlprogress->cb = cb;
+	curlprogress->d_cb = d_cb;
+	curlprogress->p_cb = p_cb;
+	if (data && objref(data)) {
+		curlprogress->data = data;
+	}
 }
