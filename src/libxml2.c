@@ -20,11 +20,6 @@ struct xml_node_iter {
 	int cnt;
 };
 
-struct xml_buffer {
-	xmlChar *buffer;
-	int size;
-};
-
 struct xml_search {
 	struct xml_doc *xmldoc;
 	xmlXPathObjectPtr xpathObj;
@@ -33,7 +28,7 @@ struct xml_search {
 
 static void *xml_has_init_parser = NULL;
 
-static void free_buffer(void *data) {
+void free_buffer(void *data) {
 	struct xml_buffer *xb = data;
 	xmlFree(xb->buffer);
 }

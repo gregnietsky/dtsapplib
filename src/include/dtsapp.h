@@ -397,11 +397,12 @@ extern void xml_init();
 extern void xml_close();
 
 /*XSLT*/
-extern struct xslt_doc *xslt_open(const char *xsltfile);
-extern void xslt_addparam(struct xslt_doc *xsltdoc, const char *param, const char *value);
-extern void xslt_apply(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc, const char *filename, int comp);
-extern void xslt_init();
-extern void xslt_close();
+struct xslt_doc *xslt_open(const char *xsltfile);
+void xslt_addparam(struct xslt_doc *xsltdoc, const char *param, const char *value);
+void xslt_apply(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc, const char *filename, int comp);
+void *xslt_apply_buffer(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc);
+void xslt_init();
+void xslt_close();
 
 /* LDAP */
 enum ldap_starttls {
