@@ -20,11 +20,6 @@ struct xml_node_iter {
 	int cnt;
 };
 
-struct xml_buffer {
-	xmlChar *buffer;
-	int size;
-};
-
 struct xml_search {
 	struct xml_doc *xmldoc;
 	xmlXPathObjectPtr xpathObj;
@@ -33,7 +28,7 @@ struct xml_search {
 
 static void *xml_has_init_parser = NULL;
 
-static void free_buffer(void *data) {
+void free_buffer(void *data) {
 	struct xml_buffer *xb = data;
 	xmlFree(xb->buffer);
 }
@@ -407,11 +402,20 @@ extern const char *xml_getrootname(struct xml_doc *xmldoc) {
 
 extern void xml_modify(struct xml_doc *xmldoc, struct xml_node *xnode, const char *value) {
 	xmlChar *encval;
+	xmlNodePtr node;
 
 	objlock(xmldoc);
+	node = xnode->nodeptr;
 	encval = xmlEncodeSpecialChars(xmldoc->doc, (const xmlChar *)value);
-	xmlNodeSetContent(xnode->nodeptr, encval);
+	xmlNodeSetContent(node, encval);
+	xmlFree(encval);
+	encval = xmlNodeListGetString(xmldoc->doc, node->xmlChildrenNode, 1);
 	objunlock(xmldoc);
+
+	if (xnode->value) {
+		free((void*)xnode->value);
+	}
+	ALLOC_CONST(xnode->value, (const char *)encval);
 	xmlFree(encval);
 }
 

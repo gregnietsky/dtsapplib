@@ -19,11 +19,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _FW_PRIVATE_XML_H
 #define _FW_PRIVATE_XML_H
 
+struct xml_buffer {
+	xmlChar *buffer;
+	int size;
+};
+
 struct xml_doc {
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlXPathContextPtr xpathCtx;
 	xmlValidCtxtPtr ValidCtxt;
 };
+
+void free_buffer(void *data);
 
 #endif
