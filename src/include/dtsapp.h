@@ -517,6 +517,7 @@ void curlclose(void);
 struct basic_auth *curl_newauth(const char *user, const char *passwd);
 struct curlbuf *curl_geturl(const char *def_url, struct basic_auth *bauth, curl_authcb authcb,void *data);
 void curl_setprogress(curl_progress_func cb, curl_progress_pause p_cb, curl_progress_newdata d_cb, void *data);
+void curl_setauth_cb(curl_authcb auth_cb, void *data);
 struct curl_post *curl_newpost(void);
 void curl_postitem(struct curl_post *post, const char *name, const char *item);
 struct curlbuf *curl_posturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *data);
