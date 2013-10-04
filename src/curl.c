@@ -17,6 +17,10 @@ static struct curl_progress {
 	curl_progress_pause p_cb;
 } *curlprogress = NULL;
 
+static struct curl_password {
+	curl_authcb authcb;
+	void *data;
+} *curlpassword = NULL;
 
 struct curl_post {
 	struct curl_httppost *first;
@@ -87,6 +91,11 @@ void curlclose(void) {
 	objunref(curl_isinit);
 	if (curlprogress) {
 		objunref(curlprogress);
+		curlprogress = NULL;
+	}
+	if (curlpassword) {
+		objunref(curlpassword);
+		curlpassword = NULL;
 	}
 }
 
@@ -111,7 +120,7 @@ static void emptybuffer(void *data) {
 	writebuf->hsize = 0;
 }
 
-static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *auth_data) {
+static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb_in,void *auth_data_in) {
 	long res;
 	int i = 0;
 	struct basic_auth *auth = bauth;
@@ -119,6 +128,8 @@ static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *baut
 	char userpass[64];
 	char *url;
 	void *p_data = NULL;
+	curl_authcb authcb = authcb_in;
+	void *auth_data = auth_data_in;
 	/*    char buffer[1024];
 	    struct curl_slist *cookies, *nc;*/
 
@@ -155,6 +166,11 @@ static struct curlbuf *curl_sendurl(const char *def_url, struct basic_auth *baut
 		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
 		curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, curlprogress->cb);
 		curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, p_data);
+	}
+
+	if (curlpassword && !authcb) {
+		authcb = curlpassword->authcb;
+		auth_data = curlpassword->data;
 	}
 
 	do {
@@ -357,5 +373,26 @@ void curl_setprogress(curl_progress_func cb, curl_progress_pause p_cb, curl_prog
 	curlprogress->p_cb = p_cb;
 	if (data && objref(data)) {
 		curlprogress->data = data;
+	}
+}
+
+void free_curlpassword(void *data) {
+	struct curl_password *cpwd = data;
+	if (cpwd->data) {
+		objunref(data);
+	}
+}
+
+void curl_setauth_cb(curl_authcb auth_cb, void *data) {
+	if (curlpassword) {
+		objunref(curlpassword);
+		curlpassword = NULL;
+	}
+	if (!(curlpassword = objalloc(sizeof(*curlpassword), free_curlpassword))) {
+		return;
+	}
+	curlpassword->authcb = auth_cb;
+	if (data && objref(data)) {
+		curlpassword->data = data;
 	}
 }
