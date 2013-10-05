@@ -56,6 +56,15 @@ static size_t headertobuffer(void *ptr, size_t size, size_t nmemb, void *userdat
 static void curlfree(void *data) {
 	if (curl) {
 		curl_easy_cleanup(curl);
+		curl = NULL;
+	}
+	if (curlprogress) {
+		objunref(curlprogress);
+		curlprogress = NULL;
+	}
+	if (curlpassword) {
+		objunref(curlpassword);
+		curlpassword = NULL;
 	}
 }
 
@@ -89,14 +98,7 @@ int curlinit(void) {
 
 void curlclose(void) {
 	objunref(curl_isinit);
-	if (curlprogress) {
-		objunref(curlprogress);
-		curlprogress = NULL;
-	}
-	if (curlpassword) {
-		objunref(curlpassword);
-		curlpassword = NULL;
-	}
+	curl_isinit = NULL;
 }
 
 static void emptybuffer(void *data) {
@@ -354,8 +356,9 @@ extern char *url_unescape(char *url) {
 }
 
 void free_progress(void *data) {
-	if (data) {
-		objunref(data);
+	struct curl_progress *prg = data;
+	if (prg->data) {
+		objunref(prg->data);
 	}
 }
 
@@ -379,7 +382,7 @@ void curl_setprogress(curl_progress_func cb, curl_progress_pause p_cb, curl_prog
 void free_curlpassword(void *data) {
 	struct curl_password *cpwd = data;
 	if (cpwd->data) {
-		objunref(data);
+		objunref(cpwd->data);
 	}
 }
 
@@ -388,9 +391,11 @@ void curl_setauth_cb(curl_authcb auth_cb, void *data) {
 		objunref(curlpassword);
 		curlpassword = NULL;
 	}
+
 	if (!(curlpassword = objalloc(sizeof(*curlpassword), free_curlpassword))) {
 		return;
 	}
+
 	curlpassword->authcb = auth_cb;
 	if (data && objref(data)) {
 		curlpassword->data = data;
