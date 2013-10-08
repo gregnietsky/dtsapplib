@@ -156,6 +156,7 @@ extern int objsize(void *data);
 extern int objunref(void *data);
 extern int objref(void *data);
 extern void *objalloc(int size, objdestroy);
+void *objchar(const char *orig);
 
 /*
  * hashed bucket lists
@@ -522,6 +523,7 @@ struct curl_post *curl_newpost(void);
 void curl_postitem(struct curl_post *post, const char *name, const char *item);
 struct curlbuf *curl_posturl(const char *def_url, struct basic_auth *bauth, struct curl_post *post, curl_authcb authcb,void *data);
 struct curlbuf *curl_ungzip(struct curlbuf *cbuf);
+extern struct xml_doc *curl_buf2xml(struct curlbuf *cbuf);
 char *url_escape(char *url);
 char *url_unescape(char *url);
 
@@ -575,5 +577,19 @@ int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 
 #ifdef __cplusplus
 }
+/*
+ * Macro to add refobj support too C++ overloading new/delete creating
+ * unref method
+ */
+#define DTS_OJBREF_CLASS(classtype)	void *operator new(size_t sz) {\
+			return objalloc(sz, &classtype::dts_unref_classtype);\
+		}\
+		void operator delete(void *obj) {\
+		}\
+		static void dts_unref_classtype(void *data) {\
+			delete (classtype*)data;\
+		}\
+		~classtype()
+
 #endif
 #endif
