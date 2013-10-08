@@ -401,3 +401,14 @@ void curl_setauth_cb(curl_authcb auth_cb, void *data) {
 		curlpassword->data = data;
 	}
 }
+
+extern struct xml_doc *curl_buf2xml(struct curlbuf *cbuf) {
+	struct xml_doc *xmldoc = NULL;
+
+	if (cbuf && cbuf->c_type && !strcmp("application/xml", cbuf->c_type)) {
+		curl_ungzip(cbuf);
+		xmldoc = xml_loadbuf(cbuf->body, cbuf->bsize, 1);
+	}
+	return xmldoc;
+}
+

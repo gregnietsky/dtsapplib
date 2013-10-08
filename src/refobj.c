@@ -627,3 +627,13 @@ extern void bucketlist_callback(struct bucket_list *blist, blist_cb callback, vo
 	}
 	stop_bucket_loop(bloop);
 }
+
+extern void *objchar(const char *orig) {
+	int len = strlen(orig) + 1;
+	void *nobj;
+
+	if ((nobj = objalloc(len, NULL))) {
+		memcpy(nobj, orig, len);
+	}
+	return nobj;
+}
