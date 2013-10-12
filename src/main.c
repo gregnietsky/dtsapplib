@@ -16,6 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief Application framework
+  * @ingroup LIB
+  * @addtogroup LIB
+  * @{*/
+
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -28,7 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "include/dtsapp.h"
 #include "include/private.h"
 
-static struct framework_core *framework_core_info;
+static struct framework_core *framework_core_info = NULL;
 
 #ifndef __WIN32__
 /*
@@ -59,70 +65,96 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
 }
 #endif
 
-/*
- * Print gnu snippet at program run
- */
-static void printgnu(struct framework_core *ci) {
+/** @brief Print a brief GNU copyright notice on console.
+  * 
+  * framework_mkcore() needs to be run to ininitilise the data
+  * @see FRAMEWORK_MAIN()
+  * @see framework_mkcore()*/
+extern void printgnu() {
+	struct framework_core *ci;
+	if (framework_core_info && objref(framework_core_info)) {
+		ci = framework_core_info;
+	} else {
+		return;
+	}
 	printf("%s\n\nCopyright (C) %i %s <%s>\n"
 		   "        %s\n\n"
 		   "    This program comes with ABSOLUTELY NO WARRANTY\n"
 		   "    This is free software, and you are welcome to redistribute it\n"
 		   "    under certain condition\n\n", ci->progname, ci->year, ci->developer, ci->email, ci->www);
+	objunref(ci);
 }
 
-static pid_t daemonize() {
+/** @brief Daemonise the application using fork/exit
+  * 
+  * This should be run early before file descriptors and threads are started
+  * @see FRAMEWORK_MAIN()
+  * @todo WIN32 options is there a alternative for this.
+  * @return Application PID*/
+extern void daemonize() {
 #ifndef __WIN32__
 	pid_t	forkpid;
 
+	if (!(framework_core_info->flags & FRAMEWORK_FLAG_DAEMON)) {
+		framework_core_info->my_pid = -1;
+		return;
+	}
+	
 	/* fork and die daemonize*/
 	forkpid = fork();
 	if (forkpid > 0) {
 		/* im all grown up and can pass onto child*/
 		exit(0);
-	} else
-		if (forkpid < 0) {
-			/* could not fork*/
-			exit(-1);
-		}
+	} else if (forkpid < 0) {
+		/* could not fork*/
+		exit(-1);
+	}
 
 	/* Dont want these as a daemon*/
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGCHLD, SIG_IGN);
 
 	/*set pid for consistancy i was 0 when born*/
-	forkpid = getpid();
-	return (forkpid);
+	framework_core_info->my_pid = getpid();
 #else
-	return -1;
+	framework_core_info->my_pid = -1;
 #endif
 }
 
 /*
  * create pid / run file and hold a exclusive lock on it
  */
-static int lockpidfile(struct framework_core *ci) {
-	int lck_fd = -1;
+extern int lockpidfile() {
+	struct framework_core *ci;
+	int lck_fd = 0;
 #ifndef __WIN32__
 	char pidstr[12];
+#endif
 
+	if (framework_core_info && objref(framework_core_info)) {
+		ci = framework_core_info;
+	} else {
+		return 0;
+	}
+#ifndef __WIN32__
 	sprintf(pidstr,"%i\n", (int)ci->my_pid);
-	if (ci->runfile &&
-			((lck_fd = open(ci->runfile, O_RDWR|O_CREAT, 0640)) > 0) &&
-			(!flock(lck_fd, LOCK_EX | LOCK_NB))) {
+	if (ci->runfile && ((lck_fd = open(ci->runfile, O_RDWR|O_CREAT, 0640)) > 0) && (!flock(lck_fd, LOCK_EX | LOCK_NB))) {
 		if (write(lck_fd, pidstr, strlen(pidstr)) < 0) {
 			close(lck_fd);
 			lck_fd = -1;
 		}
-	} else
-		if (lck_fd) {
-			close(lck_fd);
-			lck_fd = -1;
-		} else {
-			ci->flock = -1;
-			return (0);
-		}
+	/* file was opened and not locked*/
+	} else if (ci->runfile && lck_fd) {
+		close(lck_fd);
+		lck_fd = -1;
+	} else {
+		ci->flock = -1;
+		objunref(ci);
+		return 0;
+	}
 	ci->flock = lck_fd;
 #endif
+	objunref(ci);
 	return (lck_fd);
 }
 
@@ -147,46 +179,10 @@ static void configure_sigact(struct sigaction *sa) {
 #endif
 
 /*
- * initialise core
- */
-#ifdef __WIN32__
-extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile) {
-#else
-extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, syssighandler sigfunc) {
-#endif
-	struct framework_core *core_info = NULL;
-
-	if (!(core_info = malloc(sizeof(*core_info)))) {
-		return NULL;
-	}
-
-#ifndef __WIN32__
-	if (core_info && !(core_info->sa = malloc(sizeof(*core_info->sa)))) {
-		free(core_info);
-		return NULL;
-	}
-#endif
-
-	ALLOC_CONST(core_info->developer, name);
-	ALLOC_CONST(core_info->email, email);
-	ALLOC_CONST(core_info->www, web);
-	ALLOC_CONST(core_info->runfile, runfile);
-	ALLOC_CONST(core_info->progname, progname);
-	core_info->year = year;
-#ifndef __WIN32__
-	core_info->sig_handler = sigfunc;
-#endif
-
-	return (core_info);
-}
-
-/*
  * free core
  */
-static void framework_free(struct framework_core *ci) {
-	if (!ci) {
-		return;
-	}
+static void framework_free(void *data) {
+	struct framework_core *ci = data;
 
 	if (ci->developer) {
 		free((char *)ci->developer);
@@ -211,38 +207,76 @@ static void framework_free(struct framework_core *ci) {
 	}
 }
 
-/*
- * daemonise and start thread manager
- */
-extern int framework_init(int argc, char *argv[], frameworkfunc callback, struct framework_core *core_info) {
+/** @brief Initilise application data structure and return a reference
+  * @note The returned value must be un referenced
+  * @param progname Descrioptive program name.
+  * @param name Copyright holder.
+  * @param email Copyright email address.
+  * @param web Website address.
+  * @param year Copyright year.
+  * @param runfile Run file that will store the pid and be locked (flock).
+  * @param flags Application flags.
+  * @param sigfunc Signal handler.*/
+extern void framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, int flags, syssighandler sigfunc) {
+	struct framework_core *core_info;
+	if (framework_core_info) {
+		objunref(framework_core_info);
+		framework_core_info = NULL;
+	}
+
+	if (!(core_info = objalloc(sizeof(*core_info), framework_free))) {
+		return;
+	}
+
+#ifndef __WIN32__
+	if (core_info && !(core_info->sa = malloc(sizeof(*core_info->sa)))) {
+		free(core_info);
+		return;
+	}
+#endif
+
+	ALLOC_CONST(core_info->developer, name);
+	ALLOC_CONST(core_info->email, email);
+	ALLOC_CONST(core_info->www, web);
+	ALLOC_CONST(core_info->runfile, runfile);
+	ALLOC_CONST(core_info->progname, progname);
+	core_info->year = year;
+	core_info->flags = flags;
+#ifndef __WIN32__
+	core_info->sig_handler = sigfunc;
+#endif
+	/* Pass reference to static system variable*/
+	framework_core_info = core_info;
+}
+
+/** @brief Initilise the application daemonise and join the manager thread.*/
+extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	int ret = 0;
 
 	seedrand();
 	sslstartup();
 
-	framework_core_info = core_info;
-
 	/*prinit out a GNU licence summary*/
-	printgnu(core_info);
+	printgnu();
 
 	/* fork the process to daemonize it*/
-	core_info->my_pid = daemonize();
+	daemonize();
 
-	if (lockpidfile(core_info) < 0) {
+	if (lockpidfile(framework_core_info) < 0) {
 		printf("Could not lock pid file Exiting\n");
-		framework_free(core_info);
+		objunref(framework_core_info);
 		return (-1);
 	}
 
 #ifndef __WIN32__
 	/* interupt handler close clean on term so physical is reset*/
-	configure_sigact(core_info->sa);
+	configure_sigact(framework_core_info->sa);
 #endif
 
 	/*init the threadlist start thread manager*/
 	if (!startthreads()) {
 		printf("Memory Error could not start threads\n");
-		framework_free(core_info);
+		objunref(framework_core_info);
 		return (-1);
 	}
 
@@ -259,6 +293,8 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback, struct
 	}
 
 	/* turn off the lights*/
-	framework_free(core_info);
+	objunref(framework_core_info);
 	return (ret);
 }
+
+/** @}*/

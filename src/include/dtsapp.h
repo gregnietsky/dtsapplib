@@ -32,6 +32,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 The FreeRADIUS Server Project
  */
 
+/** @defgroup LIB Distrotech Application Library
+  * @brief A Collection of helper functions and wrapped up interfaces to other libraries
+  * @file
+  * @brief DTS Application library API Include file.
+  * @ingroup LIB
+  * 
+  * The library foremostly implements reference counted objects and hashed bucket lists
+  * @ref LIB-OBJ these are then used to implement simpler API's to common tasks.
+  * @par Key components
+  * @n INI style config file parser.
+  * @n CURL wraper with support for GET/POST, authentification and progress indication.
+  * @n File utilities as a wrapper arround fstat.
+  * @n IP 4/6 Utilities for calculating / checking subnets and checksuming packets.
+  * @n Interface API for Linux networking including libnetlink from iproute2
+  * @n XML/XSLT Simplified API for reading, managing and applying transforms.
+  * @n Some Application shortcuts and wrapper for main quick and dirty daemon app.
+  * @n Wrappers for Linux netfilter connection tracking and packet queueing
+  * @n Open LDAP API.
+  * @n Basic implementation of RADIUS.
+  * @n Implementation of RFC 6296.
+  * @n Thread API using pthreads.
+  * @n Simple implementation of UNIX Domain socket.
+  * @n Various Utilities including hashing and checksum.
+  * @n Z Lib Compression/Uncompression Functions.*/ 
+
 #ifndef _INCLUDE_DTSAPP_H
 #define _INCLUDE_DTSAPP_H
 
@@ -98,6 +123,8 @@ typedef void    *(*threadcleanup)(void *);
 typedef void    *(*threadfunc)(void **);
 #ifndef __WIN32__
 typedef void	(*syssighandler)(int, siginfo_t *, void *);
+#else
+typedef void	(*syssighandler)(int, void*, void*);
 #endif
 typedef int     (*threadsighandler)(int, void *);
 typedef	int	(*frameworkfunc)(int, char **);
@@ -110,6 +137,13 @@ typedef void	(*config_catcb)(struct bucket_list *, const char *);
 typedef void	(*config_entrycb)(const char *, const char *);
 typedef uint32_t (*nfqueue_cb)(struct nfq_data *, struct nfqnl_msg_packet_hdr *, char *, uint32_t, void *, uint32_t *, void **);
 
+/** @brief Application control flags
+  * @ingroup LIB*/
+enum framework_flags {
+	/** @brief Allow application daemonization.*/
+	FRAMEWORK_FLAG_DAEMON	= 1 << 0
+};
+
 /*these can be set int the application */
 struct framework_core {
 	const char *developer;
@@ -121,19 +155,14 @@ struct framework_core {
 	int  flock;
 	long	my_pid;
 	struct sigaction *sa;
-#ifndef __WIN32__
 	syssighandler	sig_handler;
-#endif
+	int flags;
 };
 
-/*Initialise the framework */
-extern int framework_init(int argc, char *argv[], frameworkfunc callback, struct framework_core *core_info);
-/* Setup the run enviroment*/
-#ifndef __WIN32__
-extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, syssighandler sigfunc);
-#else
-extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile);
-#endif
+void framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, int flags, syssighandler sigfunc);
+extern int framework_init(int argc, char *argv[], frameworkfunc callback);
+void printgnu();
+void daemonize();
 /* Run a thread under the framework */
 extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data);
 /* Shutdown framework*/
@@ -555,14 +584,27 @@ int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 
 #define testflag(obj, flag) (objlock(obj) | (obj->flags & flag) | objunlock(obj))
 
-#define FRAMEWORK_MAIN(progname, name, email, www, year, runfile, sighfunc) \
-	static int  framework_main(int argc, char *argv[]); \
-	static struct framework_core *core_info; \
-	int  main(int argc, char *argv[]) { \
-		core_info = framework_mkcore(progname, name, email, www, year, runfile, sighfunc); \
-		return (framework_init(argc, argv, framework_main, core_info)); \
-	} \
-	static int  framework_main(int argc, char *argv[])
+/** @ingroup LIB
+  * @brief A macro to replace main() with initilization and daemonization code
+  * @see framework_flags
+  * @see framework_mkcore()
+  * @see framework_init()
+  * @param progname Descriptive program name.
+  * @param name Copyright holders name.
+  * @param email Copyright holders email.
+  * @param www Web address.
+  * @param year Copyright year.
+  * @param runfile Application runfile.
+  * @param flags Application flags.
+  * @param sighfunc Signal handler function.*/
+#define FRAMEWORK_MAIN(progname, name, email, www, year, runfile, flags, sighfunc) \
+static int  framework_main(int argc, char *argv[]); \
+static struct framework_core *core_info; \
+int  main(int argc, char *argv[]) { \
+	framework_mkcore(progname, name, email, www, year, runfile, flags sighfunc); \
+	return (framework_init(argc, argv, framework_main)); \
+} \
+static int  framework_main(int argc, char *argv[])
 
 #define ALLOC_CONST(const_var, val) { \
 		char *tmp_char; \
