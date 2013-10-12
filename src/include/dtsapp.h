@@ -163,6 +163,7 @@ void framework_mkcore(char *progname, char *name, char *email, char *web, int ye
 extern int framework_init(int argc, char *argv[], frameworkfunc callback);
 void printgnu();
 void daemonize();
+int lockpidfile();
 /* Run a thread under the framework */
 extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data);
 /* Shutdown framework*/
@@ -601,7 +602,7 @@ int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 static int  framework_main(int argc, char *argv[]); \
 static struct framework_core *core_info; \
 int  main(int argc, char *argv[]) { \
-	framework_mkcore(progname, name, email, www, year, runfile, flags sighfunc); \
+	framework_mkcore(progname, name, email, www, year, runfile, flags, sighfunc); \
 	return (framework_init(argc, argv, framework_main)); \
 } \
 static int  framework_main(int argc, char *argv[])
