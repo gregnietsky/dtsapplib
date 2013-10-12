@@ -225,7 +225,7 @@ extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup clea
 	struct thread_pvt *thread;
 
 	/* dont allow threads if no manager or it not started*/
-	if (!threads || !threads->manager) {
+	if ((!threads || !threads->manager) && (func != managethread)) {
 		return NULL;
 	}
 

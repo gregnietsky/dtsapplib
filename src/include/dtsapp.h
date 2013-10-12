@@ -141,7 +141,11 @@ typedef uint32_t (*nfqueue_cb)(struct nfq_data *, struct nfqnl_msg_packet_hdr *,
   * @ingroup LIB*/
 enum framework_flags {
 	/** @brief Allow application daemonization.*/
-	FRAMEWORK_FLAG_DAEMON	= 1 << 0
+	FRAMEWORK_FLAG_DAEMON	= 1 << 0,
+	/** @brief Dont print GNU copyright.*/
+	FRAMEWORK_FLAG_NOGNU	= 1 << 1,
+	/** @brief Dont startthreads.*/
+	FRAMEWORK_FLAG_NOTHREAD	= 1 << 2
 };
 
 /*these can be set int the application */
@@ -153,7 +157,6 @@ struct framework_core {
 	const char *progname;
 	int  year;
 	int  flock;
-	long	my_pid;
 	struct sigaction *sa;
 	syssighandler	sig_handler;
 	int flags;
@@ -163,7 +166,7 @@ void framework_mkcore(char *progname, char *name, char *email, char *web, int ye
 extern int framework_init(int argc, char *argv[], frameworkfunc callback);
 void printgnu();
 void daemonize();
-int lockpidfile();
+int lockpidfile(const char *runfile);
 extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data);
 /* UNIX Socket*/
 extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc connectfunc, threadcleanup cleanup);

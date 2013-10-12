@@ -97,11 +97,6 @@ extern void daemonize() {
 #ifndef __WIN32__
 	pid_t	forkpid;
 
-	if (!(framework_core_info->flags & FRAMEWORK_FLAG_DAEMON)) {
-		framework_core_info->my_pid = -1;
-		return;
-	}
-
 	/* fork and die daemonize*/
 	forkpid = fork();
 	if (forkpid > 0) {
@@ -115,11 +110,6 @@ extern void daemonize() {
 	/* Dont want these as a daemon*/
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGCHLD, SIG_IGN);
-
-	/*set pid for consistancy i was 0 when born*/
-	framework_core_info->my_pid = getpid();
-#else
-	framework_core_info->my_pid = -1;
 #endif
 }
 
@@ -127,37 +117,25 @@ extern void daemonize() {
   *
   * @todo make this more generic to allow passing file as param and not storing it in the struct.
   * @return 0 if no file is specified or not supported the file descriptor on success.*/
-extern int lockpidfile() {
-	struct framework_core *ci;
+extern int lockpidfile(const char *runfile) {
 	int lck_fd = 0;
 #ifndef __WIN32__
 	char pidstr[12];
-#endif
+	pid_t	mypid;
 
-	if (framework_core_info && objref(framework_core_info)) {
-		ci = framework_core_info;
-	} else {
-		return 0;
-	}
-#ifndef __WIN32__
-	sprintf(pidstr,"%i\n", (int)ci->my_pid);
-	if (ci->runfile && ((lck_fd = open(ci->runfile, O_RDWR|O_CREAT, 0640)) > 0) && (!flock(lck_fd, LOCK_EX | LOCK_NB))) {
+	mypid = getpid();
+	sprintf(pidstr,"%i\n", (int)mypid);
+	if (runfile && ((lck_fd = open(runfile, O_RDWR|O_CREAT, 0640)) > 0) && (!flock(lck_fd, LOCK_EX | LOCK_NB))) {
 		if (write(lck_fd, pidstr, strlen(pidstr)) < 0) {
 			close(lck_fd);
 			lck_fd = -1;
 		}
 	/* file was opened and not locked*/
-	} else if (ci->runfile && lck_fd) {
+	} else if (runfile && lck_fd) {
 		close(lck_fd);
 		lck_fd = -1;
-	} else {
-		ci->flock = -1;
-		objunref(ci);
-		return 0;
 	}
-	ci->flock = lck_fd;
 #endif
-	objunref(ci);
 	return (lck_fd);
 }
 
@@ -272,12 +250,16 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	sslstartup();
 
 	/*prinit out a GNU licence summary*/
-	printgnu();
+	if (!(framework_core_info->flags & FRAMEWORK_FLAG_NOGNU)) {
+		printgnu();
+	}
 
 	/* fork the process to daemonize it*/
-	daemonize();
+	if (framework_core_info->flags & FRAMEWORK_FLAG_DAEMON) {
+		daemonize();
+	}
 
-	if (lockpidfile() < 0) {
+	if ((framework_core_info->flock = lockpidfile(framework_core_info->runfile) < 0)) {
 		printf("Could not lock pid file Exiting\n");
 		objunref(framework_core_info);
 		return (-1);
@@ -289,7 +271,7 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 #endif
 
 	/*init the threadlist start thread manager*/
-	if (!startthreads()) {
+	if (!(framework_core_info->flags & FRAMEWORK_FLAG_NOTHREAD) && !startthreads()) {
 		printf("Memory Error could not start threads\n");
 		objunref(framework_core_info);
 		return (-1);
