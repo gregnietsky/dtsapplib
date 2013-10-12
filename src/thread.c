@@ -125,7 +125,12 @@ static void *managethread(void **data) {
 			if (pthread_equal(thread->thr, me)) {
 				/* im going to leave the list and try close down all others*/
 				if (mythread && !(testflag(mythread, TL_THREAD_RUN))) {
+					/*remove from thread list and disable adding new threads*/
 					remove_bucket_loop(bloop);
+					objlock(threads);
+					threads->manager = NULL;
+					objunlock(threads);
+
 					stop = 1;
 				}
 				objunref(thread);
@@ -136,18 +141,17 @@ static void *managethread(void **data) {
 			if (stop && (thread->flags & TL_THREAD_RUN) && !(thread->flags & TL_THREAD_DONE)) {
 				thread->flags &= ~TL_THREAD_RUN;
 				objunlock(thread);
-			} else
-				if ((thread->flags & TL_THREAD_DONE) || pthread_kill(thread->thr, 0)) {
-					objunlock(thread);
-					remove_bucket_loop(bloop);
-					if (thread->cleanup) {
-						thread->cleanup(thread->data);
-					}
-					objunref(thread->data);
-					objunref(thread);
-				} else {
-					objunlock(thread);
+			} else if ((thread->flags & TL_THREAD_DONE) || pthread_kill(thread->thr, 0)) {
+				objunlock(thread);
+				remove_bucket_loop(bloop);
+				if (thread->cleanup) {
+					thread->cleanup(thread->data);
 				}
+				objunref(thread->data);
+				objunref(thread);
+			} else {
+				objunlock(thread);
+			}
 			objunref(thread);
 		}
 		stop_bucket_loop(bloop);
@@ -157,7 +161,9 @@ static void *managethread(void **data) {
 		sleep(1);
 #endif
 	}
+
 	objunref(threads);
+	threads = NULL;
 
 	return NULL;
 }
@@ -200,6 +206,7 @@ static void *threadwrap(void *data) {
 		setflag(thread, TL_THREAD_DONE);
 	}
 
+	/* The manager thread will clean em up normally manager threead will turn threads off and sets manager to null*/
 	if (!threads || !threads->manager) {
 		if (thread->cleanup) {
 			thread->cleanup(thread->data);
@@ -212,10 +219,15 @@ static void *threadwrap(void *data) {
 }
 
 /*
- * create a thread
+ * create a thread result must be unreferenced
  */
 extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup cleanup, threadsighandler sig_handler, void *data) {
 	struct thread_pvt *thread;
+
+	/* dont allow threads if no manager or it not started*/
+	if (!threads || !threads->manager) {
+		return NULL;
+	}
 
 	if (!(thread = objalloc(sizeof(*thread), NULL))) {
 		return NULL;
@@ -238,12 +250,15 @@ extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup clea
 
 	/* am i up and running move ref to list*/
 	if (!pthread_kill(thread->thr, 0)) {
-		if ((threads && threads->list) || startthreads()) {
+		if (threads && threads->list) {
 			objlock(threads);
 			addtobucket(threads->list, thread);
 			objunlock(threads);
+			return (thread);
+		} else {
+			objunref(thread->data);
+			objunref(thread);
 		}
-		return (thread);
 	} else {
 		objunref(thread->data);
 		objunref(thread);
@@ -253,18 +268,10 @@ extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup clea
 }
 
 /*
- * Stop all running threads
- * sending hup signal to manager
- */
-extern void framework_shutdown(void) {
-	pthread_kill(threads->manager->thr, SIGHUP);
-}
-
-/*
  * Join threads
  */
 extern void jointhreads(void) {
-	if ((threads && threads->manager) || startthreads()) {
+	if (threads && threads->manager) {
 		pthread_join(threads->manager->thr, NULL);
 	}
 }

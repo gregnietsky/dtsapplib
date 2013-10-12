@@ -53,7 +53,7 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
 			break;
 		case SIGTERM:
 		case SIGINT:
-			framework_shutdown();
+			stopthreads();
 			/* no break */
 		default
 				:
@@ -123,9 +123,10 @@ extern void daemonize() {
 #endif
 }
 
-/*
- * create pid / run file and hold a exclusive lock on it
- */
+/** @brief Lock the run file in the framework application info.
+  *
+  * @todo make this more generic to allow passing file as param and not storing it in the struct.
+  * @return 0 if no file is specified or not supported the file descriptor on success.*/
 extern int lockpidfile() {
 	struct framework_core *ci;
 	int lck_fd = 0;
@@ -185,6 +186,7 @@ static void configure_sigact(struct sigaction *sa) {
  */
 static void framework_free(void *data) {
 	struct framework_core *ci = data;
+	framework_core_info = NULL;
 
 	if (ci->developer) {
 		free((char *)ci->developer);
@@ -211,6 +213,11 @@ static void framework_free(void *data) {
 
 /** @brief Initilise application data structure and return a reference
   * @note The returned value must be un referenced
+  * @warning failure to supply a signal handler on non WIN32 systems
+  * will deafault to exiting with -1 on SIGINT/SIGKILL.
+  * @todo does threads actually work in windows with no sighandler.
+  * @warning do not call this function without calling framework_init as the memory
+  * allocated will not be freed.
   * @param progname Descrioptive program name.
   * @param name Copyright holder.
   * @param email Copyright email address.
@@ -251,7 +258,13 @@ extern void framework_mkcore(char *progname, char *name, char *email, char *web,
 	framework_core_info = core_info;
 }
 
-/** @brief Initilise the application daemonise and join the manager thread.*/
+/** @brief Initilise the application daemonise and join the manager thread.
+  * @warning failure to pass a callback will require running stopthreads
+  * and jointhrea..
+  * @warning framework information configured by framework_mkcore will be freed on exit.
+  * @param argc Argument count argv[0] will be program name.
+  * @param argv Argument array.
+  * @param callback Function to pass control too.*/
 extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	int ret = 0;
 
@@ -264,7 +277,7 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	/* fork the process to daemonize it*/
 	daemonize();
 
-	if (lockpidfile(framework_core_info) < 0) {
+	if (lockpidfile() < 0) {
 		printf("Could not lock pid file Exiting\n");
 		objunref(framework_core_info);
 		return (-1);
@@ -285,13 +298,9 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	/*run the code from the application*/
 	if (callback) {
 		ret = callback(argc, argv);
-	}
-
-	/*join the manager thread its the last to go*/
-	if (!ret) {
+		/* wait for all threads to end*/
+		stopthreads();
 		jointhreads();
-	} else {
-		framework_shutdown();
 	}
 
 	/* turn off the lights*/

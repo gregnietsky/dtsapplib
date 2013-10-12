@@ -36,8 +36,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * @brief A Collection of helper functions and wrapped up interfaces to other libraries
   * @file
   * @brief DTS Application library API Include file.
-  * @ingroup LIB
   * 
+  * @ingroup LIB
   * The library foremostly implements reference counted objects and hashed bucket lists
   * @ref LIB-OBJ these are then used to implement simpler API's to common tasks.
   * @par Key components
@@ -164,10 +164,7 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback);
 void printgnu();
 void daemonize();
 int lockpidfile();
-/* Run a thread under the framework */
 extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data);
-/* Shutdown framework*/
-extern void framework_shutdown(void);
 /* UNIX Socket*/
 extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc connectfunc, threadcleanup cleanup);
 /* Test if the thread is running when passed data from thread */

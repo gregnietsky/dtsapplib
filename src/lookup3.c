@@ -1,5 +1,5 @@
 /** @file
-  * @brief by Bob Jenkins, May 2006, Public Domain
+  * @brief by Bob Jenkins, May 2006, Public Domain (Documentation from original)
   * @n @verbatim
 -------------------------------------------------------------------------------
 lookup3.c, by Bob Jenkins, May 2006, Public Domain.
