@@ -16,6 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief INI style config file interface.
+  * @defgroup LIB-INI INI Style config file Interface
+  * @ingroup LIB
+  * @brief Reads a ini config file into grouped hashed buckets.
+  * @addtogroup LIB-INI
+  * @{*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -357,3 +365,5 @@ extern struct config_entry *get_config_entry(struct bucket_list *categories, con
 
 	return (entry);
 }
+
+/** @}*/

@@ -1,3 +1,11 @@
+/** @file
+  * @brief XSLT Interface.
+  * @defgroup LIB-XSLT XSLT Interface
+  * @ingroup LIB
+  * @brief Utilities for managing XML documents.
+  * @addtogroup LIB-XSLT
+  * @{*/
+
 #include <stdint.h>
 #ifdef __WIN32__
 #include <winsock2.h>
@@ -207,3 +215,5 @@ extern void xslt_close() {
 		objunref(xslt_has_init_parser);
 	}
 }
+
+/** @}*/

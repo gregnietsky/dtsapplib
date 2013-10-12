@@ -1,3 +1,11 @@
+/** @file
+  * @brief XML Interface.
+  * @defgroup LIB-XML XML Interface
+  * @ingroup LIB
+  * @brief Utilities for managing XML documents.
+  * @addtogroup LIB-XML
+  * @{*/
+
 #include <string.h>
 #include <stdint.h>
 #ifdef __WIN32__
@@ -687,3 +695,5 @@ extern void xml_modify2(struct xml_search *xpsearch, struct xml_node *xnode, con
 		}
 	}
 }
+
+/** @}*/

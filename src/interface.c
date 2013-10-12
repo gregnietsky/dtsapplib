@@ -16,6 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief Wrapper arround Linux libnetlink for managing network interfaces.
+  * @defgroup LIB-IFACE Linux network interface functions
+  * @ingroup LIB
+  * @brief Implement various interface routines from libnetlink
+  * @addtogroup LIB-IFACE
+  * @{*/
+
 #include <netinet/in.h>
 #include <linux/if_vlan.h>
 #include <linux/if_ether.h>
@@ -596,3 +604,5 @@ extern int set_interface_ipaddr(char *ifname, char *ipaddr) {
 	objunref(req);
 	return (0);
 }
+
+/** @}*/

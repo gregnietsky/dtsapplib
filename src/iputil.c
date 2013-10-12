@@ -16,6 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief IPv4 And IPv6 Utiliies
+  * @defgroup LIB-IP IPv4 and IPv6 functions
+  * @ingroup LIB
+  * @brief Helper functions for various calculations
+  * @addtogroup LIB-IP
+  * @{*/
+
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -23,8 +31,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/icmp.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
-
-
 
 #include "include/dtsapp.h"
 
@@ -332,3 +338,5 @@ extern int check_ipv4(const char* ip, int cidr, const char *test) {
 		return 0;
 	}
 }
+
+/** @}*/

@@ -16,6 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief Referenced Objects.
+  * @defgroup LIB-OBJ Referenced Objects
+  * @ingroup LIB
+  * @brief Utilities for managing referenced objects.
+  * @addtogroup LIB-OBJ
+  * @{*/
+
+
 #include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
@@ -637,3 +646,5 @@ extern void *objchar(const char *orig) {
 	}
 	return nobj;
 }
+
+/** @}*/
