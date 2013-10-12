@@ -59,6 +59,8 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
 				:
 			if (framework_core_info->sig_handler) {
 				framework_core_info->sig_handler(sig, si, unused);
+			} else {
+				exit(-1);
 			}
 			/* no break */
 	}
@@ -99,7 +101,7 @@ extern void daemonize() {
 		framework_core_info->my_pid = -1;
 		return;
 	}
-	
+
 	/* fork and die daemonize*/
 	forkpid = fork();
 	if (forkpid > 0) {
