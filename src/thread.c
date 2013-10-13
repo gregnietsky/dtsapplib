@@ -318,7 +318,7 @@ extern void jointhreads(void) {
  * NB sending a signal to the current thread while threads is locked
  * will cause a deadlock.
  */
-/*static int thread_signal(int sig) {
+extern int thread_signal(int sig) {
 	struct thread_pvt *thread;
 	pthread_t me;
 	int ret = 0;
@@ -334,6 +334,6 @@ extern void jointhreads(void) {
 		objunref(thread);
 	}
 	return (ret);
-}*/
+}
 
 /** @}*/

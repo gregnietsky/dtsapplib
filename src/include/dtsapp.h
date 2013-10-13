@@ -86,7 +86,8 @@ typedef struct ssldata ssldata;
 
 enum sock_flags {
 	SOCK_FLAG_BIND		= 1 << 0,
-	SOCK_FLAG_CLOSE		= 1 << 1
+	SOCK_FLAG_CLOSE		= 1 << 1,
+	SOCK_FLAG_SSL		= 1 << 2
 };
 
 struct fwsocket {
@@ -228,6 +229,7 @@ extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc 
 extern int framework_threadok(void *data);
 extern int startthreads(void);
 extern void stopthreads(void);
+int thread_signal(int sig);
 
 /*
  * ref counted objects

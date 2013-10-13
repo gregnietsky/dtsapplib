@@ -106,30 +106,24 @@ static int verify_cookie(SSL *ssl, unsigned char *cookie, unsigned int cookie_le
 	return (0);
 }
 
-extern void ssl_shutdown(void *data, int sock) {
-	struct ssldata *ssl = data;
-	int err, ret;
+static int _ssl_shutdown(struct ssldata *ssl) {
+	int err, ret = 0;
 
-	if (!ssl) {
-		return;
-	}
-
-	objlock(ssl);
-	if (ssl->ssl && ((ret = SSL_shutdown(ssl->ssl)) < 1)) {
+	if ((ret = SSL_shutdown(ssl->ssl)) < 1) {
 		objunlock(ssl);
 		if (ret == 0) {
 			objlock(ssl);
-			ret = SSL_shutdown(ssl->ssl);
+				ret = SSL_shutdown(ssl->ssl);
 		} else {
 			objlock(ssl);
 		}
 		err = SSL_get_error(ssl->ssl, ret);
 		switch(err) {
 			case SSL_ERROR_WANT_READ:
-				printf("SSL_shutdown wants read\n");
+				ret = 1;
 				break;
 			case SSL_ERROR_WANT_WRITE:
-				printf("SSL_shutdown wants write\n");
+				ret = -1;
 				break;
 			case SSL_ERROR_SSL:
 				/*ignore im going away now*/
@@ -138,12 +132,42 @@ extern void ssl_shutdown(void *data, int sock) {
 			case SSL_ERROR_NONE:
 				/* nothing to see here moving on*/
 				break;
-			default
-					:
+			default:
 				printf("SSL Shutdown unknown error %i\n", err);
 				break;
 		}
 	}
+	return ret;
+}
+
+extern void ssl_shutdown(void *data, int sock) {
+	struct ssldata *ssl = data;
+	int ret, selfd, cnt = 0;
+	struct timeval tv;
+	fd_set act_set;
+
+	if (!ssl) {
+		return;
+	}
+
+	objlock(ssl);
+
+	while (ssl->ssl &&  (ret = _ssl_shutdown(ssl) && (cnt < 3))) {
+		FD_ZERO(&act_set);
+		FD_SET(sock, &act_set);
+		tv.tv_sec = 0;
+		tv.tv_usec = 100000;
+		if (ret == 1) {
+			selfd = select(sock + 1, &act_set, NULL, NULL, &tv);
+		} else {
+			selfd = select(sock + 1, NULL, &act_set, NULL, &tv);
+		}
+		if (selfd <= 0) {
+			break;
+		}
+		cnt++;
+	}
+
 	if (ssl->ssl) {
 		SSL_free(ssl->ssl);
 		ssl->ssl = NULL;
@@ -305,10 +329,10 @@ static void sslsockstart(struct fwsocket *sock, struct ssldata *orig,int accept)
 }
 
 extern void tlsaccept(struct fwsocket *sock, struct ssldata *orig) {
+	setflag(sock, SOCK_FLAG_SSL);
 	if ((sock->ssl = objalloc(sizeof(*sock->ssl), free_ssldata))) {
 		sslsockstart(sock, orig, 1);
 	}
-
 }
 
 /** @}
@@ -319,7 +343,7 @@ extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstr
 	socklen_t salen = sizeof(*addr);
 	int ret, err, syserr;
 
-	if (!ssl || !ssl->ssl) {
+	if (!ssl && !testflag(sock, SOCK_FLAG_SSL)) {
 		objlock(sock);
 		if (addr && (sock->type == SOCK_DGRAM)) {
 			ret = recvfrom(sock->sock, buf, num, 0, &addr->sa, &salen);
@@ -331,6 +355,8 @@ extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstr
 		}
 		objunlock(sock);
 		return (ret);
+	} else if (!ssl) {
+		return -1;
 	}
 
 	objlock(ssl);
@@ -392,7 +418,7 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 	}
 
 #ifndef __WIN32__
-	if (!ssl || !ssl->ssl) {
+	if (!ssl && !testflag(sock, SOCK_FLAG_SSL)) {
 		objlock(sock);
 		if (addr && (sock->type == SOCK_DGRAM)) {
 			ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &addr->sa, sizeof(*addr));
@@ -411,17 +437,23 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 		}
 		objunlock(sock);
 		return (ret);
+	} else if (!ssl) {
+		return -1;
 	}
 #endif
 
-	objlock(ssl);
-	if (SSL_state(ssl->ssl) != SSL_ST_OK) {
+	if (ssl->ssl) {
+		objlock(ssl);
+		if (SSL_state(ssl->ssl) != SSL_ST_OK) {
+			objunlock(ssl);
+			return (SSL_ERROR_SSL);
+		}
+		ret = SSL_write(ssl->ssl, buf, num);
+		err = SSL_get_error(ssl->ssl, ret);
 		objunlock(ssl);
-		return (SSL_ERROR_SSL);
+	} else {
+		return -1;
 	}
-	ret = SSL_write(ssl->ssl, buf, num);
-	err = SSL_get_error(ssl->ssl, ret);
-	objunlock(ssl);
 
 	if (ret == -1) {
 		setflag(sock, SOCK_FLAG_CLOSE);
@@ -508,6 +540,7 @@ static void dtlssetopts(struct ssldata *ssl, struct ssldata *orig, struct fwsock
 	}
 	SSL_set_bio(ssl->ssl, ssl->bio, ssl->bio);
 	objunlock(ssl);
+	setflag(sock, SOCK_FLAG_SSL);
 }
 
 extern void dtsl_serveropts(struct fwsocket *sock) {
@@ -593,6 +626,7 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 	connect(newsock->sock, &newsock->addr.sa, sizeof(newsock->addr));
 
 	dtlsaccept(newsock);
+	setflag(newsock, SOCK_FLAG_SSL);
 
 	return (newsock);
 }

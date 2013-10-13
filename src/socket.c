@@ -282,10 +282,9 @@ static void *_socket_handler(void **data) {
 				dtlshandltimeout(sock);
 			}
 			continue;
-		} else
-			if (selfd < 0) {
-				break;
-			}
+		} else if (selfd < 0) {
+			break;
+		}
 
 		if (FD_ISSET(sockfd, &act_set)) {
 			if (flags & SOCK_FLAG_BIND) {
@@ -297,8 +296,7 @@ static void *_socket_handler(void **data) {
 					case SOCK_DGRAM:
 						newsock = dtls_listenssl(sock);
 						break;
-					default
-							:
+					default:
 						newsock = NULL;
 						break;
 				}
