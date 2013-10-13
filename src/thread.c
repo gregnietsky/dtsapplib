@@ -185,9 +185,9 @@ static void *managethread(void **data) {
 		}
 		stop_bucket_loop(bloop);
 #ifdef __WIN32__
-		Sleep(100);
+		Sleep(10);
 #else
-		sleep(1);
+		usleep(100000);
 #endif
 	}
 

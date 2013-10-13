@@ -281,6 +281,7 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	if (callback) {
 		ret = callback(argc, argv);
 		/* wait for all threads to end*/
+		usleep(100000);
 		stopthreads();
 		jointhreads();
 	}
