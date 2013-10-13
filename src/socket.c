@@ -16,6 +16,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @defgroup LIB-Sock Network socket interface
+  * @ingroup LIB
+  * @brief Allocate and initialise a socket for use as a client or server.
+  *
+  * 
+  * @addtogroup LIB-Sock
+  * @{
+  * @file
+  * @brief Allocate and initialise a socket for use as a client or server.
+  *
+  * This is part of the socket interface to upport encrypted sockets
+  * a ssldata refernece will be created and passed on socket initialization.
+  *
+  * @see @ref LIB-Sock-SSL*/
+
 #ifndef __WIN32__
 #include <netdb.h>
 #endif
@@ -221,7 +236,7 @@ extern struct fwsocket *tcpbind(const char *ipaddr, const char *port, void *ssl,
 	return (_opensocket(PF_UNSPEC, SOCK_STREAM, IPPROTO_TCP, ipaddr, port, ssl, 1, backlog));
 }
 
-static void *_socket_handler_clean(void *data) {
+static void _socket_handler_clean(void *data) {
 	struct socket_handler *fwsel = data;
 
 	/*call cleanup and remove refs to data*/
@@ -231,8 +246,6 @@ static void *_socket_handler_clean(void *data) {
 	if (fwsel->data) {
 		objunref(fwsel->data);
 	}
-
-	return NULL;
 }
 
 static void *_socket_handler(void **data) {
@@ -306,7 +319,7 @@ static void *_socket_handler(void **data) {
 	}
 
 	if (sock->ssl) {
-		ssl_shutdown(sock->ssl);
+		ssl_shutdown(sock->ssl, sock->sock);
 	}
 
 	/*close children*/

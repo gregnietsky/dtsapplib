@@ -16,6 +16,23 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @defgroup LIB-Sock-SSL SSL socket support
+  * @ingroup LIB-Sock
+  * @brief TLSv1 SSLv2 SSLv3 DTLSv1 support
+  *
+  * This is part of the socket interface to upport encrypted sockets
+  * a ssldata refernece will be created and passed on socket initialization.
+  * @file
+  * @brief TLSv1 SSLv2 SSLv3 DTLSv1 support
+  * @ingroup LIB-Sock LIB-Sock-SSL
+  * @addtogroup LIB-Sock-SSL
+  * @{
+  *
+  * This is part of the socket interface to upport encrypted sockets
+  * a ssldata refernece will be created and passed on socket initialization.
+  *
+  * @see @ref LIB-Sock*/
+
 #include <stdint.h>
 #ifdef __WIN32__
 #include <winsock2.h>
@@ -89,7 +106,7 @@ static int verify_cookie(SSL *ssl, unsigned char *cookie, unsigned int cookie_le
 	return (0);
 }
 
-extern void ssl_shutdown(void *data) {
+extern void ssl_shutdown(void *data, int sock) {
 	struct ssldata *ssl = data;
 	int err, ret;
 
@@ -294,6 +311,9 @@ extern void tlsaccept(struct fwsocket *sock, struct ssldata *orig) {
 
 }
 
+/** @}
+  * @addtogroup LIB-Sock
+  * @{*/
 extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstruct *addr) {
 	struct ssldata *ssl = sock->ssl;
 	socklen_t salen = sizeof(*addr);
@@ -444,6 +464,10 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 extern int socketwrite(struct fwsocket *sock, const void *buf, int num) {
 	return (socketwrite_d(sock, buf, num, NULL));
 }
+
+/** @}
+  * @addtogroup LIB-Sock-SSL
+  * @{*/
 
 extern void sslstartup(void) {
 	SSL_library_init();
@@ -636,3 +660,5 @@ extern void dtlshandltimeout(struct fwsocket *sock) {
 	DTLSv1_handle_timeout(sock->ssl->ssl);
 	objunlock(sock->ssl);
 }
+
+/** @}*/

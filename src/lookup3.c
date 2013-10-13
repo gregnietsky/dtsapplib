@@ -1,5 +1,12 @@
-/** @file
-  * @brief by Bob Jenkins, May 2006, Public Domain (Documentation from original)
+/** @defgroup LIB-Hash Burtle Bob hash algorythim.
+  * @brief lookup3.c, by Bob Jenkins, May 2006, Public Domain.
+  *
+  * @ingroup LIB
+  * @addtogroup LIB-Hash
+  * @{
+  * @file
+  * @brief by Bob Jenkins, May 2006, Public Domain.
+  *
   * @n @verbatim
 -------------------------------------------------------------------------------
 lookup3.c, by Bob Jenkins, May 2006, Public Domain.
@@ -37,9 +44,6 @@ on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 @endverbatim*/
 
 /*#define SELF_TEST 1*/
-
-/** @{*/
-
 
 #include <stdio.h>      /* defines printf for tests */
 #include <time.h>       /* defines time_t for timings in the test */
@@ -1058,6 +1062,7 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval) {
 	return (c);
 }
 
+/** @}*/
 
 #ifdef SELF_TEST
 

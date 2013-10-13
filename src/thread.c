@@ -16,48 +16,77 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @defgroup LIB-Thread Posix thread interface
+  * @ingroup LIB
+  * @brief Functions for starting and managing threads.
+  *
+  * The thread interface consists of a management thread managing
+  * a hashed bucket list of threads running optional clean up when done.
+  * @addtogroup LIB-Thread
+  * @{
+  * @file
+  * @brief Functions for starting and managing threads.
+  *
+  * The thread interface consists of a management thread managing
+  * a hashed bucket list of threads running optional clean up when done.*/
+
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
 #include <stdint.h>
 
 #ifndef SIGHUP
+/** @brief Define SIGHUP as 1 if its not defined.*/
 #define SIGHUP		1
 #endif
 
 #include "include/dtsapp.h"
 
+/** @brief 32 bit magic value to help determine thread is ok*/
 #define THREAD_MAGIC 0xfeedf158
 
+/** @brief Thread status a thread can be disabled by unsetting TL_THREAD_RUN*/
 enum threadopt {
-	TL_THREAD_NONE  = 0,
-	/* thread is marked as running*/
+	/** @brief No status*/
+	TL_THREAD_NONE  = 1 << 0,
+	/** @brief thread is marked as running*/
 	TL_THREAD_RUN   = 1 << 1,
-	/* thread is marked as complete*/
+	/** @brief thread is marked as complete*/
 	TL_THREAD_DONE  = 1 << 2
 };
 
-/*
- * thread struct used to create threads
- * data needs to be first element
- */
+/** @brief thread struct used to create threads data needs to be first element*/
 struct thread_pvt {
+	/** @brief Reference to data held on thread creation*/
 	void			*data;
+	/** @brief Magic number*/
 	int			magic;
+	/** @brief Thread information*/
 	pthread_t		thr;
+	/** @brief Thread cleanup callback
+	  * @see threadcleanup*/
 	threadcleanup		cleanup;
+	/** @brief Thread function
+	  * @see threadfunc*/
 	threadfunc		func;
+	/** @brief Thread signal handler
+	  * @see threadsighandler*/
 	threadsighandler	sighandler;
+	/** @brief thread options
+	  * @see threadopt_flags*/
 	enum                    threadopt flags;
 };
 
-/*
- * Global threads list
- */
+/** @brief Global threads data*/
 struct threadcontainer {
+	/** @brief Hashed bucket list of threads.*/
 	struct bucket_list	*list;
+	/** @brief Manager thread.*/
 	struct thread_pvt	*manager;
-} *threads = NULL;
+};
+
+/** @brief Thread control data.*/
+struct threadcontainer *threads = NULL;
 
 static int hash_thread(const void *data, int key) {
 	const struct thread_pvt *thread = data;
@@ -79,10 +108,10 @@ static void close_threads(void *data) {
 	threads = NULL;
 }
 
-/*
- * let threads check there status by passing in a pointer to
- * there data
- */
+/** @brief let threads check there status by passing in a pointer to there data
+  *
+  * @param data Reference to thread data
+  * @return 0 if the thread should terminate.*/
 extern int framework_threadok(void *data) {
 	struct thread_pvt *thr = data;
 
@@ -168,10 +197,9 @@ static void *managethread(void **data) {
 	return NULL;
 }
 
-/*
- * initialise the threadlist
- * start manager thread
- */
+/** @brief  initialise the threadlist  start manager thread
+  *
+  * @returns 1 On success 0 on failure.*/
 extern int startthreads(void) {
 	if (!threads && !(threads = objalloc(sizeof(*threads), close_threads))) {
 		return (0);
@@ -190,6 +218,7 @@ extern int startthreads(void) {
 	return (1);
 }
 
+/** @brief Stoping the manager thread will stop all other threads.*/
 extern void stopthreads(void) {
 	if (threads) {
 		clearflag(threads->manager, TL_THREAD_RUN);
@@ -218,9 +247,13 @@ static void *threadwrap(void *data) {
 	return (ret);
 }
 
-/*
- * create a thread result must be unreferenced
- */
+/** @brief create a thread result must be unreferenced
+  *
+  * @param func Function to run thread on.
+  * @param cleanup Cleanup function to run.
+  * @param sig_handler Thread signal handler.
+  * @param data Data to pass to callbacks.
+  * @returns a thread structure that must be un referencend.*/
 extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup cleanup, threadsighandler sig_handler, void *data) {
 	struct thread_pvt *thread;
 
@@ -243,8 +276,8 @@ extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup clea
 	/* grab a ref to data for thread to make sure it does not go away*/
 	objref(thread->data);
 	if (pthread_create(&thread->thr, NULL, threadwrap, thread)) {
-		objunref(thread);
 		objunref(thread->data);
+		objunref(thread);
 		return NULL;
 	}
 
@@ -267,9 +300,10 @@ extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup clea
 	return NULL;
 }
 
-/*
- * Join threads
- */
+/** @brief Join the manager thread.
+  *
+  * This will be done when you have issued stopthreads and are waiting
+  * for threads to exit.*/
 extern void jointhreads(void) {
 	if (threads && threads->manager) {
 		pthread_join(threads->manager->thr, NULL);
@@ -284,7 +318,7 @@ extern void jointhreads(void) {
  * NB sending a signal to the current thread while threads is locked
  * will cause a deadlock.
  */
-extern int thread_signal(int sig) {
+/*static int thread_signal(int sig) {
 	struct thread_pvt *thread;
 	pthread_t me;
 	int ret = 0;
@@ -300,4 +334,6 @@ extern int thread_signal(int sig) {
 		objunref(thread);
 	}
 	return (ret);
-}
+}*/
+
+/** @}*/

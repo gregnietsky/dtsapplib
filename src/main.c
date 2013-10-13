@@ -91,8 +91,8 @@ extern void printgnu() {
   * 
   * This should be run early before file descriptors and threads are started
   * @see FRAMEWORK_MAIN()
-  * @todo WIN32 options is there a alternative for this.
-  * @return Application PID*/
+  * @warning on failure the program will exit.
+  * @todo WIN32 options is there a alternative for this.*/
 extern void daemonize() {
 #ifndef __WIN32__
 	pid_t	forkpid;
@@ -115,8 +115,8 @@ extern void daemonize() {
 
 /** @brief Lock the run file in the framework application info.
   *
-  * @todo make this more generic to allow passing file as param and not storing it in the struct.
-  * @return 0 if no file is specified or not supported the file descriptor on success.*/
+  * @param runfile File to write pid to and lock.
+  * @return 0 if no file is specified or not supported. The file descriptor on success.*/
 extern int lockpidfile(const char *runfile) {
 	int lck_fd = 0;
 #ifndef __WIN32__

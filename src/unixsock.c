@@ -16,6 +16,20 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @defgroup LIB-Usock Unix socket thread
+  * @brief Attach a thread to a unix socket start a new thread on connect.
+  *
+  * @ingroup LIB
+  * A thread is started on the sockect and will start a new client thread
+  * on each connection with the socket as the data
+  * @addtogroup LIB-Usock
+  * @{
+  * @file
+  * @brief Attach a thread to a unix socket start a new thread on connect.
+  *
+  * A thread is started on the sockect and will start a new client thread
+  * on each connection with the socket as the data*/
+
 #ifdef __WIN32__
 #include <winsock2.h>
 #else
@@ -32,13 +46,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "include/dtsapp.h"
 
-/* UNIX socket thread*/
+/** @brief Unix socket data structure*/
 struct framework_sockthread {
+	/** @brief Socket path*/
 	char sock[UNIX_PATH_MAX+1];
+	/** @brief Socket umask*/
 	int mask;
-	int family;
+	/** @brief Socket protocol*/
 	int protocol;
+	/** @brief Thread to begin on client connect
+	  * @see threadfunc*/
 	threadfunc	client;
+	/** @brief Thread clean up function
+	  * @see threadcleanup*/
 	threadcleanup	cleanup;
 };
 
@@ -129,8 +149,16 @@ static void *unsock_serv(void **data) {
 	return NULL;
 }
 
+/** @brief Create and run UNIX socket thread.
+  *
+  * @param sock Path to UNIX socket.
+  * @param protocol Protocol number.
+  * @param mask Umask for the socket.
+  * @param connectfunc Thread to start on connect.
+  * @param cleanup Thread cleanup callback.*/
 extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc connectfunc, threadcleanup cleanup) {
 	struct framework_sockthread *unsock;
+	void *thread;
 
 	unsock = objalloc(sizeof(*unsock), NULL);
 	strncpy(unsock->sock, sock, UNIX_PATH_MAX);
@@ -138,5 +166,8 @@ extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc 
 	unsock->client = connectfunc;
 	unsock->cleanup = cleanup;
 	unsock->protocol = protocol;
-	framework_mkthread(unsock_serv, NULL, NULL, unsock);
+	thread = framework_mkthread(unsock_serv, NULL, NULL, unsock);
+	objunref(thread);
 }
+
+/** @}*/

@@ -81,6 +81,7 @@ union sockstruct {
 	struct sockaddr_storage ss;
 };
 
+/** @brief Forward decleration of structure.*/
 typedef struct ssldata ssldata;
 
 enum sock_flags {
@@ -104,30 +105,68 @@ struct config_entry {
 	const char *value;
 };
 
+/** @ingroup LIB-Z
+  * @brief Zlib buffer used for compression and decompression*/
 struct zobj {
+	/** @brief Buffer with compressed/uncompressed data*/
 	uint8_t *buff;
+	/** @brief Original size of data*/
 	uint16_t olen;
+	/** @brief Compressed size of data*/
 	uint16_t zlen;
 };
 
+/** @brief Forward decleration of structure.*/
 typedef struct natmap natmap;
+/** @brief Forward decleration of structure.*/
 typedef struct radius_packet radius_packet;
+/** @brief Forward decleration of structure.*/
 typedef struct nfq_queue nfq_queue;
+/** @brief Forward decleration of structure.*/
 typedef struct nfq_data nfq_data;
+/** @brief Forward decleration of structure.*/
 typedef struct nfct_struct nfct_struct;
+/** @brief Forward decleration of structure.*/
 typedef struct nfqnl_msg_packet_hdr nfqnl_msg_packet_hdr;
 
 /*callback function type def's*/
 typedef void	(*radius_cb)(struct radius_packet *, void *);
-typedef void    *(*threadcleanup)(void *);
-typedef void    *(*threadfunc)(void **);
+/** @brief Framework callback function
+  *
+  * @ingroup LIB
+  * @param argc Argument count.
+  * @param argv Argument array.
+  * @returns Application exit code.*/
+typedef	int	(*frameworkfunc)(int, char **);
+/** @brief Callback to user supplied signal handler.
+  *
+  * @ingroup LIB
+  * @param sig Signal been handled.
+  * @param si Sa sigaction.
+  * @param unsed Unused cast to void from ucontext_t*/
 #ifndef __WIN32__
 typedef void	(*syssighandler)(int, siginfo_t *, void *);
 #else
 typedef void	(*syssighandler)(int, void*, void*);
 #endif
+/** @brief Function called after thread termination.
+  *
+  * @ingroup LIB-Thread
+  * @see framework_mkthread()
+  * @param data Reference of thread data.*/
+typedef void    (*threadcleanup)(void *);
+/** @brief Thread function
+  *
+  * @ingroup LIB-Thread
+  * @see framework_mkthread()
+  * @param data Poinnter to reference of thread data.*/
+typedef void    *(*threadfunc)(void **);
+/** @brief Thread signal handler function
+  *
+  * @ingroup LIB-Thread
+  * @see framework_mkthread()
+  * @param data Reference of thread data.*/
 typedef int     (*threadsighandler)(int, void *);
-typedef	int	(*frameworkfunc)(int, char **);
 typedef int	(*blisthash)(const void *, int);
 typedef void	(*objdestroy)(void *);
 typedef void	(*socketrecv)(struct fwsocket *, void *);
@@ -144,21 +183,36 @@ enum framework_flags {
 	FRAMEWORK_FLAG_DAEMON	= 1 << 0,
 	/** @brief Dont print GNU copyright.*/
 	FRAMEWORK_FLAG_NOGNU	= 1 << 1,
-	/** @brief Dont startthreads.*/
+	/** @brief Dont start thread manager.*/
 	FRAMEWORK_FLAG_NOTHREAD	= 1 << 2
 };
 
-/*these can be set int the application */
+/** @brief Application framework data
+  * @see framework_mkcore()
+  * @see framework_init()
+  * @see FRAMEWORK_MAIN()*/
 struct framework_core {
+	/** @brief Developer/Copyright holder*/
 	const char *developer;
+	/** @brief Email address of copyright holder*/
 	const char *email;
+	/** @brief URL displayed (use full URL ie with http://)*/
 	const char *www;
+	/** @brief File to write PID too and lock*/
 	const char *runfile;
+	/** @brief Detailed application name*/
 	const char *progname;
+	/** @brief Copyright year*/
 	int  year;
+	/** @brief if there is a file locked this is the FD that will be unlocked and unlinked*/
 	int  flock;
+	/** @brief sigaction structure allocated on execution*/
 	struct sigaction *sa;
+	/** @brief Signal handler to pass signals too
+	  * @note The application framework installs a signal handler but will pass calls to this as a callback*/
 	syssighandler	sig_handler;
+	/** @brief Application Options
+	  * @see application_flags*/
 	int flags;
 };
 
@@ -215,14 +269,14 @@ extern uint32_t hashlittle(const void *key, size_t length, uint32_t initval);
  */
 extern void seedrand(void);
 extern int genrand(void *buf, int len);
-extern void sha512sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern void sha512sum(unsigned char *buff, const void *data, unsigned long len);
-extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern void sha256sum(unsigned char *buff, const void *data, unsigned long len);
-extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern void sha1sum(unsigned char *buff, const void *data, unsigned long len);
-extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern void md5sum(unsigned char *buff, const void *data, unsigned long len);
+extern void sha512sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
+extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
+extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
+extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern int sha512cmp(unsigned char *digest1, unsigned char *digest2);
 extern int sha256cmp(unsigned char *digest1, unsigned char *digest2);
 extern int sha1cmp(unsigned char *digest1, unsigned char *digest2);
@@ -366,7 +420,7 @@ extern int socketwrite(struct fwsocket *sock, const void *buf, int num);
 extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstruct *addr);
 extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union sockstruct *addr);
 
-extern void ssl_shutdown(void *ssl);
+extern void ssl_shutdown(void *ssl, int sock);
 extern void tlsaccept(struct fwsocket *sock, struct ssldata *orig);
 extern struct fwsocket *dtls_listenssl(struct fwsocket *sock);
 extern void startsslclient(struct fwsocket *sock);
@@ -384,9 +438,13 @@ extern void config_cat_callback(struct bucket_list *categories, config_catcb ent
 extern void config_entry_callback(struct bucket_list *entries, config_entrycb entry_cb);
 
 /*Forward Decl*/
+/** @brief Forward decleration of structure.*/
 typedef struct xml_node xml_node;
+/** @brief Forward decleration of structure.*/
 typedef struct xml_search xml_search;
+/** @brief Forward decleration of structure.*/
 typedef struct xml_doc xml_doc;
+/** @brief Forward decleration of structure.*/
 typedef struct xslt_doc xslt_doc;
 
 /*XML*/
@@ -487,8 +545,11 @@ struct ldap_results {
 	struct bucket_list *entries;
 };
 
+/** @brief Forward decleration of structure.*/
 typedef struct ldap_conn ldap_conn;
+/** @brief Forward decleration of structure.*/
 typedef struct ldap_modify ldap_modify;
+/** @brief Forward decleration of structure.*/
 typedef struct ldap_add ldap_add;
 
 extern struct ldap_conn *ldap_connect(const char *uri, enum ldap_starttls starttls,int timelimit, int limit, int debug, int *err);
@@ -537,6 +598,7 @@ struct curlbuf {
 	size_t bsize;
 };
 
+/** @brief Forward decleration of structure.*/
 typedef struct curl_post curl_post;
 typedef struct basic_auth *(*curl_authcb)(const char *user, const char *passwd, void *data);
 typedef int (*curl_progress_func)(void*, double, double, double, double);
@@ -569,9 +631,13 @@ int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 #endif
 
 /*easter egg copied from <linux/jhash.h>*/
+/** @addtogroup LIB-Hash
+  * @{
+  * @brief Default init value for hash function.*/
 #define JHASH_INITVAL           0xdeadbeef
+/** @brief Define jenhash as hashlittle on big endian it should be hashbig*/
 #define jenhash(key, length, initval)   hashlittle(key, length, (initval) ? initval : JHASH_INITVAL);
-
+/** @}*/
 /*
  * atomic flag routines for (obj)->flags
  */
@@ -600,13 +666,13 @@ int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
   * @param sighfunc Signal handler function.*/
 #define FRAMEWORK_MAIN(progname, name, email, www, year, runfile, flags, sighfunc) \
 static int  framework_main(int argc, char *argv[]); \
-static struct framework_core *core_info; \
 int  main(int argc, char *argv[]) { \
 	framework_mkcore(progname, name, email, www, year, runfile, flags, sighfunc); \
 	return (framework_init(argc, argv, framework_main)); \
 } \
 static int  framework_main(int argc, char *argv[])
 
+/** @brief Macro to assign values to char const*/
 #define ALLOC_CONST(const_var, val) { \
 		char *tmp_char; \
 		if (val) { \
@@ -618,21 +684,20 @@ static int  framework_main(int argc, char *argv[])
 		} \
 	}
 
-#ifdef __cplusplus
-}
-/*
- * Macro to add refobj support too C++ overloading new/delete creating
- * unref method
- */
-#define DTS_OJBREF_CLASS(classtype)	void *operator new(size_t sz) {\
-			return objalloc(sz, &classtype::dts_unref_classtype);\
-		}\
-		void operator delete(void *obj) {\
-		}\
-		static void dts_unref_classtype(void *data) {\
-			delete (classtype*)data;\
-		}\
-		~classtype()
+/** @brief Add this macro to a C++ class to add refobj support.
+  *
+  * This macro defines operator overloads for new/delete and declares
+  * a destructor.
+  * @note this should not be used with inheritance*/
+#define DTS_OJBREF_CLASS(classtype) \
+void *operator new(size_t sz) {\
+	return objalloc(sz, &classtype::dts_unref_classtype);\
+}\
+void operator delete(void *obj) {\
+}\
+static void dts_unref_classtype(void *data) {\
+	delete (classtype*)data;\
+}\
+~classtype()
 
-#endif
 #endif

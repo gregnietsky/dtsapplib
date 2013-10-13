@@ -16,7 +16,20 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
+#include <openssl/evp.h>
+
+/** @defgroup LIB-Util Micelaneous utilities.
+  * @brief Utilities commonly used
+  *
+  * @ingroup LIB
+  * @addtogroup LIB-Util
+  * @{
+  * @file
+  * @brief Utilities commonly used
+  *
+  * @n @verbatim
  * Acknowledgments [MD5 HMAC http://www.ietf.org/rfc/rfc2104.txt]
  *      Pau-Chen Cheng, Jeff Kraemer, and Michael Oehler, have provided
  *      useful comments on early drafts, and ran the first interoperability
@@ -25,7 +38,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *      Kaliski, Bart Preneel, Matt Robshaw, Adi Shamir, and Paul van
  *      Oorschot have provided useful comments and suggestions during the
  *      investigation of the HMAC construction.
- */
+ *
+@endverbatim*/
 
 #ifdef __WIN32__
 #include <winsock2.h>
@@ -45,8 +59,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "include/dtsapp.h"
 
-typedef void	(*hmacfunc)(unsigned char *, const void *, unsigned long, const void *, unsigned long);
-
+/** @brief Seed openssl random number generator
+  *
+  * This should be run at application startup
+  * @todo This wont work on WIN32*/
 extern void seedrand(void) {
 	int fd = open("/dev/random", O_RDONLY);
 	int len;
@@ -56,10 +72,22 @@ extern void seedrand(void) {
 	RAND_seed(buf, len);
 }
 
+/** @brief Generate random sequence
+  *
+  * @param buf Buffer to write random data.
+  * @param len Length to write.
+  * @return 1 on success 0 otherwise.*/
 extern int genrand(void *buf, int len) {
 	return (RAND_bytes(buf, len));
 }
 
+/** @brief Calculate the SHA2-512 hash accross 2 data chunks.
+  *
+  * @param buff buffer to place the hash (64 bytes).
+  * @param data First data chunk to calculate.
+  * @param len Length of data.
+  * @param data2 Second data chunk to calculate.
+  * @param len2 Length of data2.*/
 extern void sha512sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2) {
 	SHA512_CTX c;
 
@@ -71,10 +99,23 @@ extern void sha512sum2(unsigned char *buff, const void *data, unsigned long len,
 	SHA512_Final(buff, &c);
 }
 
+/** @brief Calculate the SHA2-512 hash
+  *
+  * @param buff buffer to place the hash (64 bytes).
+  * @param data First data chunk to calculate.
+  * @param len Length of data.*/
 extern void sha512sum(unsigned char *buff, const void *data, unsigned long len) {
 	sha512sum2(buff, data, len, NULL, 0);
 }
 
+
+/** @brief Calculate the SHA2-256 hash accross 2 data chunks.
+  *
+  * @param buff buffer to place the hash (32 bytes).
+  * @param data First data chunk to calculate.
+  * @param len Length of data.
+  * @param data2 Second data chunk to calculate.
+  * @param len2 Length of data2.*/
 extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2) {
 	SHA256_CTX c;
 
@@ -86,10 +127,22 @@ extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len,
 	SHA256_Final(buff, &c);
 }
 
+/** @brief Calculate the SHA2-256 hash
+  *
+  * @param buff buffer to place the hash (32 bytes).
+  * @param data First data chunk to calculate.
+  * @param len Length of data.*/
 extern void sha256sum(unsigned char *buff, const void *data, unsigned long len) {
 	sha256sum2(buff, data, len, NULL, 0);
 }
 
+/** @brief Calculate the SHA1 hash accross 2 data chunks.
+  *
+  * @param buff buffer to place the hash (20 bytes).
+  * @param data First data chunk to calculate.
+  * @param len Length of data.
+  * @param data2 Second data chunk to calculate.
+  * @param len2 Length of data2.*/
 extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2) {
 	SHA_CTX c;
 
@@ -101,10 +154,22 @@ extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, c
 	SHA_Final(buff, &c);
 }
 
+/** @brief Calculate the SHA1 hash
+  *
+  * @param buff buffer to place the hash (20 bytes).
+  * @param data First data chunk to calculate.
+  * @param len Length of data.*/
 extern void sha1sum(unsigned char *buff, const void *data, unsigned long len) {
 	sha1sum2(buff, data, len, NULL, 0);
 }
 
+/** @brief Calculate the MD5 hash accross 2 data chunks.
+  *
+  * @param buff buffer to place the hash (16 bytes).
+  * @param data First data chunk to calculate.
+  * @param len Length of data.
+  * @param data2 Second data chunk to calculate.
+  * @param len2 Length of data2.*/
 extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2) {
 	MD5_CTX c;
 
@@ -116,11 +181,16 @@ extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, co
 	MD5_Final(buff, &c);
 }
 
+/** @brief Calculate the MD5 hash
+  *
+  * @param buff buffer to place the hash (16 bytes).
+  * @param data First data chunk to calculate.
+  * @param len Length of data.*/
 extern void md5sum(unsigned char *buff, const void *data, unsigned long len) {
 	md5sum2(buff, data, len, NULL, 0);
 }
 
-extern int _digest_cmp(unsigned char *md51, unsigned char *md52, int len) {
+static int _digest_cmp(unsigned char *md51, unsigned char *md52, int len) {
 	int cnt;
 	int chk = 0;
 
@@ -131,24 +201,44 @@ extern int _digest_cmp(unsigned char *md51, unsigned char *md52, int len) {
 	return (chk);
 }
 
+/** @brief Compare two md5 hashes
+  *
+  * @param digest1 Digest to compare.
+  * @param digest2 Digest to compare.
+  * @return 0 on equality.*/
 extern int md5cmp(unsigned char *digest1, unsigned char *digest2) {
 	return (_digest_cmp(digest1, digest2, 16));
 }
 
+/** @brief Compare two SHA1 hashes
+  *
+  * @param digest1 Digest to compare.
+  * @param digest2 Digest to compare.
+  * @return 0 on equality.*/
 extern int sha1cmp(unsigned char *digest1, unsigned char *digest2) {
 	return (_digest_cmp(digest1, digest2, 20));
 }
 
+/** @brief Compare two SHA2-256 hashes
+  *
+  * @param digest1 Digest to compare.
+  * @param digest2 Digest to compare.
+  * @return 0 on equality.*/
 extern int sha256cmp(unsigned char *digest1, unsigned char *digest2) {
 	return (_digest_cmp(digest1, digest2, 32));
 }
 
+/** @brief Compare two SHA2-512 hashes
+  *
+  * @param digest1 Digest to compare.
+  * @param digest2 Digest to compare.
+  * @return 0 on equality.*/
 extern int sha512cmp(unsigned char *digest1, unsigned char *digest2) {
 	return (_digest_cmp(digest1, digest2, 64));
 }
 
-extern void _hmac(unsigned char *buff, const void *data, unsigned long len, const void *key, unsigned long klen,
-				  hmacfunc func, short alglen) {
+static void _hmac(unsigned char *buff, const void *data, unsigned long len, const void *key, unsigned long klen,
+			void (*func)(unsigned char *, const void *, unsigned long, const void *, unsigned long), short alglen) {
 	unsigned char	okey[64], ikey[64];
 	int		bcnt;
 
@@ -172,22 +262,56 @@ extern void _hmac(unsigned char *buff, const void *data, unsigned long len, cons
 	func(buff, okey, 64, buff, alglen);
 }
 
+/** @brief Hash Message Authentication Codes (HMAC) MD5
+  *
+  * @param buff HMAC returned in this buffer (16 bytes).
+  * @param data Data to sign.
+  * @param len Length of data.
+  * @param key Key to signwith.
+  * @param klen Length of key.*/
 extern void md5hmac(unsigned char *buff, const void *data, unsigned long len, const void *key, unsigned long klen) {
 	_hmac(buff, data, len, key, klen, md5sum2, 16);
 }
 
+/** @brief Hash Message Authentication Codes (HMAC) SHA1
+  *
+  * @param buff HMAC returned in this buffer (20 bytes).
+  * @param data Data to sign.
+  * @param len Length of data.
+  * @param key Key to signwith.
+  * @param klen Length of key.*/
 extern void sha1hmac(unsigned char *buff, const void *data, unsigned long len, const void *key, unsigned long klen) {
 	_hmac(buff, data, len, key, klen, sha1sum2, 20);
 }
 
+/** @brief Hash Message Authentication Codes (HMAC) SHA2-256
+  *
+  * @param buff HMAC returned in this buffer (32 bytes).
+  * @param data Data to sign.
+  * @param len Length of data.
+  * @param key Key to signwith.
+  * @param klen Length of key.*/
 extern void sha256hmac(unsigned char *buff, const void *data, unsigned long len, const void *key, unsigned long klen) {
 	_hmac(buff, data, len, key, klen, sha256sum2, 32);
 }
 
+/** @brief Hash Message Authentication Codes (HMAC) SHA2-512
+  *
+  * @param buff HMAC returned in this buffer (64 bytes).
+  * @param data Data to sign.
+  * @param len Length of data.
+  * @param key Key to signwith.
+  * @param klen Length of key.*/
 extern void sha512hmac(unsigned char *buff, const void *data, unsigned long len, const void *key, unsigned long klen) {
 	_hmac(buff, data, len, key, klen, sha512sum2, 64);
 }
 
+/** @brief Check if a string is zero length
+  *
+  * strlen can not be used on a NULL string this
+  * is a quick and dirty util to check it.
+  * @param str String to check.
+  * @return 1 if the string is null or zero length*/
 extern int strlenzero(const char *str) {
 	if (str && strlen(str)) {
 		return (0);
@@ -195,6 +319,11 @@ extern int strlenzero(const char *str) {
 	return (1);
 }
 
+
+/** @brief Trim white space at the begining of a string.
+  *
+  * @param str String to trim.
+  * @return Pointer to trimed string.*/
 extern char *ltrim(char *str) {
 	char *cur = str;
 
@@ -209,6 +338,11 @@ extern char *ltrim(char *str) {
 	return (cur);
 }
 
+
+/** @brief Trim white space at the end of a string.
+  *
+  * @param str String to trim.
+  * @return Pointer to trimed string.*/
 extern char *rtrim(const char *str) {
 	int len;
 	char *cur = (char *)str;
@@ -226,6 +360,10 @@ extern char *rtrim(const char *str) {
 	return (cur);
 }
 
+/** @brief Trim whitesapce from the beggining and end of a string.
+  *
+  * @param str String to trim.
+  * @return Trimed string.*/
 extern char *trim(const char *str) {
 	char *cur = (char *)str;
 
@@ -234,6 +372,10 @@ extern char *trim(const char *str) {
 	return (cur);
 }
 
+/** @brief Convert a timeval struct to 64bit NTP time.
+  *
+  * @param tv Timeval struct to convert.
+  * @return 64 bit NTP time value.*/
 extern uint64_t tvtontp64(struct timeval *tv) {
 	return ((((uint64_t)tv->tv_sec + 2208988800u) << 32) + ((uint32_t)tv->tv_usec * 4294.967296));
 }
@@ -241,7 +383,7 @@ extern uint64_t tvtontp64(struct timeval *tv) {
 /*
  * RFC 1701 Checksum based on code from the RFC
  */
-extern uint16_t _checksum(const void *data, int len, const uint16_t check) {
+static uint16_t _checksum(const void *data, int len, const uint16_t check) {
 	uint64_t csum = 0;
 	const uint32_t *arr = (uint32_t *)data;
 
@@ -276,23 +418,47 @@ extern uint16_t _checksum(const void *data, int len, const uint16_t check) {
 	return (~(uint16_t)csum);
 }
 
+/** @brief Obtain the checksum for a buffer.
+  *
+  * @param data Buffer to create checksum of.
+  * @param len Buffer length.
+  * @return Chechsum of data.*/
 extern uint16_t checksum(const void *data, int len) {
 	return (_checksum(data, len, 0));
 }
 
+
+/** @brief Obtain the checksum for a buffer adding a checksum
+  *
+  * @param checksum Checksum to add to generated checksum.
+  * @param data Buffer to create checksum of.
+  * @param len Buffer length.
+  * @return Chechsum of data.*/
 extern uint16_t checksum_add(const uint16_t checksum, const void *data, int len) {
 	return (_checksum(data, len, ~checksum));
 }
 
+/** @brief Verify a checksum
+  *
+  * @param data Data to generate checksum.
+  * @param len Length of data.
+  * @param check Checksum to check against.
+  * @returns 0 when checksum is verified.*/
 extern uint16_t verifysum(const void *data, int len, const uint16_t check) {
 	return (_checksum(data, len, check));
 }
 
-#ifdef __WIN32__
-extern void touch(const char *filename) {
-#else
+/** @brief Create a file and set user and group
+  *
+  * @todo WIN32 does not use uid/gid and move to file utils module.
+  * @param filename File to create.
+  * @param user User ID to set ownership.
+  * @param group Group ID to set ownership.*/
+#ifndef __WIN32__
 extern void touch(const char *filename, uid_t user, gid_t group) {
 	int res;
+#else
+extern void touch(const char *filename) {
 #endif
 	int fd;
 
@@ -305,10 +471,12 @@ extern void touch(const char *filename, uid_t user, gid_t group) {
 	return;
 }
 
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
-
+/** @brief Base 64 encode a buffer
+  *
+  * @param message Buffer to encode.
+  * @param len Length of the buffer.
+  * @param nonl Encode the data all on one line if non zero.
+  * @return Reference to base64 encoded string.*/
 extern char *b64enc_buf(const char *message, uint32_t len, int nonl) {
 	BIO *bmem, *b64;
 	BUF_MEM *ptr;
@@ -337,6 +505,13 @@ extern char *b64enc_buf(const char *message, uint32_t len, int nonl) {
 	return buffer;
 }
 
+/** @brief Base 64 encode a string
+  *
+  * @param message String to encode.
+  * @param nonl Encode the data all on one line if non zero.
+  * @return Reference to base64 encoded string.*/
 extern char *b64enc(const char *message, int nonl) {
 	return b64enc_buf(message, strlen(message), nonl);
 }
+
+/** @}*/
