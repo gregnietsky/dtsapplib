@@ -1,13 +1,7 @@
 /** @defgroup LIB-Hash Burtle Bob hash algorythim.
   * @brief lookup3.c, by Bob Jenkins, May 2006, Public Domain.
-  *
   * @ingroup LIB
-  * @addtogroup LIB-Hash
-  * @{
-  * @file
-  * @brief by Bob Jenkins, May 2006, Public Domain.
-  *
-  * @n @verbatim
+@verbatim
 -------------------------------------------------------------------------------
 lookup3.c, by Bob Jenkins, May 2006, Public Domain.
 
@@ -41,7 +35,14 @@ then mix those integers.  This is fast (you can do a lot more thorough
 mixing with 12*3 instructions on 3 integers than you can with 3 instructions
 on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 -------------------------------------------------------------------------------
-@endverbatim*/
+@endverbatim
+*/
+
+/** @file
+  * @brief by Bob Jenkins, May 2006, Public Domain.
+  * @addtogroup LIB-Hash
+  * @{
+*/
 
 /*#define SELF_TEST 1*/
 
@@ -156,7 +157,8 @@ and these came close:
  10  8 15 26 3 22 24
  11  8 15 26 3 22 24
 -------------------------------------------------------------------------------
-@endverbatim*/
+@endverbatim
+*/
 #define final(a,b,c) \
 { \
   c ^= b; c -= rot(b,14); \

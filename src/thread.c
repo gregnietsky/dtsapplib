@@ -310,14 +310,17 @@ extern void jointhreads(void) {
 	}
 }
 
-/*
- * find the thread the signal was delivered to
- * if the signal was handled returns 1
- * if the thread could not be handled returns -1
- * returns 0 if not for thread
- * NB sending a signal to the current thread while threads is locked
- * will cause a deadlock.
- */
+/** @brief pass a signal to all threads.
+  *
+  * find the thread the signal was delivered to
+  * if the signal was handled returns 1
+  * if the thread could not be handled returns -1
+  * returns 0 if not for thread
+  * NB sending a signal to the current thread while threads is locked
+  * will cause a deadlock.
+  * 
+  * @param sig Signal to pass.
+  * @returns 1 on success -1 on error.*/
 extern int thread_signal(int sig) {
 	struct thread_pvt *thread;
 	pthread_t me;

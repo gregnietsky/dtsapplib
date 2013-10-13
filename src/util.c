@@ -29,7 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * @file
   * @brief Utilities commonly used
   *
-  * @n @verbatim
+  * 
+@verbatim
  * Acknowledgments [MD5 HMAC http://www.ietf.org/rfc/rfc2104.txt]
  *      Pau-Chen Cheng, Jeff Kraemer, and Michael Oehler, have provided
  *      useful comments on early drafts, and ran the first interoperability
@@ -39,7 +40,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *      Oorschot have provided useful comments and suggestions during the
  *      investigation of the HMAC construction.
  *
-@endverbatim*/
+@endverbatim
+*/
 
 #ifdef __WIN32__
 #include <winsock2.h>

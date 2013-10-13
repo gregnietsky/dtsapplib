@@ -73,31 +73,57 @@ extern "C" {
 #include <arpa/inet.h>
 #endif
 
-/*socket structure*/
+/** @brief Socket union describing all address types.
+  *
+  * @ingroup LIB-Sock*/
 union sockstruct {
+	/** @brief Base socket addr structure.*/
 	struct sockaddr sa;
+	/** @brief IPv4 socket addr structure.*/
 	struct sockaddr_in sa4;
+	/** @brief IPv6 socket addr structure.*/
 	struct sockaddr_in6 sa6;
+	/** @brief Sockaddr storage is a "magic" struct been able to hold IPv4 or IPv6.*/
 	struct sockaddr_storage ss;
 };
 
 /** @brief Forward decleration of structure.*/
 typedef struct ssldata ssldata;
 
+/** @brief Socket flags controling a socket.
+  *
+  * @ingroup LIB-Sock*/
 enum sock_flags {
+	/** @brief The socket has been bound and awaiting connections.*/
 	SOCK_FLAG_BIND		= 1 << 0,
+	/** @brief The socket is going away stop processing in its thread.*/
 	SOCK_FLAG_CLOSE		= 1 << 1,
+	/** @brief SSL has been requested on this socket dont allow clear read/send.*/
 	SOCK_FLAG_SSL		= 1 << 2
 };
 
+/** @brief Socket data structure.
+  *
+  * @ingroup LIB-Sock*/
 struct fwsocket {
+	/** @brief Socket FD.*/
 	int sock;
+	/** @brief Socket protocol.*/
 	int proto;
+	/** @brief Socket type.*/
 	int type;
+	/** @brief Socket control flags.
+	  * @see sock_flags*/
 	enum sock_flags flags;
+	/** @brief system socket data structure.
+	  * @see sockstruct*/
 	union sockstruct addr;
+	/** @brief SSL structure for encryption.
+	  * @see @ref LIB-Sock-SSL*/
 	struct ssldata *ssl;
+	/** @brief Parent socket if we connected to a server and were spawned.*/
 	struct fwsocket *parent;
+	/** @brief We are the parent this is a list of spawn.*/
 	struct bucket_list *children;
 };
 
@@ -131,7 +157,7 @@ typedef struct nfct_struct nfct_struct;
 typedef struct nfqnl_msg_packet_hdr nfqnl_msg_packet_hdr;
 
 /*callback function type def's*/
-typedef void	(*radius_cb)(struct radius_packet *, void *);
+
 /** @brief Framework callback function
   *
   * @ingroup LIB
@@ -139,6 +165,7 @@ typedef void	(*radius_cb)(struct radius_packet *, void *);
   * @param argv Argument array.
   * @returns Application exit code.*/
 typedef	int	(*frameworkfunc)(int, char **);
+
 /** @brief Callback to user supplied signal handler.
   *
   * @ingroup LIB
@@ -150,36 +177,47 @@ typedef void	(*syssighandler)(int, siginfo_t *, void *);
 #else
 typedef void	(*syssighandler)(int, void*, void*);
 #endif
+
 /** @brief Function called after thread termination.
   *
   * @ingroup LIB-Thread
   * @see framework_mkthread()
   * @param data Reference of thread data.*/
 typedef void    (*threadcleanup)(void *);
+
 /** @brief Thread function
   *
   * @ingroup LIB-Thread
   * @see framework_mkthread()
   * @param data Poinnter to reference of thread data.*/
 typedef void    *(*threadfunc)(void **);
+
 /** @brief Thread signal handler function
   *
   * @ingroup LIB-Thread
   * @see framework_mkthread()
   * @param data Reference of thread data.*/
 typedef int     (*threadsighandler)(int, void *);
+
+/** @brief Callback function to register with a socket that will be called when there is data available.
+  *
+  * @ingroup LIB-Sock
+  * @param sock Socket structure data arrived on.
+  * @param data Reference to data held by client/server thread.*/
+typedef void	(*socketrecv)(struct fwsocket *, void *);
+
 typedef int	(*blisthash)(const void *, int);
 typedef void	(*objdestroy)(void *);
-typedef void	(*socketrecv)(struct fwsocket *, void *);
 typedef void	(*blist_cb)(void *, void *);
 typedef void	(*config_filecb)(struct bucket_list *, const char *, const char *);
 typedef void	(*config_catcb)(struct bucket_list *, const char *);
 typedef void	(*config_entrycb)(const char *, const char *);
 typedef uint32_t (*nfqueue_cb)(struct nfq_data *, struct nfqnl_msg_packet_hdr *, char *, uint32_t, void *, uint32_t *, void **);
+typedef void	(*radius_cb)(struct radius_packet *, void *);
 
 /** @brief Application control flags
   * @ingroup LIB*/
-enum framework_flags {
+ enum framework_flags {
 	/** @brief Allow application daemonization.*/
 	FRAMEWORK_FLAG_DAEMON	= 1 << 0,
 	/** @brief Dont print GNU copyright.*/
@@ -632,14 +670,16 @@ int mk_dir(const char *dir);
 int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 #endif
 
-/*easter egg copied from <linux/jhash.h>*/
-/** @addtogroup LIB-Hash
-  * @{
-  * @brief Default init value for hash function.*/
+/** @brief Default init value for hash function.
+  *
+  * easter egg copied from <linux/jhash.h>
+  * @ingroup LIB-Hash*/
 #define JHASH_INITVAL           0xdeadbeef
-/** @brief Define jenhash as hashlittle on big endian it should be hashbig*/
+
+/** @brief Define jenhash as hashlittle on big endian it should be hashbig
+  * @ingroup LIB-Hash*/
 #define jenhash(key, length, initval)   hashlittle(key, length, (initval) ? initval : JHASH_INITVAL);
-/** @}*/
+
 /*
  * atomic flag routines for (obj)->flags
  */
@@ -655,6 +695,7 @@ int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 
 /** @ingroup LIB
   * @brief A macro to replace main() with initilization and daemonization code
+  * @note Argument count is argc and arguments is array argv.
   * @see framework_flags
   * @see framework_mkcore()
   * @see framework_init()

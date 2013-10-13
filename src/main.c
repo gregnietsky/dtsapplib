@@ -79,11 +79,11 @@ extern void printgnu() {
 	} else {
 		return;
 	}
-	printf("%s\n\nCopyright (C) %i %s <%s>\n"
+	printf("%s\n\nCopyright (C) %i %s <%s>\n\n"
 		   "        %s\n\n"
 		   "    This program comes with ABSOLUTELY NO WARRANTY\n"
 		   "    This is free software, and you are welcome to redistribute it\n"
-		   "    under certain condition\n\n", ci->progname, ci->year, ci->developer, ci->email, ci->www);
+		   "    under certain conditions.\n\n", ci->progname, ci->year, ci->developer, ci->email, ci->www);
 	objunref(ci);
 }
 
@@ -190,7 +190,6 @@ static void framework_free(void *data) {
 }
 
 /** @brief Initilise application data structure and return a reference
-  * @note The returned value must be un referenced
   * @warning failure to supply a signal handler on non WIN32 systems
   * will deafault to exiting with -1 on SIGINT/SIGKILL.
   * @todo does threads actually work in windows with no sighandler.

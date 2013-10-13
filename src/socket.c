@@ -50,12 +50,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "include/dtsapp.h"
 #include "include/private.h"
 
-/* socket handling thread*/
+/** @brief Socket handling thread data.*/
 struct socket_handler {
+	/** @brief Socket this thread manages.*/
 	struct fwsocket *sock;
+	/** @brief Reference to data passed in callbacks*/
 	void *data;
+	/** @brief Callback called when the socket is ready to read*/
 	socketrecv	client;
+	/** @brief Callback to call when the thread closes to allow
+	  * additional cleanup*/
 	threadcleanup	cleanup;
+	/** @brief If a client connects to a bound port this callback is
+	  * called on connect*/
 	socketrecv	connect;
 };
 
@@ -69,6 +76,9 @@ static int hash_socket(const void *data, int key) {
 	return (ret);
 }
 
+/** @brief Mark the socket for closure and release the reference.
+  *
+  * @param sock Socket to close.*/
 extern void close_socket(struct fwsocket *sock) {
 	if (sock) {
 		setflag(sock, SOCK_FLAG_CLOSE);
@@ -101,6 +111,15 @@ static void clean_fwsocket(void *data) {
 	}
 }
 
+/** @brief Allocate a socket structure and return reference.
+  *
+  * The socket FD is assined by a call to socket.
+  * @warning This function should not be called directly.
+  * @param family Protocol family.
+  * @param type Socket type.
+  * @param proto Protocol to be used.
+  * @param ssl SSL structure to associate with the socket.
+  * @returns Reference to socket structure holding a FD.*/
 extern struct fwsocket *make_socket(int family, int type, int proto, void *ssl) {
 	struct fwsocket *si;
 
@@ -214,26 +233,82 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 	return (sock);
 }
 
+/** @brief Generic client socket.
+  *
+  * @see udpconnect
+  * @see tcpconnect
+  * @param family Protocol family.
+  * @param stype Socket type.
+  * @param proto Socket protocol.
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *sockconnect(int family, int stype, int proto, const char *ipaddr, const char *port, void *ssl) {
 	return(_opensocket(family, stype, proto, ipaddr, port, ssl, 0, 0));
 }
 
+/** @brief UDP Socket client.
+  *
+  * @see sockconnect
+  * @see tcpconnect
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *udpconnect(const char *ipaddr, const char *port, void *ssl) {
 	return (_opensocket(PF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, ipaddr, port, ssl, 0, 0));
 }
 
+/** @brief TCP Socket client.
+  *
+  * @see sockconnect
+  * @see udpconnect
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *tcpconnect(const char *ipaddr, const char *port, void *ssl) {
 	return (_opensocket(PF_UNSPEC, SOCK_STREAM, IPPROTO_TCP, ipaddr, port, ssl, 0, 0));
 }
 
+/** @brief Generic server socket.
+  *
+  * @see udpbind
+  * @see tcpbind
+  * @param family Protocol family.
+  * @param stype Socket type.
+  * @param proto Socket protocol.
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @param backlog Connection backlog passed to listen.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *sockbind(int family, int stype, int proto, const char *ipaddr, const char *port, void *ssl, int backlog) {
 	return(_opensocket(family, stype, proto, ipaddr, port, ssl, 1, backlog));
 }
 
+/** @brief UDP server socket.
+  *
+  * @see sockbind
+  * @see tcpbind
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *udpbind(const char *ipaddr, const char *port, void *ssl) {
 	return (_opensocket(PF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, ipaddr, port, ssl, 1, 0));
 }
 
+/** @brief Generic server socket.
+  *
+  * @see udpbind
+  * @see sockbind
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @param backlog Connection backlog passed to listen.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *tcpbind(const char *ipaddr, const char *port, void *ssl, int backlog) {
 	return (_opensocket(PF_UNSPEC, SOCK_STREAM, IPPROTO_TCP, ipaddr, port, ssl, 1, backlog));
 }
@@ -364,6 +439,17 @@ static void _start_socket_handler(struct fwsocket *sock, socketrecv read,
 	objunref(sockh);
 }
 
+/** @brief Create a server thread with a socket that has been created with
+  * sockbind udpbind or tcpbind.
+  *
+  * @see sockclient
+  * @see threadcleanup
+  * @see socketrecv
+  * @param sock Reference to a bound socket.
+  * @param read Callback to handle data when ready to read.
+  * @param acceptfunc Function to call on connection accept.
+  * @param cleanup Thread cleanup function for when the socket closes.
+  * @param data to send to the callbacks in paramaters.*/
 extern void socketserver(struct fwsocket *sock, socketrecv read,
 						 socketrecv acceptfunc, threadcleanup cleanup, void *data) {
 
@@ -384,8 +470,20 @@ extern void socketserver(struct fwsocket *sock, socketrecv read,
 	_start_socket_handler(sock, read, acceptfunc, cleanup, data);
 }
 
+/** @brief Create a server thread with a socket that has been created with
+  * sockbind udpbind or tcpbind.
+  *
+  * @see sockclient
+  * @see threadcleanup
+  * @see socketrecv
+  * @param sock Reference to a bound socket.
+  * @param data to send to the callbacks in paramaters.
+  * @param read Callback to handle data when ready to read.
+  * @param cleanup Thread cleanup function for when the socket closes.*/
 extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, threadcleanup cleanup) {
 	startsslclient(sock);
 
 	_start_socket_handler(sock, read, NULL, cleanup, data);
 }
+
+/** @}*/
