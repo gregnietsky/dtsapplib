@@ -169,6 +169,14 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 		if (!(sock = make_socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol, ssl))) {
 			continue;
 		}
+#ifndef __WIN32__
+		if (ctype) {
+			setsockopt(sock->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+#ifdef SO_REUSEPORT
+			setsockopt(sock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
+#endif
+		}
+#endif
 		if ((!ctype && !connect(sock->sock, rp->ai_addr, rp->ai_addrlen)) ||
 				(ctype && !bind(sock->sock, rp->ai_addr, rp->ai_addrlen))) {
 			break;
@@ -189,12 +197,6 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 	if (ctype) {
 		sock->flags |= SOCK_FLAG_BIND;
 		memcpy(&sock->addr.ss, rp->ai_addr, sizeof(sock->addr.ss));
-#ifndef __WIN32__
-		setsockopt(sock->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-#ifdef SO_REUSEPORT
-		setsockopt(sock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
-#endif
-#endif
 		switch(sock->type) {
 			case SOCK_STREAM:
 			case SOCK_SEQPACKET:
