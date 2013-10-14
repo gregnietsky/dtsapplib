@@ -1,0 +1,148 @@
+/*!
+\page refobj
+
+\section refobjinfo Introduction
+
+Data structures in C are are simple by nature well defined and logical. Using pointers is almost imperitive for 
+performance issues copying chunks of data onto the limited space on the stack is not the best solution.
+
+For these same reasons you would use dynamically allocated memory (malloc/calloc) and assign it to your struct, a
+very important reason not to do it on the stack is that when you leave the function the stack space is feeed.
+
+So assuming all data structs are pointers the only access to the data is via these pointers the pointers can be
+copied and overwriten as needed the memory is available till freed.
+
+take the following code into account
+
+\verbatim
+  struct cust *c1, *c2, *c3, c4;
+ 
+  c1 = malloc(sizeof(struct cust));
+  c2 = malloc(sizeof(struct cust));
+  c3 = malloc(sizeof(struct cust));
+
+  .... assign the data ....
+
+  if (c1->priority < c3->priority) {
+    c4 = c1;
+    c1 = c3;
+    c3 = c4;
+  }
+
+\endverbatim
+
+It is clear that its possible that c4 and c3 are pointing to the identical memory here is where the problem starts
+if i free c4 and then try access c3 its possible that the data will be corrupted or reassigned causeing unpredictable
+results.
+
+This is the first problem referenced objects solve that no memory will be freed while a referece is held for the object.
+use of objalloc() instead of malloc/calloc will return a pointer to the allocated memory just as before but now when we 
+want to copy the pointer and ensure it persists we can refrence it using objref() and release the refrence with objunref()
+if the refrence count is 0 the object will be freed the current count is returned by objcnt().
+
+lets look at the code again but using refereneced objects of course if c4 is a tmp variable that wont change and be used
+again there is no need to do this we assuming that this is uncertain and taking precautions.
+
+\verbatim
+  struct cust *c1, *c2, *c3, c4;
+ 
+  c1 = objalloc(sizeof(strict cust), NULL);
+  c2 = objalloc(sizeof(struct cust), NULL);
+  c3 = objalloc(sizeof(struct cust), NULL);
+
+  .... assign the data ....
+
+  if (c1->priority < c3->priority) {
+    /*grab a new ref for c1 and pass to c4*/
+    c4 = (objref(c1) ? c1 : NULL;
+
+    /*grab ref for c3 and pass to c1*/;
+    c1 = (objref(c3) ? c3 : NULL;
+
+    /* pass the ref of c4 to c3*/
+    c3 = c4;
+    /* release the reference for old c3 now c1*/
+    objunref(c1);
+
+    /* we now have 2 refs to c3 the original c1 and one ref for the others.*/
+  }
+
+\endverbatim
+
+The second parameter of objalloc() is the "destructor" this is a function callback to cleanup the data before it is freed by objunref.
+
+This is a slightly pointless bit of code but you should notice that we have called objref 2 and objunref 1 you should also see that
+reference can be passed with the pointer. The original c1 is now referenced 2 once in c4 and once in c3. the reason we dont just call
+objref on c4 at the end is in multi threaded applications its possible to have things get scrambled and a item freed in another thread
+before you reference it its best to always call objref before copying the reference use of locking is needed in some circumstances.
+if you want to grab a reference to a shared memory location that is "changeable" locking is required, this is done implicitly with objref() / objunref() .
+
+\section refobjother Other referenced object functions.
+
+Referenced objects can be locked and unlocked but not reentrantly (this is a design choice and can be made optional). the functions
+objlock() will lock and objunlock() will unlock referenced objects a lock can be attempted using objtrylock().
+
+The size of the requested memory is available by calling objsize() returning a new reference to a string is done with objchar().
+
+The macros @ref setflag @ref clearflag and @ref testflag for atomically handling flags.
+
+\section refobjint Internal workings.
+
+There is no voodo or black magic to the workings of a referenced object they are all ref_obj structures.
+
+When objalloc() is called a a block of memmory the size requested + the size of ref_obj is allocatted and a pointer
+to data is returned and the data is set to the to the block after the ref_obj. when the objXXX() functions are called the
+pointer provided is rewound to the begining of the ref_obj the value of ref_obj::magic is checked to ensure that it is
+a referenced object and -1 is returned if it is not.
+
+objlock() / objunlock() / objtrylock() will lock the mutex ref_obj::lock.
+
+objref() / objunref() will first lock ref_obj::lock then alter ref_obj::cnt when the count reaches 0 the destructor callback ref_obj::destroy is called with ref_obj::data
+and on return the memory is freed. this is very similar to a C++ destructor.
+
+objcnt() returns the value of ref_obj::cnt obtained while ref_obj::lock is held or -1 on error it is a error to return 0 as ref_obj::magic is set to zero when the count 
+reaches  0.
+
+objsize() returns ref_obj::size this contains the size of the memmory allocated (total).
+
+\section refobjcpp Referenced Lockable Objects With Classes (C++)
+
+C++ classes implement destructors but do not implement reference counting by overloading the new/delete operators it is possible to use referenced
+objects with C++ classes.
+
+include the macro DTS_OJBREF_CLAS in your C++ class as follows. as it declares the destructor this does not need to be redeclared.
+
+\verbatim
+class somecool_class {
+	public:
+		DTS_OJBREF_CLASS(somecool_class);
+...........
+...........
+}
+\endverbatim
+
+The macro is included below internally it replaces new with objalloc and calls the cleanup routine it creates this calls delete that will run the destructor.
+
+\verbatim
+void *operator new(size_t sz) {\
+	return objalloc(sz, &classtype::dts_unref_classtype);\
+}\
+void operator delete(void *obj) {\
+}\
+static void dts_unref_classtype(void *data) {\
+	delete (classtype*)data;\
+}\
+~classtype()
+\endverbatim
+\note This should only be used when there is no inheritance.
+\section refobjneg Downsides
+
+It adds ref_obj size memory to each referenced object this includes the size of the lock structure, however with
+almost all programs but the simplest benifiting from multi threading this is only a disadvantage in the simplest programs.
+
+On a 32bit system 20bytes is used for ref_obj and on 64bit 32bytes is used excluding the size of the lock 24bytes and 40bytes respectivly, taaking into account the
+availability of memory and the benifits this will be acceptable.
+
+One option is to drop support for objsize() this will save 4bytes and 8 bytes respectivly removing the magic cookie is not recomended.
+
+*/
