@@ -18,9 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /** @file
   * @brief Wrapper arround Linux libnetlink for managing network interfaces.
-  * @defgroup LIB-IFACE Linux network interface functions
-  * @ingroup LIB
-  * @brief Implement various interface routines from libnetlink
   * @addtogroup LIB-IFACE
   * @{*/
 

@@ -18,9 +18,6 @@
 
 /** @file
   * @brief File utilities to test files (fstat)
-  * @defgroup LIB-FILE File utility functions
-  * @ingroup LIB
-  * @brief Convinece wrappers arround stat
   * @addtogroup LIB-FILE
   * @{*/
 

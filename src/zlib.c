@@ -16,10 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** @defgroup LIB-Z Zlib Interface
-  * @brief Simplified implementation of zlib functions.
-  * @ingroup LIB
-  * @addtogroup LIB-Z
+/** @addtogroup LIB-Z
   * @{
   * @file
   * @brief Simplified implementation of zlib functions.*/

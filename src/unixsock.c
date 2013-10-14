@@ -16,13 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** @defgroup LIB-Usock Unix socket thread
-  * @brief Attach a thread to a unix socket start a new thread on connect.
-  *
-  * @ingroup LIB
-  * A thread is started on the sockect and will start a new client thread
-  * on each connection with the socket as the data
-  * @addtogroup LIB-Usock
+/** @addtogroup LIB-Usock
   * @{
   * @file
   * @brief Attach a thread to a unix socket start a new thread on connect.

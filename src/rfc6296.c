@@ -16,6 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @ingroup LIB-NAT6
+  * @brief Implementation of RFC6296
+  * @addtogroup LIB-NAT6
+  * @{*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,7 +40,7 @@ struct natmap {
 
 struct bucket_list *nptv6tbl = NULL;
 
-static int nptv6_hash(const void *data, int key) {
+static uint32_t nptv6_hash(const void *data, int key) {
 	const struct natmap *map = data;
 	const void *hashkey = (key) ? data : map->ipre;
 	int ret;
@@ -178,3 +184,5 @@ extern void rfc6296_test(blist_cb callback, struct in6_addr *internal) {
 
 	objunref(nptv6tbl);
 }
+
+/** @}*/

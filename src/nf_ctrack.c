@@ -16,6 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief linux Netfilter Connection Tracking
+  * @ingroup LIB-NF-CT
+  * @addtogroup LIB-NF-CT
+  * @{*/
+
 #include "config.h"
 
 #include <stdint.h>
@@ -278,3 +284,5 @@ extern void nf_ctrack_close(void) {
 	}
 	ctrack = NULL;
 }
+
+/** @}*/

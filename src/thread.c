@@ -16,13 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** @defgroup LIB-Thread Posix thread interface
-  * @ingroup LIB
-  * @brief Functions for starting and managing threads.
-  *
-  * The thread interface consists of a management thread managing
-  * a hashed bucket list of threads running optional clean up when done.
-  * @addtogroup LIB-Thread
+/** @addtogroup LIB-Thread
   * @{
   * @file
   * @brief Functions for starting and managing threads.
@@ -88,7 +82,7 @@ struct threadcontainer {
 /** @brief Thread control data.*/
 struct threadcontainer *threads = NULL;
 
-static int hash_thread(const void *data, int key) {
+static uint32_t hash_thread(const void *data, int key) {
 	const struct thread_pvt *thread = data;
 	const pthread_t *hashkey = (key) ? data : &thread->thr;
 	int ret;
@@ -183,7 +177,7 @@ static void *managethread(void **data) {
 			}
 			objunref(thread);
 		}
-		stop_bucket_loop(bloop);
+		objunref(bloop);
 #ifdef __WIN32__
 		Sleep(10);
 #else

@@ -237,7 +237,7 @@ extern void framework_mkcore(char *progname, char *name, char *email, char *web,
 
 /** @brief Initilise the application daemonise and join the manager thread.
   * @warning failure to pass a callback will require running stopthreads
-  * and jointhrea..
+  * and jointhreads.
   * @warning framework information configured by framework_mkcore will be freed on exit.
   * @param argc Argument count argv[0] will be program name.
   * @param argv Argument array.

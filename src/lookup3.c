@@ -1,6 +1,4 @@
-/** @defgroup LIB-Hash Burtle Bob hash algorythim.
-  * @brief lookup3.c, by Bob Jenkins, May 2006, Public Domain.
-  * @ingroup LIB
+/** @addtogroup LIB-Hash
 @verbatim
 -------------------------------------------------------------------------------
 lookup3.c, by Bob Jenkins, May 2006, Public Domain.
@@ -36,12 +34,10 @@ mixing with 12*3 instructions on 3 integers than you can with 3 instructions
 on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 -------------------------------------------------------------------------------
 @endverbatim
-*/
+  * @{*/
 
 /** @file
   * @brief by Bob Jenkins, May 2006, Public Domain.
-  * @addtogroup LIB-Hash
-  * @{
 */
 
 /*#define SELF_TEST 1*/

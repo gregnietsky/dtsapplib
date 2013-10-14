@@ -32,9 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 The FreeRADIUS Server Project
  */
 
-/** @defgroup LIB Distrotech Application Library
-  * @brief A Collection of helper functions and wrapped up interfaces to other libraries
-  * @file
+/** @file
   * @brief DTS Application library API Include file.
   * 
   * @ingroup LIB
@@ -87,7 +85,8 @@ union sockstruct {
 	struct sockaddr_storage ss;
 };
 
-/** @brief Forward decleration of structure.*/
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-Sock-SSL*/
 typedef struct ssldata ssldata;
 
 /** @brief Socket flags controling a socket.
@@ -143,17 +142,28 @@ struct zobj {
 	uint16_t zlen;
 };
 
-/** @brief Forward decleration of structure.*/
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NAT6*/
 typedef struct natmap natmap;
-/** @brief Forward decleration of structure.*/
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-RADIUS*/
 typedef struct radius_packet radius_packet;
-/** @brief Forward decleration of structure.*/
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NF-Q*/
 typedef struct nfq_queue nfq_queue;
-/** @brief Forward decleration of structure.*/
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NF-Q*/
 typedef struct nfq_data nfq_data;
-/** @brief Forward decleration of structure.*/
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NF-CT*/
 typedef struct nfct_struct nfct_struct;
-/** @brief Forward decleration of structure.*/
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NF-Q*/
 typedef struct nfqnl_msg_packet_hdr nfqnl_msg_packet_hdr;
 
 /*callback function type def's*/
@@ -206,13 +216,38 @@ typedef int     (*threadsighandler)(int, void *);
   * @param data Reference to data held by client/server thread.*/
 typedef void	(*socketrecv)(struct fwsocket *, void *);
 
-typedef int	(*blisthash)(const void *, int);
+/** @ingroup LIB-OBJ
+  * @brief Callback used to clean data of a reference object when it is to be freed.
+  * @param data Data held by reference about to be freed.*/
 typedef void	(*objdestroy)(void *);
+
+/** @ingroup LIB-OBJ-Bucket
+  * @brief Callback used to calculate the hash of a structure.
+  * @param data Data or key to calculate hash from.
+  * @param key Key if set to non zero data supplied is the key not data.
+  * @returns Hash for the Reference.*/
+typedef uint32_t (*blisthash)(const void *, int);
+
+/** @ingroup LIB-OBJ-Bucket
+  * @brief This callback is run on each entry in a list
+  * @see bucketlist_callback()
+  * @param data Reference held by the list.
+  * @param data2 Reference to data supplied when calling bucketlist_callback.*/
 typedef void	(*blist_cb)(void *, void *);
+
+/** @ingroup LIB-INI*/
 typedef void	(*config_filecb)(struct bucket_list *, const char *, const char *);
+
+/** @ingroup LIB-INI*/
 typedef void	(*config_catcb)(struct bucket_list *, const char *);
+
+/** @ingroup LIB-INI*/
 typedef void	(*config_entrycb)(const char *, const char *);
+
+/** @ingroup LIB-NF-Q*/
 typedef uint32_t (*nfqueue_cb)(struct nfq_data *, struct nfqnl_msg_packet_hdr *, char *, uint32_t, void *, uint32_t *, void **);
+
+/** @ingroup LIB-RADIUS*/
 typedef void	(*radius_cb)(struct radius_packet *, void *);
 
 /** @brief Application control flags
@@ -296,7 +331,6 @@ extern void bucketlist_callback(struct bucket_list *blist, blist_cb callback, vo
  * iteration through buckets
  */
 extern struct bucket_loop *init_bucket_loop(struct bucket_list *blist);
-extern void stop_bucket_loop(struct bucket_loop *bloop);
 extern void *next_bucket_loop(struct bucket_loop *bloop);
 extern void remove_bucket_loop(struct bucket_loop *bloop);
 
@@ -413,6 +447,8 @@ extern int eui48to64(unsigned char *mac48, unsigned char *eui64);
 extern void closenetlink(void);
 
 /*Radius utilities*/
+/** @addtogroup LIB-RADIUS
+    @{*/
 #define RAD_AUTH_HDR_LEN	20
 #define RAD_AUTH_PACKET_LEN	4096
 #define RAD_AUTH_TOKEN_LEN	16
@@ -436,6 +472,7 @@ enum RADIUS_CODE {
 	RAD_CODE_ACCTRESPONSE	=	5,
 	RAD_CODE_AUTHCHALLENGE	=	11
 };
+/** @}*/
 
 extern unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len);
 extern void addradattrint(struct radius_packet *packet, char type, unsigned int val);
@@ -478,13 +515,17 @@ extern void config_cat_callback(struct bucket_list *categories, config_catcb ent
 extern void config_entry_callback(struct bucket_list *entries, config_entrycb entry_cb);
 
 /*Forward Decl*/
-/** @brief Forward decleration of structure.*/
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-XML*/
 typedef struct xml_node xml_node;
-/** @brief Forward decleration of structure.*/
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-XML*/
 typedef struct xml_search xml_search;
-/** @brief Forward decleration of structure.*/
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-XML*/
 typedef struct xml_doc xml_doc;
-/** @brief Forward decleration of structure.*/
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-XSLT*/
 typedef struct xslt_doc xslt_doc;
 
 /*XML*/
@@ -534,6 +575,8 @@ void xslt_init();
 void xslt_close();
 
 /* LDAP */
+/** @addtogroup LIB-LDAP
+  * @{*/
 enum ldap_starttls {
 	LDAP_STARTTLS_NONE,
 	LDAP_STARTTLS_ATTEMPT,
@@ -591,6 +634,7 @@ typedef struct ldap_conn ldap_conn;
 typedef struct ldap_modify ldap_modify;
 /** @brief Forward decleration of structure.*/
 typedef struct ldap_add ldap_add;
+/** @}*/
 
 extern struct ldap_conn *ldap_connect(const char *uri, enum ldap_starttls starttls,int timelimit, int limit, int debug, int *err);
 extern int ldap_simplebind(struct ldap_conn *ld, const char *dn, const char *passwd);
@@ -638,11 +682,16 @@ struct curlbuf {
 	size_t bsize;
 };
 
-/** @brief Forward decleration of structure.*/
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-CURL*/
 typedef struct curl_post curl_post;
+/** @ingroup LIB-CURL*/
 typedef struct basic_auth *(*curl_authcb)(const char *user, const char *passwd, void *data);
+/** @ingroup LIB-CURL*/
 typedef int (*curl_progress_func)(void*, double, double, double, double);
+/** @ingroup LIB-CURL*/
 typedef void(*curl_progress_pause)(void*, int);
+/** @ingroup LIB-CURL*/
 typedef void *(*curl_progress_newdata)(void*);
 
 int curlinit(void);
@@ -670,28 +719,35 @@ int mk_dir(const char *dir);
 int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 #endif
 
-/** @brief Default init value for hash function.
+/** @brief Default init value for hash function
+  * @ingroup LIB-Hash
   *
-  * easter egg copied from <linux/jhash.h>
-  * @ingroup LIB-Hash*/
+  * easter egg copied from <linux/jhash.h>*/
 #define JHASH_INITVAL           0xdeadbeef
 
 /** @brief Define jenhash as hashlittle on big endian it should be hashbig
+  *
   * @ingroup LIB-Hash*/
 #define jenhash(key, length, initval)   hashlittle(key, length, (initval) ? initval : JHASH_INITVAL);
 
-/*
- * atomic flag routines for (obj)->flags
- */
-#define clearflag(obj, flag) objlock(obj); \
-	obj->flags &= ~flag; \
-	objunlock(obj)
+/** @ingroup LIB-OBJ
+  * @brief Atomically clear a flag in the flags field of a referenced object*/
+#define clearflag(obj, flag) \
+objlock(obj);\
+obj->flags &= ~flag;\
+objunlock(obj)
 
-#define setflag(obj, flag) objlock(obj); \
-	obj->flags |= flag; \
-	objunlock(obj)
+/** @ingroup LIB-OBJ
+  * @brief Atomically set a flag in the flags field of a referenced object*/
+#define setflag(obj, flag) \
+objlock(obj);\
+obj->flags |= flag; \
+objunlock(obj)
 
-#define testflag(obj, flag) (objlock(obj) | (obj->flags & flag) | objunlock(obj))
+/** @ingroup LIB-OBJ
+  * @brief Atomically test a flag in the flags field of a referenced object*/
+#define testflag(obj, flag) \
+(objlock(obj) | (obj->flags & flag) | objunlock(obj))
 
 /** @ingroup LIB
   * @brief A macro to replace main() with initilization and daemonization code
@@ -715,7 +771,8 @@ int  main(int argc, char *argv[]) { \
 } \
 static int  framework_main(int argc, char *argv[])
 
-/** @brief Macro to assign values to char const*/
+/** @brief Macro to assign values to char const
+  * @ingroup LIB*/
 #define ALLOC_CONST(const_var, val) { \
 		char *tmp_char; \
 		if (val) { \
@@ -727,7 +784,8 @@ static int  framework_main(int argc, char *argv[])
 		} \
 	}
 
-/** @brief Add this macro to a C++ class to add refobj support.
+/** @ingroup LIB-OBJ
+  * @brief Add this macro to a C++ class to add refobj support.
   *
   * This macro defines operator overloads for new/delete and declares
   * a destructor.

@@ -16,13 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** @defgroup LIB-Sock Network socket interface
-  * @ingroup LIB
-  * @brief Allocate and initialise a socket for use as a client or server.
-  *
-  * 
-  * @addtogroup LIB-Sock
+/** @addtogroup LIB-Sock
   * @{
+  *
   * @file
   * @brief Allocate and initialise a socket for use as a client or server.
   *
@@ -66,7 +62,7 @@ struct socket_handler {
 	socketrecv	connect;
 };
 
-static int hash_socket(const void *data, int key) {
+static uint32_t hash_socket(const void *data, int key) {
 	int ret;
 	const struct fwsocket *sock = data;
 	const int *hashkey = (key) ? data : &sock->sock;
@@ -410,7 +406,7 @@ static void *_socket_handler(void **data) {
 			objunlock(newsock);
 			close_socket(newsock); /*remove ref*/
 		}
-		stop_bucket_loop(bloop);
+		objunref(bloop);
 	}
 
 	objunref(sock);

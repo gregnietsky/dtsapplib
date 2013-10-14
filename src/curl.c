@@ -1,8 +1,5 @@
 /** @file
   * @brief CURL Interface.
-  * @defgroup LIB-CURL CURL Url interface.
-  * @ingroup LIB
-  * @brief Interface to libCURL.
   * @addtogroup LIB-CURL
   * @{*/
 

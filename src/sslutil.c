@@ -16,13 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** @defgroup LIB-Sock-SSL SSL socket support
-  * @ingroup LIB-Sock
-  * @brief TLSv1 SSLv2 SSLv3 DTLSv1 support
-  *
-  * This is part of the socket interface to support encrypted sockets
-  * a ssldata refernece will be created and passed on socket initialization.
-  * @file
+/** @file
   * @brief TLSv1 SSLv2 SSLv3 DTLSv1 support
   * @ingroup LIB-Sock LIB-Sock-SSL
   * @addtogroup LIB-Sock-SSL

@@ -17,10 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /** @file
-  * @brief Referenced Objects.
-  * @defgroup LIB-OBJ Referenced Objects
-  * @ingroup LIB
-  * @brief Utilities for managing referenced objects.
+  * @brief Referenced Lockable Objects.
+  * @ingroup LIB-OBJ LIB-OBJ-Bucket
   * @addtogroup LIB-OBJ
   * @{*/
 
@@ -32,54 +30,102 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "include/dtsapp.h"
 
 /* add one for ref obj's*/
+/** @brief Magic number stored as first field of all referenced objects.*/
 #define REFOBJ_MAGIC		0xdeadc0de
 
 /* ref counted objects*/
+/** @brief Internal structure of all referenced objects*/
 struct ref_obj {
-	int	magic;
-	int	cnt;
-	int	size;
-	pthread_mutex_t	*lock;
-	objdestroy destroy;
-	void	*data;
+	/** @brief Memory integrity check used to prevent non refeferenced 
+	  * objects been handled as referenced objects
+	  * @see REFOBJ_MAGIC*/
+	uint32_t	magic;
+	/** @brief Reference count the oject will be freed when the reference
+	  * count reaches 0*/
+	uint32_t	cnt;
+	/** @brief The size allocated to this object
+	  * @warning this may be removed in future.*/
+	size_t		size;
+	/** @brief this is a pointer to the lock it may be changed to be the lock*/
+	pthread_mutex_t	lock;
+	/** @brief Function to call to clean up the data before its freed*/
+	objdestroy	destroy;
+	/** @brief Pointer to the data referenced.*/
+	void		*data;
 };
 
-/* bucket list obj*/
+/** @}*/
+
+/** @ingroup LIB-OBJ-Bucket
+  * @brief Entry in a bucket list*/
 struct blist_obj {
-	int	hash;
-	struct	blist_obj *next;
-	struct	blist_obj *prev;
-	struct	ref_obj *data;
+	/** @brief Hash value calculated from the data
+	  * @warning this should not change during the life of this object*/
+	int32_t		hash;
+	/** @brief Next entry in the bucket*/
+	struct		blist_obj *next;
+	/** @brief Previous entry in the bucket*/
+	struct		blist_obj *prev;
+	/** @brief Reference to data held*/
+	struct		ref_obj *data;
 };
 
-/*bucket list to hold hashed objects in buckets*/
+/** @ingroup LIB-OBJ-Bucket
+  * @brief Bucket list, hold hashed objects in buckets*/
 struct bucket_list {
-	unsigned short	bucketbits;		/* number of buckets to create 2 ^ n masks hash*/
-	unsigned int	count;
+	/** @brief number of buckets 2^n*/
+	unsigned short	bucketbits;
+	/** @brief Number of items held*/
+	size_t		count;
+	/** @brief Hash function called to calculate the hash and thus the bucket its placed in*/
 	blisthash	hash_func;
-	struct		blist_obj **list;		/* array of blist_obj[buckets]*/
-	pthread_mutex_t *locks;		/* locks for each bucket [buckets]*/
-	int		*version;	/* version of the bucket to detect changes*/
+	/** @brief Array of blist_obj one per bucket ie 2^bucketbits*/
+	struct		blist_obj **list;
+	/** @brief Array of locks one per bucket*/
+	pthread_mutex_t *locks;
+	/** @brief version of the bucket to detect changes during iteration (loop)*/
+	size_t		*version;
 };
 
-/*
- * buckets are more complex than linked lists
- * to loop through them we will use a structure
- * that holds the bucket and head it needs to
- * be initialised and destroyed.
- */
+/** @ingroup LIB-OBJ-Bucket
+  */
+/** @brief Bucket iterator
+  *
+  * buckets are more complex than linked lists to loop through them we
+  * will use a structure that holds a reference to the bucket and head it needs to
+  * be initialised and destroyed*/
 struct bucket_loop {
+	/** @brief Referenece to the bucket been itereated.*/
 	struct bucket_list *blist;
-	int bucket;
-	int version;
-	unsigned int head_hash;
-	unsigned int cur_hash;
+	/** @brief Active bucket as determined by hash*/
+	unsigned short bucket;
+	/** @brief Our version check this with blist to determine if
+	  * we must rewined and fast forward*/
+	size_t version;
+	/** @brief Hash of head if we need to comeback*/
+	uint32_t head_hash;
+	/** @brief Hash of cur if we need to comeback*/
+	uint32_t cur_hash;
+	/** @brief Current bucket*/
 	struct blist_obj *head;
+	/** @brief Current item*/
 	struct blist_obj *cur;
 };
 
+/** @addtogroup LIB-OBJ
+  * @{*/
+
+/** @brief The size of ref_obj is the offset for the data*/
 #define refobj_offset	sizeof(struct ref_obj);
 
+/** @brief Allocate a referenced lockable object.
+  *
+  * Use malloc to allocate memory to contain the data lock and reference
+  * the lock is initialised magic and reference set.
+  * The data begins at the end of the ref_obj set a pointer to it and return.
+  * @param size Size of the data buffer to allocate in addition to the reference.
+  * @param destructor Function called before the memory is freed to cleanup.
+  * @returns Pointer to a data buffer size big.*/
 extern void *objalloc(int size,objdestroy destructor) {
 	struct ref_obj *ref;
 	int asize;
@@ -90,11 +136,7 @@ extern void *objalloc(int size,objdestroy destructor) {
 	if ((robj = malloc(asize))) {
 		memset(robj, 0, asize);
 		ref = (struct ref_obj *)robj;
-		if (!(ref->lock = malloc(sizeof(pthread_mutex_t)))) {
-			free(robj);
-			return NULL;
-		}
-		pthread_mutex_init(ref->lock, NULL);
+		pthread_mutex_init(&ref->lock, NULL);
 		ref->magic = REFOBJ_MAGIC;
 		ref->cnt = 1;
 		ref->data = robj + refobj_offset;
@@ -105,7 +147,9 @@ extern void *objalloc(int size,objdestroy destructor) {
 	return NULL;
 }
 
-/* reference a object returns 0 on error*/
+/** @brief Reference a object.
+  * @param data Data to obtain reference for.
+  * @returns 0 on error or the current count (after incrementing)*/
 extern int objref(void *data) {
 	char *ptr = data;
 	struct ref_obj *ref;
@@ -119,22 +163,28 @@ extern int objref(void *data) {
 	}
 
 	/*double check just incase im gone*/
-	if (!pthread_mutex_lock(ref->lock)) {
+	if (!pthread_mutex_lock(&ref->lock)) {
 		if ((ref->magic == REFOBJ_MAGIC) && (ref->cnt > 0)) {
 			ref->cnt++;
 			ret = ref->cnt;
 		}
-		pthread_mutex_unlock(ref->lock);
+		pthread_mutex_unlock(&ref->lock);
 	}
 
 	return (ret);
 }
 
+/** @brief Drop reference held
+  *
+  * If the reference is the last reference call the destructor to clean up
+  * and then free the memory used.
+  * @warning The reference should not be used again and ideally set to NULL.
+  * @param data Data we are droping a reference for
+  * @returns -1 on error or the refrence count after decrementing.*/
 extern int objunref(void *data) {
 	char *ptr = data;
 	struct ref_obj *ref;
 	int ret = -1;
-	pthread_mutex_t *lock;
 
 	if (!data) {
 		return (ret);
@@ -144,30 +194,31 @@ extern int objunref(void *data) {
 	ref = (struct ref_obj *)ptr;
 
 	if ((ref->magic == REFOBJ_MAGIC) && (ref->cnt)) {
-		pthread_mutex_lock(ref->lock);
+		pthread_mutex_lock(&ref->lock);
 		ref->cnt--;
 		ret = ref->cnt;
 		/* free the object its no longer in use*/
 		if (!ret) {
-			lock = ref->lock;
-			ref->lock = NULL;
 			ref->magic = 0;
 			ref->size = 0;
 			ref->data = NULL;
 			if (ref->destroy) {
 				ref->destroy(data);
 			}
-			pthread_mutex_unlock(lock);
-			pthread_mutex_destroy(lock);
-			free(lock);
+			pthread_mutex_unlock(&ref->lock);
+			pthread_mutex_destroy(&ref->lock);
 			free(ref);
 		} else {
-			pthread_mutex_unlock(ref->lock);
+			pthread_mutex_unlock(&ref->lock);
 		}
 	}
 	return (ret);
 }
 
+/** @brief Return current reference count
+  *
+  * @param data Pointer to determine active reference count.
+  * @returns -1 on error or the current count.*/
 extern int objcnt(void *data) {
 	char *ptr = data;
 	int ret = -1;
@@ -181,13 +232,17 @@ extern int objcnt(void *data) {
 	ref = (struct ref_obj *)ptr;
 
 	if (ref->magic == REFOBJ_MAGIC) {
-		pthread_mutex_lock(ref->lock);
+		pthread_mutex_lock(&ref->lock);
 		ret = ref->cnt;
-		pthread_mutex_unlock(ref->lock);
+		pthread_mutex_unlock(&ref->lock);
 	}
 	return (ret);
 }
 
+/** @brief Size allocated for this reference
+  * @note this is total size not the data size.
+  * @param data Pointer to data to obtain size of.
+  * @returns size allocated by objalloc.*/
 extern int objsize(void *data) {
 	char *ptr = data;
 	int ret = 0;
@@ -201,13 +256,16 @@ extern int objsize(void *data) {
 	ref = (struct ref_obj *)ptr;
 
 	if (ref->magic == REFOBJ_MAGIC) {
-		pthread_mutex_lock(ref->lock);
+		pthread_mutex_lock(&ref->lock);
 		ret = ref->size;
-		pthread_mutex_unlock(ref->lock);
+		pthread_mutex_unlock(&ref->lock);
 	}
 	return (ret);
 }
 
+/** @brief Lock the reference
+  * @param data Reference to lock
+  * @returns Always returns 0 will only lock if a valid object.*/
 extern int objlock(void *data) {
 	char *ptr = data;
 	struct ref_obj *ref;
@@ -216,11 +274,14 @@ extern int objlock(void *data) {
 	ref = (struct ref_obj *)ptr;
 
 	if (data && ref->magic == REFOBJ_MAGIC) {
-		pthread_mutex_lock(ref->lock);
+		pthread_mutex_lock(&ref->lock);
 	}
 	return (0);
 }
 
+/** @brief Try lock a reference
+  * @param data Reference to attempt to lock.
+  * @returns 0 on success -1 on failure.*/
 extern int objtrylock(void *data) {
 	char *ptr = data;
 	struct ref_obj *ref;
@@ -229,11 +290,14 @@ extern int objtrylock(void *data) {
 	ref = (struct ref_obj *)ptr;
 
 	if (ref->magic == REFOBJ_MAGIC) {
-		return ((pthread_mutex_trylock(ref->lock)) ? -1 : 0);
+		return ((pthread_mutex_trylock(&ref->lock)) ? -1 : 0);
 	}
 	return (-1);
 }
 
+/** @brief Unlock a reference
+  * @param data Reference to unlock.
+  * @returns Always returns 0.*/
 extern int objunlock(void *data) {
 	char *ptr = data;
 	struct ref_obj *ref;
@@ -242,7 +306,7 @@ extern int objunlock(void *data) {
 	ref = (struct ref_obj *)ptr;
 
 	if (ref->magic == REFOBJ_MAGIC) {
-		pthread_mutex_unlock(ref->lock);
+		pthread_mutex_unlock(&ref->lock);
 	}
 	return (0);
 }
@@ -257,22 +321,45 @@ static void empty_buckets(void *data) {
 		remove_bucket_loop(bloop);
 		objunref(entry);
 	}
-	stop_bucket_loop(bloop);
+	objunref(bloop);
 }
 
-/*
- * a bucket list is a ref obj the "list" element is a
- * array of "bucket" entries each has a hash
- * the default is to hash the memory when there is no call back
- */
+extern void *objchar(const char *orig) {
+	int len = strlen(orig) + 1;
+	void *nobj;
+
+	if ((nobj = objalloc(len, NULL))) {
+		memcpy(nobj, orig, len);
+	}
+	return nobj;
+}
+
+/** @}
+  *
+  * @addtogroup LIB-OBJ-Bucket
+  * @{*/
+
+/** @brief Create a hashed bucket list.
+  *
+  * A bucket list is a ref obj the "list" element is a
+  * array of "bucket" entries each has a hash
+  * the default is to hash the memory when there is no call back
+  * @todo Dont hash the memory supply a key perhaps a key array type.
+  * @warning the hash must be calculated on immutable data.
+  * @note a bucket list should only contain objects of the same type.
+  * @note Unreferencing the bucketlist will cause it to be emptied and freed when the count reaches 0.
+  * @see blisthash
+  * @param bitmask Number of buckets to create 2^bitmask.
+  * @param hash_function Callback that returns the unique hash for a item this value must not change.
+  * @returns Reference to a empty bucket list.*/
 extern void *create_bucketlist(int bitmask, blisthash hash_function) {
 	struct bucket_list *new;
 	short int buckets, cnt;
 
 	buckets = (1 << bitmask);
 
-	/* allocate session bucket list memory*/
-	if (!(new = objalloc(sizeof(*new) + (sizeof(void *) + sizeof(pthread_mutex_t) + sizeof(int)) * buckets, empty_buckets))) {
+	/* allocate session bucket list memory size of the struct plus a list lock and version for each bucket*/
+	if (!(new = objalloc(sizeof(*new) + (sizeof(void *) + sizeof(pthread_mutex_t) + sizeof(size_t)) * buckets, empty_buckets))) {
 		return NULL;
 	}
 
@@ -332,9 +419,12 @@ static int gethash(struct bucket_list *blist, const void *data, int key) {
 	return (hash);
 }
 
-/*
- * add a ref to the object for the bucket list
- */
+/** @brief Add a reference to the bucketlist
+  *
+  * Create a entry in the list for reference obtained from data.
+  * @param blist Bucket list to add too.
+  * @param data to obtain a reference too and add to the list.
+  * @returns 0 on failure 1 on success.*/
 extern int addtobucket(struct bucket_list *blist, void *data) {
 	char *ptr = data;
 	struct ref_obj *ref;
@@ -421,13 +511,136 @@ extern int addtobucket(struct bucket_list *blist, void *data) {
 	return (1);
 }
 
-/*
- * create a bucket loop and lock the list
- */
+/** @brief Remove and unreference a item from the list.
+  * @note Dont use this function directly during iteration as it imposes performance penalties.
+  * @param blist Bucket list to remove item from.
+  * @see remove_bucket_loop
+  * @param data Reference to be removed and unreferenced.*/
+extern void remove_bucket_item(struct bucket_list *blist, void *data) {
+	struct blist_obj *entry;
+	int hash, bucket;
+
+	hash = gethash(blist, data, 0);
+	bucket = ((hash >> (32 - blist->bucketbits)) & ((1 << blist->bucketbits) - 1));
+
+	pthread_mutex_lock(&blist->locks[bucket]);
+	entry = blist_gotohash(blist->list[bucket], hash + 1, blist->bucketbits);
+	if (entry && entry->hash == hash) {
+		if (entry->next && (entry == blist->list[bucket])) {
+			entry->next->prev = entry->prev;
+			blist->list[bucket] = entry->next;
+		} else
+			if (entry->next) {
+				entry->next->prev = entry->prev;
+				entry->prev->next = entry->next;
+			} else
+				if (entry == blist->list[bucket]) {
+					blist->list[bucket] = NULL;
+				} else {
+					entry->prev->next = NULL;
+					blist->list[bucket]->prev = entry->prev;
+				}
+		objunref(entry->data->data);
+		free(entry);
+	}
+	pthread_mutex_unlock(&blist->locks[bucket]);
+}
+
+/** @brief Return number of items in the list.
+  * @param blist Bucket list to get count of.
+  * @returns Total number of items in all buckets.*/
+extern int bucket_list_cnt(struct bucket_list *blist) {
+	int ret = -1;
+
+	if (blist) {
+		objlock(blist);
+		ret = blist->count;
+		objunlock(blist);
+	}
+	return (ret);
+}
+
+/** @brief Find and return a reference to a item matching supplied key.
+  *
+  * The key is supplied to the hash callback ad the data value and the key flag set.
+  * The hash for the object will be returned by the hash callback to find the item
+  * in the lists.
+  * @note if the hash is not calculated equal to the original value it wont be found.
+  * @param blist Bucket list to search.
+  * @param key Supplied to hash callback to find the item.
+  * @returns New reference to the found item that needs to be unreferenced or NULL.*/
+extern void *bucket_list_find_key(struct bucket_list *blist, const void *key) {
+	struct blist_obj *entry;
+	int hash, bucket;
+
+	if (!blist) {
+		return (NULL);
+	}
+
+	hash = gethash(blist, key, 1);
+	bucket = ((hash >> (32 - blist->bucketbits)) & ((1 << blist->bucketbits) - 1));
+
+	pthread_mutex_lock(&blist->locks[bucket]);
+	entry = blist_gotohash(blist->list[bucket], hash + 1, blist->bucketbits);
+	if (entry && entry->data) {
+		objref(entry->data->data);
+	} else
+		if (!entry) {
+			pthread_mutex_unlock(&blist->locks[bucket]);
+			return NULL;
+		}
+
+	pthread_mutex_unlock(&blist->locks[bucket]);
+
+	if (entry->data && (entry->hash == hash)) {
+		return (entry->data->data);
+	} else
+		if (entry->data) {
+			objunref(entry->data->data);
+		}
+
+	return NULL;
+}
+
+/** @brief Run a callback function on all items in the list.
+  *
+  * This will iterate safely through all items calling the callback with the item and the
+  * optional data supplied.
+  * @see blist_cb
+  * @param blist Bucket list to iterate through.
+  * @param callback Callback to call for each iteration.
+  * @param data2 Data to be set as option to the callback.*/
+extern void bucketlist_callback(struct bucket_list *blist, blist_cb callback, void *data2) {
+	struct bucket_loop *bloop;
+	void *data;
+
+	if (!blist || !callback) {
+		return;
+	}
+
+	bloop = init_bucket_loop(blist);
+	while(blist && bloop && (data = next_bucket_loop(bloop))) {
+		callback(data, data2);
+		objunref(data);
+	}
+	objunref(bloop);
+}
+
+static void free_bloop(void *data) {
+	struct bucket_loop *bloop = data;
+
+	if (bloop->blist) {
+		objunref(bloop->blist);
+	}
+}
+
+/** @brief Create a bucket list iterator to safely iterate the list.
+  * @param blist Bucket list to create iterator for.
+  * @returns Bucket list iterator that needs to be unreferenced when completed.*/
 extern struct bucket_loop *init_bucket_loop(struct bucket_list *blist) {
 	struct bucket_loop *bloop = NULL;
 
-	if (blist && (bloop = objalloc(sizeof(*bloop), NULL))) {
+	if (blist && (bloop = objalloc(sizeof(*bloop), free_bloop))) {
 		objref(blist);
 		bloop->blist = blist;
 		bloop->bucket = 0;
@@ -443,20 +656,9 @@ extern struct bucket_loop *init_bucket_loop(struct bucket_list *blist) {
 	return (bloop);
 }
 
-/*
- * release the bucket loop and unref list
- */
-extern void stop_bucket_loop(struct bucket_loop *bloop) {
-
-	if (bloop) {
-		objunref(bloop->blist);
-		objunref(bloop);
-	}
-}
-
-/*
- * return the next object (+ref) in the list
- */
+/** @brief Return a reference to the next item in the list this could be the first item
+  * @param bloop Bucket iterator
+  * @returns Next available item or NULL when there no items left*/
 extern void *next_bucket_loop(struct bucket_loop *bloop) {
 	struct bucket_list *blist = bloop->blist;
 	struct ref_obj *entry = NULL;
@@ -497,39 +699,14 @@ extern void *next_bucket_loop(struct bucket_loop *bloop) {
 	return (data);
 }
 
-extern void remove_bucket_item(struct bucket_list *blist, void *data) {
-	struct blist_obj *entry;
-	int hash, bucket;
 
-	hash = gethash(blist, data, 0);
-	bucket = ((hash >> (32 - blist->bucketbits)) & ((1 << blist->bucketbits) - 1));
-
-	pthread_mutex_lock(&blist->locks[bucket]);
-	entry = blist_gotohash(blist->list[bucket], hash + 1, blist->bucketbits);
-	if (entry && entry->hash == hash) {
-		if (entry->next && (entry == blist->list[bucket])) {
-			entry->next->prev = entry->prev;
-			blist->list[bucket] = entry->next;
-		} else
-			if (entry->next) {
-				entry->next->prev = entry->prev;
-				entry->prev->next = entry->next;
-			} else
-				if (entry == blist->list[bucket]) {
-					blist->list[bucket] = NULL;
-				} else {
-					entry->prev->next = NULL;
-					blist->list[bucket]->prev = entry->prev;
-				}
-		objunref(entry->data->data);
-		free(entry);
-	}
-	pthread_mutex_unlock(&blist->locks[bucket]);
-}
-
-/*
- * remove and unref the current data
- */
+/** @brief Safely remove a item from a list while iterating in a loop.
+  *
+  * While traversing the bucket list its best to use this function to 
+  * remove a reference and delete it from the list.
+  * @note Removeing a item from the list without using this function will cause the
+  * the version to change and the iterator to rewind and fast forward.
+  * @param bloop Bucket iterator.*/
 extern void remove_bucket_loop(struct bucket_loop *bloop) {
 	struct bucket_list *blist = bloop->blist;
 	int bucket = bloop->bucket;
@@ -575,76 +752,6 @@ extern void remove_bucket_loop(struct bucket_loop *bloop) {
 	objlock(blist);
 	blist->count--;
 	objunlock(blist);
-}
-
-extern int bucket_list_cnt(struct bucket_list *blist) {
-	int ret = -1;
-
-	if (blist) {
-		objlock(blist);
-		ret = blist->count;
-		objunlock(blist);
-	}
-	return (ret);
-}
-
-extern void *bucket_list_find_key(struct bucket_list *blist, const void *key) {
-	struct blist_obj *entry;
-	int hash, bucket;
-
-	if (!blist) {
-		return (NULL);
-	}
-
-	hash = gethash(blist, key, 1);
-	bucket = ((hash >> (32 - blist->bucketbits)) & ((1 << blist->bucketbits) - 1));
-
-	pthread_mutex_lock(&blist->locks[bucket]);
-	entry = blist_gotohash(blist->list[bucket], hash + 1, blist->bucketbits);
-	if (entry && entry->data) {
-		objref(entry->data->data);
-	} else
-		if (!entry) {
-			pthread_mutex_unlock(&blist->locks[bucket]);
-			return NULL;
-		}
-
-	pthread_mutex_unlock(&blist->locks[bucket]);
-
-	if (entry->data && (entry->hash == hash)) {
-		return (entry->data->data);
-	} else
-		if (entry->data) {
-			objunref(entry->data->data);
-		}
-
-	return NULL;
-}
-
-extern void bucketlist_callback(struct bucket_list *blist, blist_cb callback, void *data2) {
-	struct bucket_loop *bloop;
-	void *data;
-
-	if (!blist || !callback) {
-		return;
-	}
-
-	bloop = init_bucket_loop(blist);
-	while(blist && bloop && (data = next_bucket_loop(bloop))) {
-		callback(data, data2);
-		objunref(data);
-	}
-	stop_bucket_loop(bloop);
-}
-
-extern void *objchar(const char *orig) {
-	int len = strlen(orig) + 1;
-	void *nobj;
-
-	if ((nobj = objalloc(len, NULL))) {
-		memcpy(nobj, orig, len);
-	}
-	return nobj;
 }
 
 /** @}*/

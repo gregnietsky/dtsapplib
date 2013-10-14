@@ -20,11 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
 
-/** @defgroup LIB-Util Micelaneous utilities.
-  * @brief Utilities commonly used
-  *
-  * @ingroup LIB
-  * @addtogroup LIB-Util
+/** @addtogroup LIB-Util
   * @{
   * @file
   * @brief Utilities commonly used

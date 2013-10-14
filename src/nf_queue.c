@@ -16,6 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @ingroup LIB-NF-Q
+  * @brief Linux netfilter queue interface
+  * @addtogroup LIB-NF-Q
+  * @{*/
+
 #include "config.h"
 
 #include <stdint.h>
@@ -57,7 +63,7 @@ struct nfq_list {
 	struct bucket_list *queues;
 }  *nfqueues = NULL;
 
-static int nfqueue_hash(const void *data, int key) {
+static uint32_t nfqueue_hash(const void *data, int key) {
 	const struct nfq_struct *nfq = data;
 	const uint16_t *hashkey = (key) ? data : &nfq->pf;
 
@@ -322,3 +328,5 @@ extern uint16_t snprintf_pkt(struct nfq_data *tb, struct nfqnl_msg_packet_hdr *p
 
 	return (len - left);
 }
+
+/** @}*/

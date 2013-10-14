@@ -18,9 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /** @file
   * @brief INI style config file interface.
-  * @defgroup LIB-INI INI Style config file Interface
-  * @ingroup LIB
-  * @brief Reads a ini config file into grouped hashed buckets.
   * @addtogroup LIB-INI
   * @{*/
 
@@ -43,7 +40,7 @@ struct config_file {
 
 static struct bucket_list *configfiles = NULL;
 
-static int hash_files(const void *data, int key) {
+static uint32_t hash_files(const void *data, int key) {
 	int ret;
 	const struct config_file *file = data;
 	const char *hashkey = (key) ? data : file->filename;
@@ -53,7 +50,7 @@ static int hash_files(const void *data, int key) {
 	return(ret);
 }
 
-static int hash_cats(const void *data, int key) {
+static uint32_t hash_cats(const void *data, int key) {
 	int ret;
 	const struct config_category *cat = data;
 	const char *hashkey = (key) ? data : cat->name;

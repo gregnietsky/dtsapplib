@@ -1,8 +1,5 @@
 /** @file
   * @brief XSLT Interface.
-  * @defgroup LIB-XSLT XSLT Interface
-  * @ingroup LIB
-  * @brief Utilities for managing XML documents.
   * @addtogroup LIB-XSLT
   * @{*/
 
@@ -44,7 +41,7 @@ void free_parser(void *data) {
 	xmlCleanupParser();
 }
 
-int xslt_hash(const void *data, int key) {
+static uint32_t xslt_hash(const void *data, int key) {
 	int ret;
 	const struct xslt_param *xp = data;
 	const char *hashkey = (key) ? data : xp->name;

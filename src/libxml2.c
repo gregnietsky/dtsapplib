@@ -1,8 +1,5 @@
 /** @file
   * @brief XML Interface.
-  * @defgroup LIB-XML XML Interface
-  * @ingroup LIB
-  * @brief Utilities for managing XML documents.
   * @addtogroup LIB-XML
   * @{*/
 
@@ -84,7 +81,7 @@ static void free_xmldata(void *data) {
 	xml_close();
 }
 
-int node_hash(const void *data, int key) {
+static uint32_t node_hash(const void *data, int key) {
 	int ret;
 	const struct xml_node *ni = data;
 	const char *hashkey = (key) ? data : ni->key;
@@ -97,7 +94,7 @@ int node_hash(const void *data, int key) {
 	return(ret);
 }
 
-int attr_hash(const void *data, int key) {
+static uint32_t attr_hash(const void *data, int key) {
 	int ret;
 	const struct xml_attr *ai = data;
 	const char *hashkey = (key) ? data : ai->name;
