@@ -69,22 +69,19 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
 
 /** @brief Print a brief GNU copyright notice on console.
   * 
-  * framework_mkcore() needs to be run to ininitilise the data
   * @see FRAMEWORK_MAIN()
-  * @see framework_mkcore()*/
-extern void printgnu() {
-	struct framework_core *ci;
-	if (framework_core_info && objref(framework_core_info)) {
-		ci = framework_core_info;
-	} else {
-		return;
-	}
+  * @see framework_mkcore()
+  * @param pname Detailed application name.
+  * @param year Copyright year.
+  * @param dev Programer / copyright holder name.
+  * @param email Email address.
+  * @param www HTTP URL.*/
+extern void printgnu(const char *pname, int year, const char *dev, const char *email, const char *www) {
 	printf("%s\n\nCopyright (C) %i %s <%s>\n\n"
 		   "        %s\n\n"
 		   "    This program comes with ABSOLUTELY NO WARRANTY\n"
 		   "    This is free software, and you are welcome to redistribute it\n"
-		   "    under certain conditions.\n\n", ci->progname, ci->year, ci->developer, ci->email, ci->www);
-	objunref(ci);
+		   "    under certain conditions.\n\n", pname, year, dev, email, www);
 }
 
 /** @brief Daemonise the application using fork/exit
@@ -243,24 +240,25 @@ extern void framework_mkcore(char *progname, char *name, char *email, char *web,
   * @param argv Argument array.
   * @param callback Function to pass control too.*/
 extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
+	struct framework_core *ci = framework_core_info;
 	int ret = 0;
 
 	seedrand();
 	sslstartup();
 
 	/*prinit out a GNU licence summary*/
-	if (!(framework_core_info->flags & FRAMEWORK_FLAG_NOGNU)) {
-		printgnu();
+	if (!(ci->flags & FRAMEWORK_FLAG_NOGNU)) {
+		printgnu(ci->progname, ci->year, ci->developer, ci->email, ci->www);
 	}
 
 	/* fork the process to daemonize it*/
-	if (framework_core_info->flags & FRAMEWORK_FLAG_DAEMON) {
+	if (ci->flags & FRAMEWORK_FLAG_DAEMON) {
 		daemonize();
 	}
 
-	if ((framework_core_info->flock = lockpidfile(framework_core_info->runfile) < 0)) {
+	if ((ci->flock = lockpidfile(ci->runfile) < 0)) {
 		printf("Could not lock pid file Exiting\n");
-		objunref(framework_core_info);
+		objunref(ci);
 		return (-1);
 	}
 
@@ -270,9 +268,9 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 #endif
 
 	/*init the threadlist start thread manager*/
-	if (!(framework_core_info->flags & FRAMEWORK_FLAG_NOTHREAD) && !startthreads()) {
+	if (!(ci->flags & FRAMEWORK_FLAG_NOTHREAD) && !startthreads()) {
 		printf("Memory Error could not start threads\n");
-		objunref(framework_core_info);
+		objunref(ci);
 		return (-1);
 	}
 
@@ -286,7 +284,7 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	}
 
 	/* turn off the lights*/
-	objunref(framework_core_info);
+	objunref(ci);
 	return (ret);
 }
 
