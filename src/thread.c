@@ -321,7 +321,17 @@ extern int thread_signal(int sig) {
 	int ret = 0;
 
 	me = pthread_self();
-	if ((thread = bucket_list_find_key(threads->list, &me))) {
+
+	bloop = init_bucket_loop(threads->list);
+	while (bloop && (thread = next_bucket_loop(bloop))) {
+	if (pthread_equal(me , thread->thr)) {
+			break;
+		}
+		objunref(thread);
+	}
+	objunref(bloop);
+
+	if (thread) {
 		if (thread->sighandler) {
 			thread->sighandler(sig, thread);
 			ret = 1;
