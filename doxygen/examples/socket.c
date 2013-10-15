@@ -127,14 +127,15 @@ void socktest(const char *ipaddr, int tcp, int ssl) {
   * @see framework_mkcore()
   * @see framework_init()
   */
+/*![main]*/
 FRAMEWORK_MAIN("Socket Client/Server Echo (TCP/TLS/UDP/DTLS)", "Gregory Hinton Nietsky", "gregory@distrotech.co.za",
         "http://www.distrotech.co.za", 2013, "/var/run/sockettest", 0, NULL) {
-
 	if (argc < 3) {
 		printf("Requires arguments %s [tcp|tls|udp|dtls] ipaddr\n", argv[0]);
 		return (-1);
 	}
 	daemonize();
+/*![main]*/
 
 	if (!strcmp(argv[1], "udp")) {
 		socktest(argv[2], 0, 0);

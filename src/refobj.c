@@ -239,10 +239,10 @@ extern int objcnt(void *data) {
 	return (ret);
 }
 
-/** @brief Size allocated for this reference
-  * @note this is total size not the data size.
+/** @brief Size requested for data.
+  * @note the size of the data is returned.
   * @param data Pointer to data to obtain size of.
-  * @returns size allocated by objalloc.*/
+  * @returns size requested for allocation not allocation [excludes refobj].*/
 extern int objsize(void *data) {
 	char *ptr = data;
 	int ret = 0;
@@ -257,7 +257,7 @@ extern int objsize(void *data) {
 
 	if (ref->magic == REFOBJ_MAGIC) {
 		pthread_mutex_lock(&ref->lock);
-		ret = ref->size;
+		ret = ref->size - refobj_offset;
 		pthread_mutex_unlock(&ref->lock);
 	}
 	return (ret);

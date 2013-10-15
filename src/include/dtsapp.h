@@ -291,7 +291,7 @@ struct framework_core {
 
 void framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, int flags, syssighandler sigfunc);
 extern int framework_init(int argc, char *argv[], frameworkfunc callback);
-void printgnu();
+void printgnu(const char *pname, int year, const char *dev, const char *email, const char *www);
 void daemonize();
 int lockpidfile(const char *runfile);
 extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data);

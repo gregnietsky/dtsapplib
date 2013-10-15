@@ -367,12 +367,12 @@ extern void jointhreads(void) {
 	objunref(tc);
 }
 
-/** @brief pass a signal to all threads.
+/** @brief Handle signal if its for me
   *
   * find the thread the signal was delivered to
   * if the signal was handled returns 1
   * if the thread could not be handled returns -1
-  * returns 0 if not for thread
+  * returns 0 if no thread is found
   * NB sending a signal to the current thread while threads is locked
   * will cause a deadlock.
   * 
