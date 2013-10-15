@@ -466,32 +466,30 @@ extern int addtobucket(struct bucket_list *blist, void *data) {
 			tmp->prev = tmp;
 			tmp->next = NULL;
 			/*become new head*/
-		} else
-			if (hash < lhead->hash) {
-				tmp->next = lhead;
-				tmp->prev = lhead->prev;
-				lhead->prev = tmp;
-				blist->list[bucket] = tmp;
+		} else if (hash < lhead->hash) {
+			tmp->next = lhead;
+			tmp->prev = lhead->prev;
+			lhead->prev = tmp;
+			blist->list[bucket] = tmp;
 				/*new tail*/
-			} else
-				if (hash > lhead->prev->hash) {
-					tmp->prev = lhead->prev;
-					tmp->next = NULL;
-					lhead->prev->next = tmp;
-					lhead->prev = tmp;
-					/*insert entry*/
-				} else {
-					lhead = blist_gotohash(lhead, hash, blist->bucketbits);
-					tmp->next = lhead->next;
-					tmp->prev = lhead;
+		} else if (hash > lhead->prev->hash) {
+			tmp->prev = lhead->prev;
+			tmp->next = NULL;
+			lhead->prev->next = tmp;
+			lhead->prev = tmp;
+			/*insert entry*/
+		} else {
+			lhead = blist_gotohash(lhead, hash, blist->bucketbits);
+			tmp->next = lhead->next;
+			tmp->prev = lhead;
 
-					if (lhead->next) {
-						lhead->next->prev = tmp;
-					} else {
-						blist->list[bucket]->prev = tmp;
-					}
-					lhead->next = tmp;
-				}
+			if (lhead->next) {
+				lhead->next->prev = tmp;
+			} else {
+				blist->list[bucket]->prev = tmp;
+			}
+			lhead->next = tmp;
+		}
 	} else {
 		/*set NULL head*/
 		lhead->data = ref;
@@ -529,19 +527,21 @@ extern void remove_bucket_item(struct bucket_list *blist, void *data) {
 		if (entry->next && (entry == blist->list[bucket])) {
 			entry->next->prev = entry->prev;
 			blist->list[bucket] = entry->next;
-		} else
-			if (entry->next) {
-				entry->next->prev = entry->prev;
-				entry->prev->next = entry->next;
-			} else
-				if (entry == blist->list[bucket]) {
-					blist->list[bucket] = NULL;
-				} else {
-					entry->prev->next = NULL;
-					blist->list[bucket]->prev = entry->prev;
-				}
+		} else if (entry->next) {
+			entry->next->prev = entry->prev;
+			entry->prev->next = entry->next;
+		} else if (entry == blist->list[bucket]) {
+			blist->list[bucket] = NULL;
+		} else {
+			entry->prev->next = NULL;
+			blist->list[bucket]->prev = entry->prev;
+		}
 		objunref(entry->data->data);
 		free(entry);
+		objlock(blist);
+		blist->count--;
+		blist->version[bucket]++;
+		objunlock(blist);
 	}
 	pthread_mutex_unlock(&blist->locks[bucket]);
 }
@@ -729,17 +729,15 @@ extern void remove_bucket_loop(struct bucket_loop *bloop) {
 	if (bloop->cur->next && (bloop->cur == blist->list[bucket])) {
 		bloop->cur->next->prev = bloop->cur->prev;
 		blist->list[bucket] = bloop->cur->next;
-	} else
-		if (bloop->cur->next) {
-			bloop->cur->next->prev = bloop->cur->prev;
-			bloop->cur->prev->next = bloop->cur->next;
-		} else
-			if (bloop->cur == blist->list[bucket]) {
-				blist->list[bucket] = NULL;
-			} else {
-				bloop->cur->prev->next = NULL;
-				blist->list[bucket]->prev = bloop->cur->prev;
-			}
+	} else if (bloop->cur->next) {
+		bloop->cur->next->prev = bloop->cur->prev;
+		bloop->cur->prev->next = bloop->cur->next;
+	} else if (bloop->cur == blist->list[bucket]) {
+		blist->list[bucket] = NULL;
+	} else {
+		bloop->cur->prev->next = NULL;
+		blist->list[bucket]->prev = bloop->cur->prev;
+	}
 
 	objunref(bloop->cur->data->data);
 	free(bloop->cur);
