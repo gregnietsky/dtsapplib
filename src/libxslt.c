@@ -41,7 +41,7 @@ void free_parser(void *data) {
 	xmlCleanupParser();
 }
 
-static uint32_t xslt_hash(const void *data, int key) {
+static int32_t xslt_hash(const void *data, int key) {
 	int ret;
 	const struct xslt_param *xp = data;
 	const char *hashkey = (key) ? data : xp->name;

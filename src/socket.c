@@ -62,7 +62,7 @@ struct socket_handler {
 	socketrecv	connect;
 };
 
-static uint32_t hash_socket(const void *data, int key) {
+static int32_t hash_socket(const void *data, int key) {
 	int ret;
 	const struct fwsocket *sock = data;
 	const int *hashkey = (key) ? data : &sock->sock;
@@ -417,6 +417,7 @@ static void *_socket_handler(void **data) {
 static void _start_socket_handler(struct fwsocket *sock, socketrecv read,
 								  socketrecv acceptfunc, threadcleanup cleanup, void *data) {
 	struct socket_handler *sockh;
+	struct thread_pvt *thread;
 
 	if (!sock || !read || !(sockh = objalloc(sizeof(*sockh), NULL))) {
 		return;
@@ -431,7 +432,8 @@ static void _start_socket_handler(struct fwsocket *sock, socketrecv read,
 	/* grab ref for data and pass sockh*/
 	objref(data);
 	objref(sock);
-	framework_mkthread(_socket_handler, _socket_handler_clean, NULL, sockh);
+	thread = framework_mkthread(_socket_handler, _socket_handler_clean, NULL, sockh);
+	objunref(thread);
 	objunref(sockh);
 }
 

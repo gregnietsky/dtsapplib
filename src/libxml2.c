@@ -81,7 +81,7 @@ static void free_xmldata(void *data) {
 	xml_close();
 }
 
-static uint32_t node_hash(const void *data, int key) {
+static int32_t node_hash(const void *data, int key) {
 	int ret;
 	const struct xml_node *ni = data;
 	const char *hashkey = (key) ? data : ni->key;
@@ -94,7 +94,7 @@ static uint32_t node_hash(const void *data, int key) {
 	return(ret);
 }
 
-static uint32_t attr_hash(const void *data, int key) {
+static int32_t attr_hash(const void *data, int key) {
 	int ret;
 	const struct xml_attr *ai = data;
 	const char *hashkey = (key) ? data : ai->name;

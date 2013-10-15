@@ -58,10 +58,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _INCLUDE_DTSAPP_H
 #define _INCLUDE_DTSAPP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <signal.h>
 #ifdef __WIN32__
 #include <winsock2.h>
@@ -70,6 +66,11 @@ extern "C" {
 #else
 #include <arpa/inet.h>
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /** @brief Socket union describing all address types.
   *
@@ -226,7 +227,7 @@ typedef void	(*objdestroy)(void *);
   * @param data Data or key to calculate hash from.
   * @param key Key if set to non zero data supplied is the key not data.
   * @returns Hash for the Reference.*/
-typedef uint32_t (*blisthash)(const void *, int);
+typedef int32_t (*blisthash)(const void *, int);
 
 /** @ingroup LIB-OBJ-Bucket
   * @brief This callback is run on each entry in a list
@@ -256,9 +257,7 @@ typedef void	(*radius_cb)(struct radius_packet *, void *);
 	/** @brief Allow application daemonization.*/
 	FRAMEWORK_FLAG_DAEMON	= 1 << 0,
 	/** @brief Dont print GNU copyright.*/
-	FRAMEWORK_FLAG_NOGNU	= 1 << 1,
-	/** @brief Dont start thread manager.*/
-	FRAMEWORK_FLAG_NOTHREAD	= 1 << 2
+	FRAMEWORK_FLAG_NOGNU	= 1 << 1
 };
 
 /** @brief Application framework data
@@ -801,4 +800,7 @@ static void dts_unref_classtype(void *data) {\
 }\
 ~classtype()
 
+#ifdef __cplusplus
+}
+#endif
 #endif

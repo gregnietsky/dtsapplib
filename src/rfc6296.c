@@ -40,7 +40,7 @@ struct natmap {
 
 struct bucket_list *nptv6tbl = NULL;
 
-static uint32_t nptv6_hash(const void *data, int key) {
+static int32_t nptv6_hash(const void *data, int key) {
 	const struct natmap *map = data;
 	const void *hashkey = (key) ? data : map->ipre;
 	int ret;

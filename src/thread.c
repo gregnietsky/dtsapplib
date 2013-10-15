@@ -36,9 +36,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "include/dtsapp.h"
 
-/** @brief 32 bit magic value to help determine thread is ok*/
-#define THREAD_MAGIC 0xfeedf158
-
 /** @brief Thread status a thread can be disabled by unsetting TL_THREAD_RUN*/
 enum threadopt {
 	/** @brief No status*/
@@ -46,15 +43,19 @@ enum threadopt {
 	/** @brief thread is marked as running*/
 	TL_THREAD_RUN   = 1 << 1,
 	/** @brief thread is marked as complete*/
-	TL_THREAD_DONE  = 1 << 2
+	TL_THREAD_DONE  = 1 << 2,
+	/** @brief Quit when only manager is left
+          * @note This flag is only valid for manager thread*/
+	TL_THREAD_JOIN  = 1 << 3,
+	/** @brief Quit when only manager is left
+          * @note This flag is only valid for manager thread*/
+	TL_THREAD_STOP  = 1 << 4
 };
 
 /** @brief thread struct used to create threads data needs to be first element*/
 struct thread_pvt {
 	/** @brief Reference to data held on thread creation*/
 	void			*data;
-	/** @brief Magic number*/
-	int			magic;
 	/** @brief Thread information*/
 	pthread_t		thr;
 	/** @brief Thread cleanup callback
@@ -69,6 +70,7 @@ struct thread_pvt {
 	/** @brief thread options
 	  * @see threadopt_flags*/
 	enum                    threadopt flags;
+	uint32_t		tid;
 };
 
 /** @brief Global threads data*/
@@ -81,25 +83,34 @@ struct threadcontainer {
 
 /** @brief Thread control data.*/
 struct threadcontainer *threads = NULL;
+int thread_can_start = 1;
 
-static uint32_t hash_thread(const void *data, int key) {
-	const struct thread_pvt *thread = data;
-	const pthread_t *hashkey = (key) ? data : &thread->thr;
-	int ret;
+static int32_t hash_thread(const void *data, int key) {
+	const void **tptr = (key) ? &data : &data;
 
-	ret = jenhash(hashkey, sizeof(pthread_t), 0);
-	return (ret);
+	return jenhash(tptr, sizeof(void*), 0);
 }
 
 static void close_threads(void *data) {
-	if (threads && threads->list) {
-		objunref(threads->list);
+	struct threadcontainer *tc = data;
+
+	if (tc->list) {
+		objunref(tc->list);
 	}
 
-	if (threads && threads->manager) {
-		objunref(threads->manager);
+	if (tc->manager) {
+		objunref(tc->manager);
+		tc->manager = NULL;
 	}
 	threads = NULL;
+}
+
+static void free_thread(void *data) {
+	struct thread_pvt *thread = data;
+
+	if (thread->data) {
+		objunref(thread->data);
+	}
 }
 
 /** @brief let threads check there status by passing in a pointer to there data
@@ -109,10 +120,7 @@ static void close_threads(void *data) {
 extern int framework_threadok(void *data) {
 	struct thread_pvt *thr = data;
 
-	if (thr && (thr->magic == THREAD_MAGIC)) {
-		return (testflag(thr, TL_THREAD_RUN));
-	}
-	return (0);
+	return (thr) ? testflag(thr, TL_THREAD_RUN) : 0;
 }
 
 /*
@@ -129,65 +137,74 @@ static int manager_sig(int sig, void *data) {
 	return (1);
 }
 
+/* if im here im the last thread*/
+static void manage_clean(void *data) {
+
+	/*make sure im still here when turning off*/
+	objlock(threads);
+	thread_can_start = 0;
+	objunlock(threads);
+
+	objunref(threads);
+}
+
+static void stop_threads(void *data, void *data2) {
+	struct thread_pvt *thread = data;
+
+	/*Dont footbullet*/
+	if (data != data2) {
+		pthread_cancel(thread->thr);
+	}
+}
+
 /*
  * loop through all threads till they stoped
  * setting stop will flag threads to stop
  */
 static void *managethread(void **data) {
-	struct thread_pvt *mythread = threads->manager;
-	struct thread_pvt *thread;
-	struct bucket_loop *bloop;
-	pthread_t me;
-	int stop = 0;
+	struct thread_pvt *thread = (void*)data;
+	int last = 0;
 
-	me = pthread_self();
-	while(bucket_list_cnt(threads->list)) {
-		bloop = init_bucket_loop(threads->list);
-		while (bloop && (thread = next_bucket_loop(bloop))) {
-			/*this is my call im done*/
-			if (pthread_equal(thread->thr, me)) {
-				/* im going to leave the list and try close down all others*/
-				if (mythread && !(testflag(mythread, TL_THREAD_RUN))) {
-					/*remove from thread list and disable adding new threads*/
-					remove_bucket_loop(bloop);
-					objlock(threads);
-					threads->manager = NULL;
-					objunlock(threads);
-
-					stop = 1;
-				}
-				objunref(thread);
-				continue;
+	for(;;) {
+		/*if im the last one leave this is done locked to make sure no items are added/removed*/
+		objlock(threads);
+		if (!(bucket_list_cnt(threads->list) - last)) {
+			if (threads->manager) {
+				objunref(threads->manager);
+				threads->manager = NULL;
 			}
-
-			objlock(thread);
-			if (stop && (thread->flags & TL_THREAD_RUN) && !(thread->flags & TL_THREAD_DONE)) {
-				thread->flags &= ~TL_THREAD_RUN;
-				objunlock(thread);
-			} else if ((thread->flags & TL_THREAD_DONE) || pthread_kill(thread->thr, 0)) {
-				objunlock(thread);
-				remove_bucket_loop(bloop);
-				if (thread->cleanup) {
-					thread->cleanup(thread->data);
-				}
-				objunref(thread->data);
-				objunref(thread);
-			} else {
-				objunlock(thread);
-			}
-			objunref(thread);
+			objunlock(threads);
+			break;
 		}
-		objunref(bloop);
+		objunlock(threads);
+
+		/* Ive been joined so i can leave when im alone*/
+		if (testflag(thread, TL_THREAD_JOIN)) {
+			clearflag(thread, TL_THREAD_JOIN);
+			last = 1;
+		}
+
+		/*Cancel all running threads*/
+		if (testflag(thread, TL_THREAD_STOP)) {
+			clearflag(thread, TL_THREAD_STOP);
+			/* Stop any more threads*/
+			objlock(threads);
+			if (threads->manager) {
+				objunref(threads->manager);
+				threads->manager = NULL;
+			}
+			objunlock(threads);
+
+			/* cancel all threads now that they stoped*/
+			bucketlist_callback(threads->list, stop_threads, thread);
+			last = 1;
+		}
 #ifdef __WIN32__
-		Sleep(10);
+		Sleep(1000);
 #else
-		usleep(100000);
+		sleep(1);
 #endif
 	}
-
-	objunref(threads);
-	threads = NULL;
-
 	return NULL;
 }
 
@@ -195,48 +212,76 @@ static void *managethread(void **data) {
   *
   * @returns 1 On success 0 on failure.*/
 extern int startthreads(void) {
-	if (!threads && !(threads = objalloc(sizeof(*threads), close_threads))) {
-		return (0);
+	struct threadcontainer *tc;
+
+	tc = (objref(threads)) ? threads : NULL;
+
+	if (tc) {
+		objunref(tc);
+		return 1;
 	}
 
-	if (!threads->list && !(threads->list = create_bucketlist(4, hash_thread))) {
-		objunref(threads);
-		return (0);
+	if (!(tc = objalloc(sizeof(*threads), close_threads))) {
+		return 0;
 	}
 
-	if (!threads->manager && !(threads->manager = framework_mkthread(managethread, NULL, manager_sig, NULL))) {
-		objunref(threads);
-		return (0);
+	if (!tc->list && !(tc->list = create_bucketlist(4, hash_thread))) {
+		objunref(tc);
+		return 0;
 	}
 
-	return (1);
+	threads = tc;
+	if (!(tc->manager = framework_mkthread(managethread, manage_clean, manager_sig, NULL))) {
+		objunref(tc);
+		return 0;
+	}
+
+	return 1;
 }
 
 /** @brief Stoping the manager thread will stop all other threads.*/
 extern void stopthreads(void) {
-	if (threads) {
-		clearflag(threads->manager, TL_THREAD_RUN);
+	struct threadcontainer *tc;
+
+	tc = (objref(threads)) ? threads : NULL;
+	if (!tc) {
+		return;
 	}
+
+	objlock(tc);
+	if (tc->manager) {
+		setflag(tc->manager, TL_THREAD_STOP);
+	}
+	objunlock(tc);
+	objunref(tc);
+}
+
+static void thread_cleanup(void *data) {
+	struct thread_pvt *thread = data;
+
+	/*remove from thread list manager unrefs threads in cleanup run 1st*/
+	remove_bucket_item(threads->list, thread);
+
+	/*Run cleanup*/
+	clearflag(thread, TL_THREAD_RUN);
+	setflag(thread, TL_THREAD_DONE);
+	if (thread->cleanup) {
+		thread->cleanup(thread->data);
+	}
+
+	/*remove thread reference*/
+	objunref(thread);
 }
 
 static void *threadwrap(void *data) {
 	struct thread_pvt *thread = data;
 	void *ret = NULL;
 
-	if (thread && thread->func) {
-		setflag(thread, TL_THREAD_RUN);
-		ret = thread->func(&thread->data);
-		setflag(thread, TL_THREAD_DONE);
-	}
-
-	/* The manager thread will clean em up normally manager threead will turn threads off and sets manager to null*/
-	if (!threads || !threads->manager) {
-		if (thread->cleanup) {
-			thread->cleanup(thread->data);
-		}
-		objunref(thread->data);
-		objunref(thread);
-	}
+	objref(thread);
+	pthread_cleanup_push(thread_cleanup, thread);
+	setflag(thread, TL_THREAD_RUN);
+	ret = thread->func((void**)data);
+	pthread_cleanup_pop(1);
 
 	return (ret);
 }
@@ -250,48 +295,53 @@ static void *threadwrap(void *data) {
   * @returns a thread structure that must be un referencend.*/
 extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup cleanup, threadsighandler sig_handler, void *data) {
 	struct thread_pvt *thread;
+	struct threadcontainer *tc = NULL;
 
+	/*Grab a reference for threads in this scope start up if we can*/
+	if (!(tc = (objref(threads)) ? threads : NULL)) {
+		if (!thread_can_start) {
+			return NULL;
+		} else if (!startthreads()) {
+			return NULL;
+		}
+		if (!(tc = (objref(threads)) ? threads : NULL)) {
+			return NULL;
+		}
+	}
+
+	objlock(tc);
 	/* dont allow threads if no manager or it not started*/
-	if ((!threads || !threads->manager) && (func != managethread)) {
+	if ((!tc->manager || !func) && (func != managethread)) {
+		/*im shuting down*/
+		objunlock(tc);
+		objunref(tc);
+		return NULL;
+	} else if (!(thread = objalloc(sizeof(*thread), free_thread))) {
+		/* could not create*/
+		objunlock(tc);
+		objunref(tc);
 		return NULL;
 	}
 
-	if (!(thread = objalloc(sizeof(*thread), NULL))) {
-		return NULL;
-	}
-
-	thread->data = data;
+	thread->data = (objref(data)) ? data : NULL;
 	thread->flags = 0;
 	thread->cleanup = cleanup;
 	thread->sighandler = sig_handler;
 	thread->func = func;
-	thread->magic = THREAD_MAGIC;
+	thread->tid = bucket_list_cnt(tc->list);
 
-	/* grab a ref to data for thread to make sure it does not go away*/
-	objref(thread->data);
-	if (pthread_create(&thread->thr, NULL, threadwrap, thread)) {
-		objunref(thread->data);
+	addtobucket(tc->list, thread);
+	objunlock(tc);
+
+	/* start thread and check it*/
+	if (pthread_create(&thread->thr, NULL, threadwrap, thread) || pthread_kill(thread->thr, 0)) {
+		remove_bucket_item(tc->list, thread);
 		objunref(thread);
+		objunref(tc);
 		return NULL;
 	}
 
-	/* am i up and running move ref to list*/
-	if (!pthread_kill(thread->thr, 0)) {
-		if (threads && threads->list) {
-			objlock(threads);
-			addtobucket(threads->list, thread);
-			objunlock(threads);
-			return (thread);
-		} else {
-			objunref(thread->data);
-			objunref(thread);
-		}
-	} else {
-		objunref(thread->data);
-		objunref(thread);
-	}
-
-	return NULL;
+	return thread;
 }
 
 /** @brief Join the manager thread.
@@ -299,9 +349,22 @@ extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup clea
   * This will be done when you have issued stopthreads and are waiting
   * for threads to exit.*/
 extern void jointhreads(void) {
-	if (threads && threads->manager) {
-		pthread_join(threads->manager->thr, NULL);
+	struct threadcontainer *tc;
+
+	tc = (objref(threads)) ? threads : NULL;
+	if (!tc) {
+		return;
 	}
+
+	objlock(tc);
+	if (tc->manager) {
+		setflag(tc->manager, TL_THREAD_JOIN);
+		objunlock(tc);
+		pthread_join(tc->manager->thr, NULL);
+	} else {
+		objunlock(tc);
+	}
+	objunref(tc);
 }
 
 /** @brief pass a signal to all threads.
@@ -316,13 +379,20 @@ extern void jointhreads(void) {
   * @param sig Signal to pass.
   * @returns 1 on success -1 on error.*/
 extern int thread_signal(int sig) {
-	struct thread_pvt *thread;
+	struct thread_pvt *thread = NULL;
 	pthread_t me;
 	int ret = 0;
+	struct bucket_loop *bloop;
+	struct threadcontainer *tc;
+
+	tc = (objref(threads)) ? threads : NULL;
+	if (!tc) {
+		return ret;
+	}
 
 	me = pthread_self();
 
-	bloop = init_bucket_loop(threads->list);
+	bloop = init_bucket_loop(tc->list);
 	while (bloop && (thread = next_bucket_loop(bloop))) {
 	if (pthread_equal(me , thread->thr)) {
 			break;
@@ -340,7 +410,9 @@ extern int thread_signal(int sig) {
 		}
 		objunref(thread);
 	}
-	return (ret);
+
+	objunref(tc);
+	return ret;
 }
 
 /** @}*/

@@ -63,7 +63,7 @@ struct nfq_list {
 	struct bucket_list *queues;
 }  *nfqueues = NULL;
 
-static uint32_t nfqueue_hash(const void *data, int key) {
+static int32_t nfqueue_hash(const void *data, int key) {
 	const struct nfq_struct *nfq = data;
 	const uint16_t *hashkey = (key) ? data : &nfq->pf;
 

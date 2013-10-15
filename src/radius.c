@@ -185,7 +185,7 @@ extern struct radius_packet *new_radpacket(unsigned char code, unsigned char id)
 	return (packet);
 }
 
-static uint32_t hash_session(const void *data, int key) {
+static int32_t hash_session(const void *data, int key) {
 	unsigned int ret;
 	const struct radius_session *session = data;
 	const unsigned char *hashkey = (key) ? data : &session->id;
@@ -195,7 +195,7 @@ static uint32_t hash_session(const void *data, int key) {
 	return (ret);
 }
 
-static uint32_t hash_connex(const void *data, int key) {
+static int32_t hash_connex(const void *data, int key) {
 	int ret;
 	const struct radius_connection *connex = data;
 	const int *hashkey = (key) ? data : &connex->socket;
@@ -205,7 +205,7 @@ static uint32_t hash_connex(const void *data, int key) {
 	return (ret);
 }
 
-static uint32_t hash_server(const void *data, int key) {
+static int32_t hash_server(const void *data, int key) {
 	int ret;
 	const struct radius_server *server = data;
 	const unsigned char *hashkey = (key) ? data : &server->id;

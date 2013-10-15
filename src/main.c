@@ -267,13 +267,6 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	configure_sigact(framework_core_info->sa);
 #endif
 
-	/*init the threadlist start thread manager*/
-	if (!(ci->flags & FRAMEWORK_FLAG_NOTHREAD) && !startthreads()) {
-		printf("Memory Error could not start threads\n");
-		objunref(ci);
-		return (-1);
-	}
-
 	/*run the code from the application*/
 	if (callback) {
 		ret = callback(argc, argv);

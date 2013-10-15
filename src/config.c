@@ -40,7 +40,7 @@ struct config_file {
 
 static struct bucket_list *configfiles = NULL;
 
-static uint32_t hash_files(const void *data, int key) {
+static int32_t hash_files(const void *data, int key) {
 	int ret;
 	const struct config_file *file = data;
 	const char *hashkey = (key) ? data : file->filename;
@@ -50,7 +50,7 @@ static uint32_t hash_files(const void *data, int key) {
 	return(ret);
 }
 
-static uint32_t hash_cats(const void *data, int key) {
+static int32_t hash_cats(const void *data, int key) {
 	int ret;
 	const struct config_category *cat = data;
 	const char *hashkey = (key) ? data : cat->name;

@@ -261,7 +261,7 @@ void free_entarr(void *data) {
 	}
 }
 
-static uint32_t modify_hash(const void *data, int key) {
+static int32_t modify_hash(const void *data, int key) {
 	int ret;
 	const struct ldap_modreq *modr = data;
 	const char *hashkey = (key) ? data : modr->attr;
@@ -519,7 +519,7 @@ extern const char *ldap_errmsg(int res) {
 	return ldap_err2string(res);
 }
 
-static uint32_t searchresults_hash(const void *data, int key) {
+static int32_t searchresults_hash(const void *data, int key) {
 	int ret;
 	const struct ldap_entry *ent = data;
 	const char *hashkey = (key) ? data : ent->dn;
@@ -817,7 +817,7 @@ struct berval **ldap_attrvals(LDAP *ld, LDAPMessage *message, char *attr, int *c
 	return vals;
 }
 
-static uint32_t ldapattr_hash(const void *data, int key) {
+static int32_t ldapattr_hash(const void *data, int key) {
 	int ret;
 	const struct ldap_attr *la = data;
 	const char *hashkey = (key) ? data : la->name;

@@ -412,10 +412,9 @@ static int gethash(struct bucket_list *blist, const void *data, int key) {
 
 	if (blist->hash_func) {
 		hash = blist->hash_func(data, key);
-	} else
-		if (ref && (ref->magic == REFOBJ_MAGIC)) {
-			hash = jenhash(data, ref->size, 0);
-		}
+	} else if (ref && (ref->magic == REFOBJ_MAGIC)) {
+		hash = jenhash(ref, ref->size, 0);
+	}
 	return (hash);
 }
 
@@ -465,19 +464,19 @@ extern int addtobucket(struct bucket_list *blist, void *data) {
 			blist->list[bucket] = tmp;
 			tmp->prev = tmp;
 			tmp->next = NULL;
-			/*become new head*/
+		/*become new head*/
 		} else if (hash < lhead->hash) {
 			tmp->next = lhead;
 			tmp->prev = lhead->prev;
 			lhead->prev = tmp;
 			blist->list[bucket] = tmp;
-				/*new tail*/
+		/*new tail*/
 		} else if (hash > lhead->prev->hash) {
 			tmp->prev = lhead->prev;
 			tmp->next = NULL;
 			lhead->prev->next = tmp;
 			lhead->prev = tmp;
-			/*insert entry*/
+		/*insert entry*/
 		} else {
 			lhead = blist_gotohash(lhead, hash, blist->bucketbits);
 			tmp->next = lhead->next;
