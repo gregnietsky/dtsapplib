@@ -57,8 +57,8 @@ The reason they are bucket lists is that they have elements of both arrays and l
 The list is a array of 2^bucketbits these are the buckets so for 8192 elements using 6 bits will create 64 buckets if filled equally there will be 128 elements in each. this 
 will allow better access to the chunk you want access too and allows for quicker more efficent traversal than traversing all 8192 elements.
 
-Allocating the elements to a bucket is where the hash comes in each element will via some unique immutable "key" be hashed see \ref jenhash() this hash will be right shifted 
-32-bucketbits to determine the bucket to be placed in they are then inserted basesd on there hash, this allows the algorythim to search forward or backward theortically
+Allocating the elements to a bucket is where the hash comes in each element will via some unique immutable "key" be hashed see \ref jenhash() this hash will be masked 
+with the bucket bits to determine the bucket to be placed in they are then inserted basesd on there hash, this allows the algorythim to search forward or backward theortically
 only ever having to traverse 64 elements of 8192.
 
 Using this hybrid approach gives us a good compromise and benifits of either method.

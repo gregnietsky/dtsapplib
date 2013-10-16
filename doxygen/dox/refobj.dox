@@ -54,10 +54,10 @@ again there is no need to do this we assuming that this is uncertain and taking 
 
   if (c1->priority < c3->priority) {
     /*grab a new ref for c1 and pass to c4*/
-    c4 = (objref(c1) ? c1 : NULL;
+    c4 = (objref(c1)) ? c1 : NULL;
 
     /*grab ref for c3 and pass to c1*/;
-    c1 = (objref(c3) ? c3 : NULL;
+    c1 = (objref(c3)) ? c3 : NULL;
 
     /* pass the ref of c4 to c3*/
     c3 = c4;
@@ -75,7 +75,10 @@ This is a slightly pointless bit of code but you should notice that we have call
 reference can be passed with the pointer. The original c1 is now referenced 2 once in c4 and once in c3. the reason we dont just call
 objref on c4 at the end is in multi threaded applications its possible to have things get scrambled and a item freed in another thread
 before you reference it its best to always call objref before copying the reference use of locking is needed in some circumstances.
-if you want to grab a reference to a shared memory location that is "changeable" locking is required, this is done implicitly with objref() / objunref() .
+if you want to grab a reference to a shared memory location that is "changeable" locking is required.
+
+this is done implicitly with objref() / objunref() the reference is obtained atomically the return value of objref should be checked it it
+is 0 then the referenced failed also to prevent a dead lock never call objref while holding the lock for the reference.
 
 \section refobjother Other referenced object functions.
 
