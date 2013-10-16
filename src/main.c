@@ -58,7 +58,6 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
 				if (framework_core_info->sig_handler) {
 					framework_core_info->sig_handler(sig, si, unused);
 				} else {
-printf("GOT ME SOME DEATH\n");
 					stopthreads(1);
 					exit(-1);
 				}

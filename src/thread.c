@@ -24,11 +24,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * The thread interface consists of a management thread managing
   * a hashed bucket list of threads running optional clean up when done.*/
 
-#include <stdio.h>
+#include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <pthread.h>
 #include <stdint.h>
 
 #ifndef SIGHUP
@@ -343,8 +341,12 @@ static void *threadwrap(void *data) {
 
 	objref(thread);
 
-	for(cnt = 0;!testflag(thread, TL_THREAD_RUN) && (cnt < 10); cnt++) {
+	for(cnt = 0;!testflag(thread, TL_THREAD_RUN) && (cnt < 100); cnt++) {
 		usleep(1000);
+	}
+
+	if (cnt == 100) {
+		return NULL;
 	}
 
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
@@ -356,11 +358,9 @@ static void *threadwrap(void *data) {
 		pthread_detach(thread->thr);
 	}
 
-	if (cnt != 10) {
-		pthread_cleanup_push(thread_cleanup, thread);
-		ret = thread->func(thread->data);
-		pthread_cleanup_pop(1);
-	}
+	pthread_cleanup_push(thread_cleanup, thread);
+	ret = thread->func(thread->data);
+	pthread_cleanup_pop(1);
 
 	return (ret);
 }
@@ -501,7 +501,6 @@ extern int thread_signal(int sig) {
 		case SIGINT:
 		case SIGTERM:
 			ret = handle_thread_signal(thread, sig);
-			printf("Kill %p\n", (void*)&thread->thr);
 	}
 #endif
 	objunref(thread);
