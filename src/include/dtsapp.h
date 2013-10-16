@@ -268,9 +268,14 @@ typedef void	(*radius_cb)(struct radius_packet *, void *);
   * @ingroup LIB*/
  enum framework_flags {
 	/** @brief Allow application daemonization.*/
-	FRAMEWORK_FLAG_DAEMON	= 1 << 0,
+	FRAMEWORK_FLAG_DAEMON		= 1 << 0,
 	/** @brief Dont print GNU copyright.*/
-	FRAMEWORK_FLAG_NOGNU	= 1 << 1
+	FRAMEWORK_FLAG_NOGNU		= 1 << 1,
+	/** @brief Create lockfile on daemonize latter
+	  *
+	  * Its possible you want to call daemonize latter and want the lockfile created then
+	  * @note not compatible with FRAMEWORK_FLAG_DAEMON and has no effect FRAMEWORK_FLAG_DAEMON is set.*/
+	FRAMEWORK_FLAG_DAEMONLOCK	= 1 << 2
 };
 
 /** @brief Application framework data

@@ -24,7 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * The thread interface consists of a management thread managing
   * a hashed bucket list of threads running optional clean up when done.*/
 
-#include <stdio.h>
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>

@@ -91,6 +91,8 @@ extern void printgnu(const char *pname, int year, const char *dev, const char *e
   * @warning on failure the program will exit.
   * @todo WIN32 options is there a alternative for this.*/
 extern void daemonize() {
+	struct framework_core *ci =  framework_core_info;
+
 #ifndef __WIN32__
 	pid_t	forkpid;
 
@@ -104,14 +106,29 @@ extern void daemonize() {
 		exit(-1);
 	}
 
+	setsid();
+
 	/* Dont want these as a daemon*/
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGCHLD, SIG_IGN);
 #endif
+
+	/*delayed lock file from FRAMEWORK_MAIN / framework_init*/
+	if (ci && (ci->flags & FRAMEWORK_FLAG_DAEMONLOCK)) {
+		if ((ci->flock = lockpidfile(ci->runfile)) < 0) {
+			printf("Could not lock pid file Exiting\n");
+			while(framework_core_info) {
+				objunref(framework_core_info);
+			}
+			exit (-1);
+		}
+		objunref(ci);
+	}
 }
 
 /** @brief Lock the run file in the framework application info.
   *
+  * This can be delayed till running daemonize in the user function loop setting flag @ref FRAMEWORK_FLAG_DAEMONLOCK
   * @param runfile File to write pid to and lock.
   * @return 0 if no file is specified or not supported. The file descriptor on success.*/
 extern int lockpidfile(const char *runfile) {
@@ -240,26 +257,33 @@ extern void framework_mkcore(char *progname, char *name, char *email, char *web,
   * @param argv Argument array.
   * @param callback Function to pass control too.*/
 extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
-	struct framework_core *ci = framework_core_info;
+	struct framework_core *ci =  framework_core_info;
 	int ret = 0;
 
 	seedrand();
 	sslstartup();
 
 	/*prinit out a GNU licence summary*/
-	if (!(ci->flags & FRAMEWORK_FLAG_NOGNU)) {
+	if (ci && !(ci->flags & FRAMEWORK_FLAG_NOGNU)) {
 		printgnu(ci->progname, ci->year, ci->developer, ci->email, ci->www);
 	}
 
+	/* grab a ref for framework_core_info to be used latter*/
+	if (ci && ci->flags & FRAMEWORK_FLAG_DAEMONLOCK) {
+		objref(ci);
+	}
+
 	/* fork the process to daemonize it*/
-	if (ci->flags & FRAMEWORK_FLAG_DAEMON) {
+	if (ci && ci->flags & FRAMEWORK_FLAG_DAEMON) {
 		daemonize();
 	}
 
-	if ((ci->flock = lockpidfile(ci->runfile) < 0)) {
-		printf("Could not lock pid file Exiting\n");
-		objunref(ci);
-		return (-1);
+	/* write pid to lockfile this should be done post daemonize*/
+	if (ci && !(ci->flags & FRAMEWORK_FLAG_DAEMONLOCK)) {
+		if ((ci->flock = lockpidfile(ci->runfile)) < 0) {
+			printf("Could not lock pid file Exiting\n");
+			return -1;
+		}
 	}
 
 #ifndef __WIN32__
@@ -276,6 +300,9 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 
 	/* turn off the lights*/
 	objunref(ci);
+	if (framework_core_info && framework_core_info->flags & FRAMEWORK_FLAG_DAEMONLOCK) {
+		objunref(framework_core_info);
+	}
 	return (ret);
 }
 
