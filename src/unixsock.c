@@ -59,8 +59,8 @@ struct framework_sockthread {
 /*
  * client sock server
  */
-static void *unsock_serv(void **data) {
-	struct framework_sockthread *unsock = *data;
+static void *unsock_serv(void *data) {
+	struct framework_sockthread *unsock = data;
 	struct sockaddr_un	adr;
 	unsigned int salen;
 	struct	timeval	tv;
@@ -113,7 +113,7 @@ static void *unsock_serv(void **data) {
 	FD_ZERO(&rd_set);
 	FD_SET(fd, &rd_set);
 
-	while (framework_threadok(data)) {
+	while (framework_threadok()) {
 		act_set = rd_set;
 		tv.tv_sec = 0;
 		tv.tv_usec = 20000;
@@ -131,7 +131,7 @@ static void *unsock_serv(void **data) {
 		if (FD_ISSET(fd, &act_set)) {
 			clfd = objalloc(sizeof(int), NULL);
 			if ((*clfd = accept(fd, (struct sockaddr *)&adr, &salen))) {
-				framework_mkthread(unsock->client, unsock->cleanup, NULL, clfd);
+				framework_mkthread(unsock->client, unsock->cleanup, NULL, clfd, 0);
 			}
 			objunref(clfd);
 		}
@@ -152,7 +152,6 @@ static void *unsock_serv(void **data) {
   * @param cleanup Thread cleanup callback.*/
 extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc connectfunc, threadcleanup cleanup) {
 	struct framework_sockthread *unsock;
-	void *thread;
 
 	unsock = objalloc(sizeof(*unsock), NULL);
 	strncpy(unsock->sock, sock, UNIX_PATH_MAX);
@@ -160,8 +159,7 @@ extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc 
 	unsock->client = connectfunc;
 	unsock->cleanup = cleanup;
 	unsock->protocol = protocol;
-	thread = framework_mkthread(unsock_serv, NULL, NULL, unsock);
-	objunref(thread);
+	framework_mkthread(unsock_serv, NULL, NULL, unsock, 0);
 }
 
 /** @}*/

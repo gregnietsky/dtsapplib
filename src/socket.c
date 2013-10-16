@@ -321,8 +321,8 @@ static void _socket_handler_clean(void *data) {
 	}
 }
 
-static void *_socket_handler(void **data) {
-	struct socket_handler *sockh = *data;
+static void *_socket_handler(void *data) {
+	struct socket_handler *sockh = data;
 	struct fwsocket *sock = sockh->sock;
 	struct fwsocket *newsock;
 	struct	timeval	tv;
@@ -342,7 +342,7 @@ static void *_socket_handler(void **data) {
 	FD_SET(sockfd, &rd_set);
 	objunlock(sock);
 
-	while (framework_threadok(data) && !testflag(sock, SOCK_FLAG_CLOSE)) {
+	while (framework_threadok() && !testflag(sock, SOCK_FLAG_CLOSE)) {
 		act_set = rd_set;
 		tv.tv_sec = 0;
 		tv.tv_usec = 20000;
@@ -417,7 +417,6 @@ static void *_socket_handler(void **data) {
 static void _start_socket_handler(struct fwsocket *sock, socketrecv read,
 								  socketrecv acceptfunc, threadcleanup cleanup, void *data) {
 	struct socket_handler *sockh;
-	struct thread_pvt *thread;
 
 	if (!sock || !read || !(sockh = objalloc(sizeof(*sockh), NULL))) {
 		return;
@@ -432,8 +431,7 @@ static void _start_socket_handler(struct fwsocket *sock, socketrecv read,
 	/* grab ref for data and pass sockh*/
 	objref(data);
 	objref(sock);
-	thread = framework_mkthread(_socket_handler, _socket_handler_clean, NULL, sockh);
-	objunref(thread);
+	framework_mkthread(_socket_handler, _socket_handler_clean, NULL, sockh, 0);
 	objunref(sockh);
 }
 

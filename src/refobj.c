@@ -140,7 +140,7 @@ extern void *objalloc(int size,objdestroy destructor) {
 		ref->magic = REFOBJ_MAGIC;
 		ref->cnt = 1;
 		ref->data = robj + refobj_offset;
-		ref->size = size;
+		ref->size = asize;
 		ref->destroy = destructor;
 		return (ref->data);
 	}

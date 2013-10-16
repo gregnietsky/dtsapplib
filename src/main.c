@@ -53,16 +53,16 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
 			break;
 		case SIGTERM:
 		case SIGINT:
-			stopthreads();
-			/* no break */
-		default
-				:
-			if (framework_core_info->sig_handler) {
-				framework_core_info->sig_handler(sig, si, unused);
-			} else {
-				exit(-1);
+		default:
+			if (!thread_signal(sig)) {
+				if (framework_core_info->sig_handler) {
+					framework_core_info->sig_handler(sig, si, unused);
+				} else {
+printf("GOT ME SOME DEATH\n");
+					stopthreads(1);
+					exit(-1);
+				}
 			}
-			/* no break */
 	}
 }
 #endif
@@ -271,9 +271,7 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	if (callback) {
 		ret = callback(argc, argv);
 		/* wait for all threads to end*/
-		usleep(100000);
-		stopthreads();
-		jointhreads();
+		stopthreads(1);
 	}
 
 	/* turn off the lights*/

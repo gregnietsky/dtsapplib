@@ -102,6 +102,19 @@ enum sock_flags {
 	SOCK_FLAG_SSL		= 1 << 2
 };
 
+/** @brief Options supplied to framework_mkthread all defaults are unset
+  * @ingroup LIB-Thread
+  * @note this is shifted 16 bits limiting 16 options this maps to high 16 bits of threadopt*/
+enum thread_option_flags {
+        /** @brief Flag to enable pthread_cancel calls*/
+        THREAD_OPTION_CANCEL		= 1 << 0,
+        /** @brief Create the the thread joinable*/
+        THREAD_OPTION_JOINABLE		= 1 << 1,
+        /** @brief Return reference to thread this must be unreferenced*/
+        THREAD_OPTION_RETURN		= 1 << 2
+};
+
+
 /** @brief Socket data structure.
   *
   * @ingroup LIB-Sock*/
@@ -201,7 +214,7 @@ typedef void    (*threadcleanup)(void *);
   * @ingroup LIB-Thread
   * @see framework_mkthread()
   * @param data Poinnter to reference of thread data.*/
-typedef void    *(*threadfunc)(void **);
+typedef void    *(*threadfunc)(void *);
 
 /** @brief Thread signal handler function
   *
@@ -294,13 +307,13 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback);
 void printgnu(const char *pname, int year, const char *dev, const char *email, const char *www);
 void daemonize();
 int lockpidfile(const char *runfile);
-extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data);
+extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data, int flags);
 /* UNIX Socket*/
 extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc connectfunc, threadcleanup cleanup);
 /* Test if the thread is running when passed data from thread */
-extern int framework_threadok(void *data);
+extern int framework_threadok(void);
 extern int startthreads(void);
-extern void stopthreads(void);
+extern void stopthreads(int join);
 int thread_signal(int sig);
 
 /*

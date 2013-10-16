@@ -502,8 +502,8 @@ static void radius_recv(void **data) {
 	objunref(session);
 }
 
-static void *rad_return(void **data) {
-	struct radius_connection *connex = *data;
+static void *rad_return(void *data) {
+	struct radius_connection *connex = data;
 	fd_set  rd_set, act_set;
 	struct  timeval tv;
 	int selfd;
@@ -511,7 +511,7 @@ static void *rad_return(void **data) {
 	FD_ZERO(&rd_set);
 	FD_SET(connex->socket->sock, &rd_set);
 
-	while (framework_threadok(data)) {
+	while (framework_threadok()) {
 		act_set = rd_set;
 		tv.tv_sec = 0;
 		tv.tv_usec = 200000;
@@ -556,7 +556,7 @@ extern struct radius_connection *radconnect(struct radius_server *server) {
 			connex->server = server;
 			genrand(&connex->id, sizeof(connex->id));
 			addtobucket(server->connex, connex);
-			framework_mkthread(rad_return, NULL, NULL, connex);
+			framework_mkthread(rad_return, NULL, NULL, connex, 0);
 		}
 	}
 	return (connex);

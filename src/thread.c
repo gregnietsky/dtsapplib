@@ -24,9 +24,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * The thread interface consists of a management thread managing
   * a hashed bucket list of threads running optional clean up when done.*/
 
-#include <pthread.h>
+#include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <pthread.h>
 #include <stdint.h>
 
 #ifndef SIGHUP
@@ -36,20 +38,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "include/dtsapp.h"
 
-/** @brief Thread status a thread can be disabled by unsetting TL_THREAD_RUN*/
+/** @brief Thread status a thread can be disabled by unsetting TL_THREAD_RUN
+  * @note bits 16-31 are useoptions see thread_option_flags*/
 enum threadopt {
 	/** @brief No status*/
-	TL_THREAD_NONE  = 1 << 0,
+	TL_THREAD_NONE		= 1 << 0,
 	/** @brief thread is marked as running*/
-	TL_THREAD_RUN   = 1 << 1,
+	TL_THREAD_RUN		= 1 << 1,
 	/** @brief thread is marked as complete*/
-	TL_THREAD_DONE  = 1 << 2,
+	TL_THREAD_DONE		= 1 << 2,
 	/** @brief Quit when only manager is left
           * @note This flag is only valid for manager thread*/
-	TL_THREAD_JOIN  = 1 << 3,
+	TL_THREAD_JOIN		= 1 << 3,
 	/** @brief Quit when only manager is left
           * @note This flag is only valid for manager thread*/
-	TL_THREAD_STOP  = 1 << 4
+	TL_THREAD_STOP		= 1 << 4,
+
+	/** @brief Flag to enable pthread_cancel calls*/
+	TL_THREAD_CAN_CANCEL	= 1 << 16,
+	/** @brief Flag to enable pthread_cancel calls*/
+	TL_THREAD_JOINABLE	= 1 << 17,
+	TL_THREAD_RETURN	= 1 << 18
 };
 
 /** @brief thread struct used to create threads data needs to be first element*/
@@ -70,7 +79,6 @@ struct thread_pvt {
 	/** @brief thread options
 	  * @see threadopt_flags*/
 	enum                    threadopt flags;
-	uint32_t		tid;
 };
 
 /** @brief Global threads data*/
@@ -83,12 +91,17 @@ struct threadcontainer {
 
 /** @brief Thread control data.*/
 struct threadcontainer *threads = NULL;
+
+/** @brief Automatically start manager thread.
+  *
+  * If threads have not been started and a thread is created the manager thread will be started.
+  * once threads have stoped this will be set to zero manually starting startthreads will be possible.*/
 int thread_can_start = 1;
 
 static int32_t hash_thread(const void *data, int key) {
-	const void **tptr = (key) ? &data : &data;
-
-	return jenhash(tptr, sizeof(void*), 0);
+	const struct thread_pvt *thread = data;
+	const pthread_t *th = (key) ? data : &thread->thr;
+	return jenhash(th, sizeof(pthread_t), 0);
 }
 
 static void close_threads(void *data) {
@@ -113,14 +126,37 @@ static void free_thread(void *data) {
 	}
 }
 
+static struct thread_pvt *get_thread_from_id() {
+	struct thread_pvt *thr;
+	struct threadcontainer *tc;
+	pthread_t me;
+
+	if (!(tc = (objref(threads)) ? threads : NULL)) {
+		return NULL;
+	}
+	me = pthread_self();
+
+	objlock(tc);
+	thr = bucket_list_find_key(tc->list, &me);
+	objunlock(tc);
+	objunref(tc);
+	return thr;
+}
+
+
 /** @brief let threads check there status by passing in a pointer to there data
   *
   * @param data Reference to thread data
   * @return 0 if the thread should terminate.*/
-extern int framework_threadok(void *data) {
-	struct thread_pvt *thr = data;
+extern int framework_threadok() {
+	struct thread_pvt *thr;
+	int ret;
 
-	return (thr) ? testflag(thr, TL_THREAD_RUN) : 0;
+	thr = get_thread_from_id();
+	ret =(thr) ? testflag(thr, TL_THREAD_RUN) : 0;
+	objunref(thr);
+
+	return ret;
 }
 
 /*
@@ -144,16 +180,22 @@ static void manage_clean(void *data) {
 	objlock(threads);
 	thread_can_start = 0;
 	objunlock(threads);
-
 	objunref(threads);
 }
 
 static void stop_threads(void *data, void *data2) {
 	struct thread_pvt *thread = data;
+	struct thread_pvt *man = data2;
 
 	/*Dont footbullet*/
-	if (data != data2) {
-		pthread_cancel(thread->thr);
+	if (!pthread_equal(man->thr, thread->thr)) {
+		clearflag(thread, TL_THREAD_RUN);
+		if (thread->sighandler) {
+			pthread_kill(thread->thr, SIGTERM);
+		}
+		if (testflag(thread, TL_THREAD_CAN_CANCEL)) {
+			pthread_cancel(thread->thr);
+		}
 	}
 }
 
@@ -161,9 +203,13 @@ static void stop_threads(void *data, void *data2) {
  * loop through all threads till they stoped
  * setting stop will flag threads to stop
  */
-static void *managethread(void **data) {
-	struct thread_pvt *thread = (void*)data;
+static void *managethread(void *data) {
+	struct thread_pvt *thread;
 	int last = 0;
+
+	if (!(thread = get_thread_from_id())) {
+		return NULL;
+	}
 
 	for(;;) {
 		/*if im the last one leave this is done locked to make sure no items are added/removed*/
@@ -174,6 +220,7 @@ static void *managethread(void **data) {
 				threads->manager = NULL;
 			}
 			objunlock(threads);
+			objunref(thread);
 			break;
 		}
 		objunlock(threads);
@@ -208,8 +255,9 @@ static void *managethread(void **data) {
 	return NULL;
 }
 
-/** @brief  initialise the threadlist  start manager thread
+/** @brief Initialise the threadlist and start manager thread
   *
+  * @note There is no need to call this as it will start when first thread starts.
   * @returns 1 On success 0 on failure.*/
 extern int startthreads(void) {
 	struct threadcontainer *tc;
@@ -231,7 +279,7 @@ extern int startthreads(void) {
 	}
 
 	threads = tc;
-	if (!(tc->manager = framework_mkthread(managethread, manage_clean, manager_sig, NULL))) {
+	if (!(tc->manager = framework_mkthread(managethread, manage_clean, manager_sig, NULL, THREAD_OPTION_JOINABLE | THREAD_OPTION_RETURN))) {
 		objunref(tc);
 		return 0;
 	}
@@ -239,8 +287,14 @@ extern int startthreads(void) {
 	return 1;
 }
 
-/** @brief Stoping the manager thread will stop all other threads.*/
-extern void stopthreads(void) {
+/** @brief Signal manager to stop and cancel all running threads.
+  *
+  * This should always be called at shutdown if there have been threads
+  * started.
+  * @see framework_init()
+  * @see FRAMEWORK_MAIN()
+  * @param join A non zero value to join the manager thread after flaging the shutdown.*/
+extern void stopthreads(int join) {
 	struct threadcontainer *tc;
 
 	tc = (objref(threads)) ? threads : NULL;
@@ -251,6 +305,15 @@ extern void stopthreads(void) {
 	objlock(tc);
 	if (tc->manager) {
 		setflag(tc->manager, TL_THREAD_STOP);
+		if (join) {
+			setflag(tc->manager, TL_THREAD_JOIN);
+			objunlock(tc);
+			pthread_join(tc->manager->thr, NULL);
+		} else {
+			objunlock(tc);
+		}
+	} else {
+		objunlock(tc);
 	}
 	objunlock(tc);
 	objunref(tc);
@@ -276,24 +339,42 @@ static void thread_cleanup(void *data) {
 static void *threadwrap(void *data) {
 	struct thread_pvt *thread = data;
 	void *ret = NULL;
+	int cnt;
 
 	objref(thread);
-	pthread_cleanup_push(thread_cleanup, thread);
-	setflag(thread, TL_THREAD_RUN);
-	ret = thread->func((void**)data);
-	pthread_cleanup_pop(1);
+
+	for(cnt = 0;!testflag(thread, TL_THREAD_RUN) && (cnt < 10); cnt++) {
+		usleep(1000);
+	}
+
+	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+	if (!testflag(thread, TL_THREAD_CAN_CANCEL)) {
+		pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+	}
+
+	if (!testflag(thread, TL_THREAD_JOINABLE)) {
+		pthread_detach(thread->thr);
+	}
+
+	if (cnt != 10) {
+		pthread_cleanup_push(thread_cleanup, thread);
+		ret = thread->func(thread->data);
+		pthread_cleanup_pop(1);
+	}
 
 	return (ret);
 }
 
 /** @brief create a thread result must be unreferenced
   *
+  * @note If the manager thread has not yet started this will start the manager thread
   * @param func Function to run thread on.
   * @param cleanup Cleanup function to run.
   * @param sig_handler Thread signal handler.
   * @param data Data to pass to callbacks.
+  * @param flags Options of thread_option_flags passed
   * @returns a thread structure that must be un referencend.*/
-extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup cleanup, threadsighandler sig_handler, void *data) {
+extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup cleanup, threadsighandler sig_handler, void *data, int flags) {
 	struct thread_pvt *thread;
 	struct threadcontainer *tc = NULL;
 
@@ -324,24 +405,32 @@ extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup clea
 	}
 
 	thread->data = (objref(data)) ? data : NULL;
-	thread->flags = 0;
+	thread->flags = flags << 16;
 	thread->cleanup = cleanup;
 	thread->sighandler = sig_handler;
 	thread->func = func;
-	thread->tid = bucket_list_cnt(tc->list);
-
-	addtobucket(tc->list, thread);
 	objunlock(tc);
 
 	/* start thread and check it*/
 	if (pthread_create(&thread->thr, NULL, threadwrap, thread) || pthread_kill(thread->thr, 0)) {
-		remove_bucket_item(tc->list, thread);
 		objunref(thread);
 		objunref(tc);
 		return NULL;
 	}
 
-	return thread;
+	/*Activate the thread it needs to be flaged to run or it will die*/
+	objlock(tc);
+	addtobucket(tc->list, thread);
+	setflag(thread, TL_THREAD_RUN);
+	objunlock(tc);
+	objunref(tc);
+
+	if (testflag(thread, TL_THREAD_RETURN)) {
+		return thread;
+	} else {
+		objunref(thread);
+		return NULL;
+	}
 }
 
 /** @brief Join the manager thread.
@@ -367,6 +456,21 @@ extern void jointhreads(void) {
 	objunref(tc);
 }
 
+
+#ifndef __WIN32
+static int handle_thread_signal(struct thread_pvt *thread, int sig) {
+	int ret;
+
+	if (thread->sighandler) {
+		thread->sighandler(sig, thread->data);
+		ret = 1;
+	} else {
+		ret = -1;
+	}
+	return ret;
+}
+#endif
+
 /** @brief Handle signal if its for me
   *
   * find the thread the signal was delivered to
@@ -375,43 +479,32 @@ extern void jointhreads(void) {
   * returns 0 if no thread is found
   * NB sending a signal to the current thread while threads is locked
   * will cause a deadlock.
-  * 
+  * @warning This is not to be called directly but by the installed system signal handler.
   * @param sig Signal to pass.
   * @returns 1 on success -1 on error.*/
 extern int thread_signal(int sig) {
 	struct thread_pvt *thread = NULL;
-	pthread_t me;
 	int ret = 0;
-	struct bucket_loop *bloop;
-	struct threadcontainer *tc;
 
-	tc = (objref(threads)) ? threads : NULL;
-	if (!tc) {
-		return ret;
+	if (!(thread = get_thread_from_id())) {
+		return 0;
 	}
 
-	me = pthread_self();
-
-	bloop = init_bucket_loop(tc->list);
-	while (bloop && (thread = next_bucket_loop(bloop))) {
-	if (pthread_equal(me , thread->thr)) {
+#ifndef __WIN32
+	switch(sig) {
+		case SIGUSR1:
+		case SIGUSR2:
+		case SIGHUP:
+		case SIGALRM:
+			ret = handle_thread_signal(thread, sig);
 			break;
-		}
-		objunref(thread);
+		case SIGINT:
+		case SIGTERM:
+			ret = handle_thread_signal(thread, sig);
+			printf("Kill %p\n", (void*)&thread->thr);
 	}
-	objunref(bloop);
-
-	if (thread) {
-		if (thread->sighandler) {
-			thread->sighandler(sig, thread);
-			ret = 1;
-		} else {
-			ret = -1;
-		}
-		objunref(thread);
-	}
-
-	objunref(tc);
+#endif
+	objunref(thread);
 	return ret;
 }
 
