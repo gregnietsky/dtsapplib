@@ -9,8 +9,11 @@ AC_CONFIG_HEADERS([config.h])
 #x:y:z z <= x
 #so.x.z.y
 
-LT_LIBVER=2:2:0
+LT_LIBVER=3:0:0
+LT_RELEASE=3
+
 AC_SUBST(LT_LIBVER)
+AC_SUBST(LT_RELEASE)
 
 # Checks for programs.
 AC_PROG_CXX
@@ -119,5 +122,6 @@ AM_CONDITIONAL([LINUXSYSTEM], [test "x$ac_cv_header_linux_version_h" = "xyes"])
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/libnetlink/Makefile
-                 src/libdtsapp.pc])
+                 src/libdtsapp.pc
+                 Doxyfile])
 AC_OUTPUT

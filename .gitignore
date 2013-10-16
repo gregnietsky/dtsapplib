@@ -20,3 +20,4 @@ autom4te.cache
 config.h.in~
 /*.layout
 /dtsapplib-*.*
+Doxyfile
