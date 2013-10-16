@@ -142,9 +142,8 @@ static struct thread_pvt *get_thread_from_id() {
 }
 
 
-/** @brief let threads check there status by passing in a pointer to there data
+/** @brief let threads check there status.
   *
-  * @param data Reference to thread data
   * @return 0 if the thread should terminate.*/
 extern int framework_threadok() {
 	struct thread_pvt *thr;
@@ -367,13 +366,15 @@ static void *threadwrap(void *data) {
 
 /** @brief create a thread result must be unreferenced
   *
-  * @note If the manager thread has not yet started this will start the manager thread
+  * @note If the manager thread has not yet started this will start the manager thread.
+  * @warning @ref THREAD_OPTION_RETURN flag controls the return of this function.
+  * @warning Threads should periodically check the result of framework_threadok() and cleanup or use @ref THREAD_OPTION_CANCEL
   * @param func Function to run thread on.
   * @param cleanup Cleanup function to run.
   * @param sig_handler Thread signal handler.
   * @param data Data to pass to callbacks.
-  * @param flags Options of thread_option_flags passed
-  * @returns a thread structure that must be un referencend.*/
+  * @param flags Options of @ref thread_option_flags passed
+  * @returns a thread structure that must be un referencend OR NULL depending on flags.*/
 extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup cleanup, threadsighandler sig_handler, void *data, int flags) {
 	struct thread_pvt *thread;
 	struct threadcontainer *tc = NULL;
@@ -435,7 +436,7 @@ extern struct thread_pvt *framework_mkthread(threadfunc func, threadcleanup clea
 
 /** @brief Join the manager thread.
   *
-  * This will be done when you have issued stopthreads and are waiting
+  * This will be done when you have issued stopthreads and are waiting or have completed the program and want to let the threads continue.
   * for threads to exit.*/
 extern void jointhreads(void) {
 	struct threadcontainer *tc;
@@ -480,6 +481,7 @@ static int handle_thread_signal(struct thread_pvt *thread, int sig) {
   * NB sending a signal to the current thread while threads is locked
   * will cause a deadlock.
   * @warning This is not to be called directly but by the installed system signal handler.
+  * @note This is not supported on Win32
   * @param sig Signal to pass.
   * @returns 1 on success -1 on error.*/
 extern int thread_signal(int sig) {

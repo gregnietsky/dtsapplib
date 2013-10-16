@@ -106,11 +106,11 @@ enum sock_flags {
   * @ingroup LIB-Thread
   * @note this is shifted 16 bits limiting 16 options this maps to high 16 bits of threadopt*/
 enum thread_option_flags {
-        /** @brief Flag to enable pthread_cancel calls*/
+        /** @brief Flag to enable pthread_cancel calls this is not recomended and can lead to memory leaks.*/
         THREAD_OPTION_CANCEL		= 1 << 0,
-        /** @brief Create the the thread joinable*/
+        /** @brief Create the the thread joinable only do this if you will be joining it cancelable threads are best detached.*/
         THREAD_OPTION_JOINABLE		= 1 << 1,
-        /** @brief Return reference to thread this must be unreferenced*/
+        /** @brief Return reference to thread this must be unreferenced.*/
         THREAD_OPTION_RETURN		= 1 << 2
 };
 
