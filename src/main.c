@@ -76,11 +76,12 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
   * @param email Email address.
   * @param www HTTP URL.*/
 extern void printgnu(const char *pname, int year, const char *dev, const char *email, const char *www) {
-	printf("%s\n\nCopyright (C) %i %s <%s>\n\n"
-		   "        %s\n\n"
-		   "    This program comes with ABSOLUTELY NO WARRANTY\n"
-		   "    This is free software, and you are welcome to redistribute it\n"
-		   "    under certain conditions.\n\n", pname, year, dev, email, www);
+	printf("%s\n\n"
+               "    Copyright (C) %i %s <%s>\n\n"
+	       "        %s\n\n"
+	       "    This program comes with ABSOLUTELY NO WARRANTY\n"
+	       "    This is free software, and you are welcome to redistribute it\n"
+	       "    under certain conditions.\n\n", pname, year, dev, email, www);
 }
 
 /** @brief Daemonise the application using fork/exit
