@@ -152,6 +152,23 @@ static int _ssl_shutdown(struct ssldata *ssl) {
 }
 
 
+static int socket_select(int sock, int read) {
+	int selfd;
+	struct timeval tv;
+	fd_set act_set;
+	FD_ZERO(&act_set);
+	FD_SET(sock, &act_set);
+	tv.tv_sec = 0;
+	tv.tv_usec = 100000;
+
+	if (read == 1) {
+		selfd = select(sock + 1, &act_set, NULL, NULL, &tv);
+	} else {
+		selfd = select(sock + 1, NULL, &act_set, NULL, &tv);
+	}
+	return selfd;
+}
+
 /** @brief Shutdown the SSL connection.
   *
   * Extra read/write may be required if so use select
@@ -162,8 +179,6 @@ static int _ssl_shutdown(struct ssldata *ssl) {
 extern void ssl_shutdown(void *data, int sock) {
 	struct ssldata *ssl = data;
 	int ret, selfd, cnt = 0;
-	struct timeval tv;
-	fd_set act_set;
 
 	if (!ssl) {
 		return;
@@ -172,15 +187,7 @@ extern void ssl_shutdown(void *data, int sock) {
 	objlock(ssl);
 
 	while (ssl->ssl &&  (ret = _ssl_shutdown(ssl) && (cnt < 3))) {
-		FD_ZERO(&act_set);
-		FD_SET(sock, &act_set);
-		tv.tv_sec = 0;
-		tv.tv_usec = 100000;
-		if (ret == 1) {
-			selfd = select(sock + 1, &act_set, NULL, NULL, &tv);
-		} else {
-			selfd = select(sock + 1, NULL, &act_set, NULL, &tv);
-		}
+		selfd = socket_select(sock, ret);
 		if (selfd <= 0) {
 			break;
 		}
@@ -406,7 +413,11 @@ extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstr
 		if (addr && (sock->type == SOCK_DGRAM)) {
 			ret = recvfrom(sock->sock, buf, num, 0, &addr->sa, &salen);
 		} else {
+#ifndef __WIN32
 			ret = read(sock->sock, buf, num);
+#else
+			ret = recv(sock->sock, buf, num, 0);
+#endif
 		}
 		if (ret == 0) {
 			sock->flags |= SOCK_FLAG_CLOSE;
@@ -436,10 +447,10 @@ extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstr
 			printf("Want X509\n");
 			break;
 		case SSL_ERROR_WANT_READ:
-			printf("Want Read\n");
+			printf("Read Want Read\n");
 			break;
 		case SSL_ERROR_WANT_WRITE:
-			printf("Want write\n");
+			printf("Read Want write\n");
 			break;
 		case SSL_ERROR_ZERO_RETURN:
 		case SSL_ERROR_SSL:
@@ -502,20 +513,29 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 		return (-1);
 	}
 
-#ifndef __WIN32__
 	if (!ssl && !testflag(sock, SOCK_FLAG_SSL)) {
 		objlock(sock);
 		if (addr && (sock->type == SOCK_DGRAM)) {
+#ifndef __WIN32
 			ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &addr->sa, sizeof(*addr));
+#else
+			ret = sendto(sock->sock, buf, num, 0, &addr->sa, sizeof(*addr));
+#endif
 		} else {
+#ifndef __WIN32
 			ret = send(sock->sock, buf, num, MSG_NOSIGNAL);
+#else
+			ret = send(sock->sock, buf, num, 0);
+#endif
 		}
 		if (ret == -1) {
 			switch(errno) {
 				case EBADF:
 				case EPIPE:
+#ifndef __WIN32
 				case ENOTCONN:
 				case ENOTSOCK:
+#endif
 					sock->flags |= SOCK_FLAG_CLOSE;
 					break;
 			}
@@ -525,9 +545,8 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 	} else if (!ssl) {
 		return -1;
 	}
-#endif
 
-	if (ssl->ssl) {
+	if (ssl && ssl->ssl) {
 		objlock(ssl);
 		if (SSL_state(ssl->ssl) != SSL_ST_OK) {
 			objunlock(ssl);
@@ -548,10 +567,10 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 		case SSL_ERROR_NONE:
 			break;
 		case SSL_ERROR_WANT_READ:
-			printf("Want Read\n");
+			printf("Send Want Read\n");
 			break;
 		case SSL_ERROR_WANT_WRITE:
-			printf("Want write\n");
+			printf("Send Want write\n");
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			printf("Want X509\n");
@@ -698,6 +717,8 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 	union sockstruct client;
 #ifndef __WIN32__
 	int on = 1;
+#else
+/*	unsigned long on = 1;*/
 #endif
 
 	if (!(newssl = objalloc(sizeof(*newssl), free_ssldata))) {
@@ -726,6 +747,8 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 #ifdef SO_REUSEPORT
 	setsockopt(newsock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
 #endif
+#else
+/*	ioctlsocket(newsock->sock, FIONBIO, (unsigned long*)&on);*/
 #endif
 	objlock(sock);
 	bind(newsock->sock, &sock->addr.sa, sizeof(sock->addr));

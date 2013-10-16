@@ -140,6 +140,9 @@ extern struct fwsocket *make_socket(int family, int type, int proto, void *ssl) 
 static struct fwsocket *accept_socket(struct fwsocket *sock) {
 	struct fwsocket *si;
 	socklen_t salen = sizeof(si->addr);
+#ifdef __WIN32
+/*	unsigned long on = 1;*/
+#endif
 
 	if (!(si = objalloc(sizeof(*si),clean_fwsocket))) {
 		return NULL;
@@ -151,6 +154,10 @@ static struct fwsocket *accept_socket(struct fwsocket *sock) {
 		objunref(si);
 		return NULL;
 	}
+
+#ifdef __WIN32
+/*	ioctlsocket(si->sock, FIONBIO, (unsigned long*)&on);*/
+#endif
 
 	si->type = sock->type;
 	si->proto = sock->proto;
@@ -184,14 +191,16 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 		if (!(sock = make_socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol, ssl))) {
 			continue;
 		}
-#ifndef __WIN32__
 		if (ctype) {
+#ifndef __WIN32__
 			setsockopt(sock->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 #ifdef SO_REUSEPORT
 			setsockopt(sock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
 #endif
-		}
+#else
+/*		ioctlsocket(sock->sock, SO_REUSEADDR, (unsigned long*)&on);*/
 #endif
+		}
 		if ((!ctype && !connect(sock->sock, rp->ai_addr, rp->ai_addrlen)) ||
 				(ctype && !bind(sock->sock, rp->ai_addr, rp->ai_addrlen))) {
 			break;
@@ -199,6 +208,7 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 		objunref(sock);
 		sock = NULL;
 	}
+
 
 	if (!sock || !rp) {
 		if (sock) {
@@ -209,7 +219,11 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 		return (NULL);
 	}
 
+
 	if (ctype) {
+#ifdef __WIN32
+/*		ioctlsocket(sock->sock, FIONBIO, (unsigned long*)&on);*/
+#endif
 		sock->flags |= SOCK_FLAG_BIND;
 		memcpy(&sock->addr.ss, rp->ai_addr, sizeof(sock->addr.ss));
 		switch(sock->type) {
@@ -217,8 +231,7 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 			case SOCK_SEQPACKET:
 				listen(sock->sock, backlog);
 				/* no break */
-			default
-					:
+			default:
 				break;
 		}
 	} else {
@@ -329,7 +342,9 @@ static void *_socket_handler(void *data) {
 	fd_set	rd_set, act_set;
 	int selfd, sockfd, type, flags;
 	struct bucket_loop *bloop;
-
+#ifdef __WIN32
+	int errcode;
+#endif
 	objlock(sock);
 	FD_ZERO(&rd_set);
 	sockfd = sock->sock;
@@ -350,7 +365,12 @@ static void *_socket_handler(void *data) {
 		selfd = select(sockfd + 1, &act_set, NULL, NULL, &tv);
 
 		/*returned due to interupt continue or timed out*/
+#ifndef __WIN32
 		if ((selfd < 0 && errno == EINTR) || (!selfd)) {
+#else
+		errcode = WSAGetLastError();
+		if (((selfd == SOCKET_ERROR) && (errcode == WSAEINTR)) || (!selfd)) {
+#endif
 			if ((type == SOCK_DGRAM) && (flags & SOCK_FLAG_BIND)) {
 				dtlshandltimeout(sock);
 			}
