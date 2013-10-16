@@ -24,15 +24,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * The thread interface consists of a management thread managing
   * a hashed bucket list of threads running optional clean up when done.*/
 
+#include <stdio.h>
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
 #include <stdint.h>
-
-#ifndef SIGHUP
-/** @brief Define SIGHUP as 1 if its not defined.*/
-#define SIGHUP		1
-#endif
 
 #include "include/dtsapp.h"
 
@@ -160,14 +156,28 @@ extern int framework_threadok() {
  * close all threads when we get SIGHUP
  */
 static int manager_sig(int sig, void *data) {
-	struct thread_pvt *thread = data;
+#ifndef __WIN32
+	struct thread_pvt *thread;
+
+	if (!(thread = get_thread_from_id())) {
+		return 0;
+	}
+
 
 	switch(sig) {
 		case SIGHUP:
 			clearflag(thread, TL_THREAD_RUN);
 			break;
+		case SIGINT:
+		case SIGTERM:
+			clearflag(thread, TL_THREAD_RUN);
+			setflag(thread, TL_THREAD_STOP);
 	}
-	return (1);
+	objunref(thread);
+	return 1;
+#else
+	return 0;
+#endif
 }
 
 /* if im here im the last thread*/
@@ -485,14 +495,14 @@ static int handle_thread_signal(struct thread_pvt *thread, int sig) {
   * @param sig Signal to pass.
   * @returns 1 on success -1 on error.*/
 extern int thread_signal(int sig) {
-	struct thread_pvt *thread = NULL;
 	int ret = 0;
+#ifndef __WIN32
+	struct thread_pvt *thread = NULL;
 
 	if (!(thread = get_thread_from_id())) {
 		return 0;
 	}
 
-#ifndef __WIN32
 	switch(sig) {
 		case SIGUSR1:
 		case SIGUSR2:
@@ -504,8 +514,8 @@ extern int thread_signal(int sig) {
 		case SIGTERM:
 			ret = handle_thread_signal(thread, sig);
 	}
-#endif
 	objunref(thread);
+#endif
 	return ret;
 }
 
