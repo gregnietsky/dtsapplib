@@ -83,12 +83,11 @@ extern int genrand(void *buf, int len) {
 	return (RAND_bytes(buf, len));
 }
 
-/** @}
-  * @addtogroup LIB-Util-Hash
-  * @{ */
+/** @}*/
 
 
 /** @brief Calculate the SHA2-512 hash accross 2 data chunks.
+  * @ingroup LIB-Util-Hash-SHA2-512
   *
   * @param buff buffer to place the hash (64 bytes).
   * @param data First data chunk to calculate.
@@ -107,6 +106,7 @@ extern void sha512sum2(unsigned char *buff, const void *data, unsigned long len,
 }
 
 /** @brief Calculate the SHA2-512 hash
+  * @ingroup LIB-Util-Hash-SHA2-512
   *
   * @param buff buffer to place the hash (64 bytes).
   * @param data First data chunk to calculate.
@@ -117,6 +117,7 @@ extern void sha512sum(unsigned char *buff, const void *data, unsigned long len) 
 
 
 /** @brief Calculate the SHA2-256 hash accross 2 data chunks.
+  * @ingroup LIB-Util-Hash-SHA2-256
   *
   * @param buff buffer to place the hash (32 bytes).
   * @param data First data chunk to calculate.
@@ -135,6 +136,7 @@ extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len,
 }
 
 /** @brief Calculate the SHA2-256 hash
+  * @ingroup LIB-Util-Hash-SHA2-256
   *
   * @param buff buffer to place the hash (32 bytes).
   * @param data First data chunk to calculate.
@@ -144,6 +146,7 @@ extern void sha256sum(unsigned char *buff, const void *data, unsigned long len) 
 }
 
 /** @brief Calculate the SHA1 hash accross 2 data chunks.
+  * @ingroup LIB-Util-Hash-SHA1
   *
   * @param buff buffer to place the hash (20 bytes).
   * @param data First data chunk to calculate.
@@ -162,6 +165,7 @@ extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, c
 }
 
 /** @brief Calculate the SHA1 hash
+  * @ingroup LIB-Util-Hash-SHA1
   *
   * @param buff buffer to place the hash (20 bytes).
   * @param data First data chunk to calculate.
@@ -171,6 +175,7 @@ extern void sha1sum(unsigned char *buff, const void *data, unsigned long len) {
 }
 
 /** @brief Calculate the MD5 hash accross 2 data chunks.
+  * @ingroup LIB-Util-Hash-MD5
   *
   * @param buff buffer to place the hash (16 bytes).
   * @param data First data chunk to calculate.
@@ -189,6 +194,7 @@ extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, co
 }
 
 /** @brief Calculate the MD5 hash
+  * @ingroup LIB-Util-Hash-MD5
   *
   * @param buff buffer to place the hash (16 bytes).
   * @param data First data chunk to calculate.
@@ -209,6 +215,7 @@ static int _digest_cmp(unsigned char *md51, unsigned char *md52, int len) {
 }
 
 /** @brief Compare two md5 hashes
+  * @ingroup LIB-Util-Hash-MD5
   *
   * @param digest1 Digest to compare.
   * @param digest2 Digest to compare.
@@ -218,6 +225,7 @@ extern int md5cmp(unsigned char *digest1, unsigned char *digest2) {
 }
 
 /** @brief Compare two SHA1 hashes
+  * @ingroup LIB-Util-Hash-SHA1
   *
   * @param digest1 Digest to compare.
   * @param digest2 Digest to compare.
@@ -227,6 +235,7 @@ extern int sha1cmp(unsigned char *digest1, unsigned char *digest2) {
 }
 
 /** @brief Compare two SHA2-256 hashes
+  * @ingroup LIB-Util-Hash-SHA2-256
   *
   * @param digest1 Digest to compare.
   * @param digest2 Digest to compare.
@@ -236,6 +245,7 @@ extern int sha256cmp(unsigned char *digest1, unsigned char *digest2) {
 }
 
 /** @brief Compare two SHA2-512 hashes
+  * @ingroup LIB-Util-Hash-SHA2-512
   *
   * @param digest1 Digest to compare.
   * @param digest2 Digest to compare.
@@ -270,6 +280,7 @@ static void _hmac(unsigned char *buff, const void *data, unsigned long len, cons
 }
 
 /** @brief Hash Message Authentication Codes (HMAC) MD5
+  * @ingroup LIB-Util-Hash-MD5
   *
   * @param buff HMAC returned in this buffer (16 bytes).
   * @param data Data to sign.
@@ -281,6 +292,7 @@ extern void md5hmac(unsigned char *buff, const void *data, unsigned long len, co
 }
 
 /** @brief Hash Message Authentication Codes (HMAC) SHA1
+  * @ingroup LIB-Util-Hash-SHA1
   *
   * @param buff HMAC returned in this buffer (20 bytes).
   * @param data Data to sign.
@@ -292,6 +304,7 @@ extern void sha1hmac(unsigned char *buff, const void *data, unsigned long len, c
 }
 
 /** @brief Hash Message Authentication Codes (HMAC) SHA2-256
+  * @ingroup LIB-Util-Hash-SHA2-256
   *
   * @param buff HMAC returned in this buffer (32 bytes).
   * @param data Data to sign.
@@ -303,6 +316,7 @@ extern void sha256hmac(unsigned char *buff, const void *data, unsigned long len,
 }
 
 /** @brief Hash Message Authentication Codes (HMAC) SHA2-512
+  * @ingroup LIB-Util-Hash-SHA2-512
   *
   * @param buff HMAC returned in this buffer (64 bytes).
   * @param data Data to sign.

@@ -2,9 +2,6 @@
 \defgroup LIB Distrotech Application Library
 \brief A Collection of helper functions and wrapped up interfaces to other libraries
 
-\defgroup TLIB Distrotech Application Library (Todo)
-\brief Modules not completely documented
-
 \defgroup LIB-OBJ Referenced Lockable Objects
 \ingroup LIB
 \brief Utilities for managing referenced lockable objects.
@@ -50,6 +47,22 @@ on each connection with the socket and data reference.
 \ingroup LIB-Util
 \brief MD5/SHA1/SHA2(256/512) Hashing checking and HMAC Functions
 
+\defgroup LIB-Util-Hash-MD5 MD5 Hashing and digest functions
+\ingroup LIB-Util-Hash
+\brief MD5 Hashing checking and HMAC Functions
+
+\defgroup LIB-Util-Hash-SHA1 SHA1 Hashing and digest functions
+\ingroup LIB-Util-Hash
+\brief SHA1 Hashing checking and HMAC Functions
+
+\defgroup LIB-Util-Hash-SHA2-256 SHA2-256Hashing and digest functions
+\ingroup LIB-Util-Hash
+\brief SHA2-256 Hashing checking and HMAC Functions
+
+\defgroup LIB-Util-Hash-SHA2-512 SHA2-512 Hashing and digest functions
+\ingroup LIB-Util-Hash
+\brief SHA2-512 Hashing checking and HMAC Functions
+
 \defgroup LIB-Z Zlib Interface
 \ingroup LIB
 \brief Simplified implementation of zlib functions.
@@ -57,6 +70,9 @@ on each connection with the socket and data reference.
 \defgroup LIB-Hash Burtle Bob hash algorythim.
 \ingroup LIB
 \brief lookup3.c, by Bob Jenkins, May 2006, Public Domain (Original Documentation)
+
+\defgroup TLIB Distrotech Application Library (Todo)
+\brief Modules not completely documented
 
 \defgroup LIB-INI INI Style config file Interface
 \ingroup TLIB

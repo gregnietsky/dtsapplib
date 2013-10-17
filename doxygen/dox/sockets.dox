@@ -55,9 +55,9 @@ is equivilent too socketread() / socketwrite().
 
 These are supported for SOCK_DGRAM and SOCK_STREAM and are capable of multiple connections.
 
-unixsock_server() and unixsock_client() return sockets (fwsock) and use of socketread_d() and socketwrite_d().
+@ref unixsocket_server() and @ref unixsocket_client() return sockets (@ref fwsocket) and use of socketread_d() and socketwrite_d().
 
-SOCK_DGRAM requires creating a tempoary socket file for use as a endpoint to support multiple connections.
+SOCK_DGRAM requires creating a tempoary socket file for use as a endpoint to support multiple connections this is handled internally but its best to only use SOCK_STREAM.
 
 \section example Example Code
 
