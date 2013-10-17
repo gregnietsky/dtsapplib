@@ -325,9 +325,7 @@ extern struct fwsocket *unixsocket_client(const char *sock, int protocol, socket
 		/*yip i want only a inode here folks*/
 		omask = umask(S_IXUSR | S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IXGRP | S_IWOTH | S_IROTH | S_IXOTH);
 		tmpsock = basename((char*)sock);
-		temp = malloc(strlen(tmpsock)+12);
-		sprintf(temp, "/tmp/%s-XXXXXX", tmpsock);
-		mktemp(temp);
+		temp = tempnam(NULL, tmpsock);
 		if (strlenzero(temp)) {
 			if (temp) {
 				free(temp);
