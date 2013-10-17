@@ -195,13 +195,13 @@ static void stop_threads(void *data, void *data2) {
 
 	/*Dont footbullet*/
 	if (!pthread_equal(man->thr, thread->thr)) {
-		clearflag(thread, TL_THREAD_RUN);
 		if (thread->sighandler) {
 			pthread_kill(thread->thr, SIGTERM);
 		}
-		if (testflag(thread, TL_THREAD_CAN_CANCEL)) {
+		if (testflag(thread, TL_THREAD_CAN_CANCEL) && testflag(thread, TL_THREAD_RUN)) {
 			pthread_cancel(thread->thr);
 		}
+		clearflag(thread, TL_THREAD_RUN);
 	}
 }
 
