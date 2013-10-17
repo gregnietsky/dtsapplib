@@ -16,10 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*
+/** @file
+  * @brief Simple radius client implementation.
+  * @ingroup LIB-RADIUS
+  * @addtogroup LIB-RADIUS
+@verbatim
  * User password crypt function from the freeradius project (addattrpasswd)
  * Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 The FreeRADIUS Server Project
- */
+@endverbatim
+  * @{*/
 
 #include <string.h>
 #include <stdio.h>
@@ -180,7 +185,7 @@ extern struct radius_packet *new_radpacket(unsigned char code, unsigned char id)
 	return (packet);
 }
 
-static int hash_session(const void *data, int key) {
+static int32_t hash_session(const void *data, int key) {
 	unsigned int ret;
 	const struct radius_session *session = data;
 	const unsigned char *hashkey = (key) ? data : &session->id;
@@ -190,7 +195,7 @@ static int hash_session(const void *data, int key) {
 	return (ret);
 }
 
-static int hash_connex(const void *data, int key) {
+static int32_t hash_connex(const void *data, int key) {
 	int ret;
 	const struct radius_connection *connex = data;
 	const int *hashkey = (key) ? data : &connex->socket;
@@ -200,7 +205,7 @@ static int hash_connex(const void *data, int key) {
 	return (ret);
 }
 
-static int hash_server(const void *data, int key) {
+static int32_t hash_server(const void *data, int key) {
 	int ret;
 	const struct radius_server *server = data;
 	const unsigned char *hashkey = (key) ? data : &server->id;
@@ -371,17 +376,17 @@ static int _send_radpacket(struct radius_packet *packet, const char *userpass, s
 				objunref(session);
 				objunref(server);
 				objunref(hint);
-				stop_bucket_loop(cloop);
-				stop_bucket_loop(sloop);
+				objunref(cloop);
+				objunref(sloop);
 				return (0);
 			} else {
 				remove_bucket_item(connex->sessions, session);
 			}
 		}
 		objunref(server);
-		stop_bucket_loop(cloop);
+		objunref(cloop);
 	}
-	stop_bucket_loop(sloop);
+	objunref(sloop);
 	objunref(hint);
 
 	return (-1);
@@ -437,7 +442,7 @@ static void rad_resend(struct radius_connection *connex) {
 		}
 		objunref(session);
 	}
-	stop_bucket_loop(bloop);
+	objunref(bloop);
 }
 
 static void radius_recv(void **data) {
@@ -497,8 +502,8 @@ static void radius_recv(void **data) {
 	objunref(session);
 }
 
-static void *rad_return(void **data) {
-	struct radius_connection *connex = *data;
+static void *rad_return(void *data) {
+	struct radius_connection *connex = data;
 	fd_set  rd_set, act_set;
 	struct  timeval tv;
 	int selfd;
@@ -506,7 +511,7 @@ static void *rad_return(void **data) {
 	FD_ZERO(&rd_set);
 	FD_SET(connex->socket->sock, &rd_set);
 
-	while (framework_threadok(data)) {
+	while (framework_threadok()) {
 		act_set = rd_set;
 		tv.tv_sec = 0;
 		tv.tv_usec = 200000;
@@ -551,7 +556,7 @@ extern struct radius_connection *radconnect(struct radius_server *server) {
 			connex->server = server;
 			genrand(&connex->id, sizeof(connex->id));
 			addtobucket(server->connex, connex);
-			framework_mkthread(rad_return, NULL, NULL, connex);
+			framework_mkthread(rad_return, NULL, NULL, connex, 0);
 		}
 	}
 	return (connex);
@@ -570,3 +575,5 @@ extern unsigned char *radius_attr_next(struct radius_packet *packet, unsigned ch
 
 	return (attr + attr[1]);
 }
+
+/** @}*/

@@ -11,6 +11,12 @@
 
 #include "include/dtsapp.h"
 
+/** @file
+  * @brief Openldap/SASL Implementation.
+  * @ingroup LIB-LDAP
+  * @addtogroup LIB-LDAP
+  * @{*/
+
 /*
  * http://www.opensource.apple.com/source/OpenLDAP/OpenLDAP-186/OpenLDAP/libraries/liblutil/sasl.c
  */
@@ -255,7 +261,7 @@ void free_entarr(void *data) {
 	}
 }
 
-int modify_hash(const void *data, int key) {
+static int32_t modify_hash(const void *data, int key) {
 	int ret;
 	const struct ldap_modreq *modr = data;
 	const char *hashkey = (key) ? data : modr->attr;
@@ -513,7 +519,7 @@ extern const char *ldap_errmsg(int res) {
 	return ldap_err2string(res);
 }
 
-int searchresults_hash(const void *data, int key) {
+static int32_t searchresults_hash(const void *data, int key) {
 	int ret;
 	const struct ldap_entry *ent = data;
 	const char *hashkey = (key) ? data : ent->dn;
@@ -811,7 +817,7 @@ struct berval **ldap_attrvals(LDAP *ld, LDAPMessage *message, char *attr, int *c
 	return vals;
 }
 
-int ldapattr_hash(const void *data, int key) {
+static int32_t ldapattr_hash(const void *data, int key) {
 	int ret;
 	const struct ldap_attr *la = data;
 	const char *hashkey = (key) ? data : la->name;
@@ -1323,7 +1329,7 @@ extern int ldap_domodify(struct ldap_conn *ld, struct ldap_modify *lmod) {
 			tmp++;
 			objunref(modr);
 		}
-		stop_bucket_loop(bloop);
+		objunref(bloop);
 	}
 	*tmp = NULL;
 
@@ -1466,7 +1472,7 @@ extern int ldap_doadd(struct ldap_conn *ld, struct ldap_add *ladd) {
 		tmp++;
 		objunref(modr);
 	}
-	stop_bucket_loop(bloop);
+	objunref(bloop);
 	*tmp = NULL;
 
 	objlock(ld);
@@ -1476,3 +1482,6 @@ extern int ldap_doadd(struct ldap_conn *ld, struct ldap_add *ladd) {
 
 	return res;
 }
+
+
+/** @}*/

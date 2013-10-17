@@ -1,0 +1,58 @@
+/*!
+\page sock_ex
+
+\section Details
+Application flow
+\li Check command line options if they correct daemonize.
+\li If required create SSL sessions.
+\li Create one server and 2 client sockets.
+\li Bind the server socket.
+\li Connect the clients to the server.
+\li Start the server thread.
+\li Start client threads.
+\li Write the client name to the server via the client socket.
+\li Echo back to the client and sleep the server thread for 1 second.
+\li Sleep the main thread for 5 seconds allowing exit.
+\section Annotation
+See doxygen/examples/socket.c for annotated source code.
+\section Code
+\include socket.c
+\section Output
+\verbatim
+./socket tls ::1
+Socket Client/Server Echo (TCP/TLS/UDP/DTLS)
+
+Copyright (C) 2013 Gregory Hinton Nietsky <gregory@distrotech.co.za>
+
+        http://www.distrotech.co.za
+
+    This program comes with ABSOLUTELY NO WARRANTY
+    This is free software, and you are welcome to redistribute it
+    under certain conditions.
+
+......./dtsapplib/private$ [S] client 1 19
+[C] client 1 17
+[S] client 2 20
+[C] client 2 18
+[S] client 1 19
+[C] client 1 17
+[S] client 2 20
+[C] client 2 18
+[S] client 1 19
+[C] client 1 17
+[S] client 2 20
+[C] client 2 18
+[S] client 1 19
+[C] client 1 17
+[S] client 2 20
+[C] client 2 18
+[S] client 1 19
+[C] client 1 17
+[S] client 2 20
+[C] client 2 18
+[S] client 1 19
+[C] client 1 17
+[S] client 2 20
+[C] client 2 18
+\endverbatim
+*/

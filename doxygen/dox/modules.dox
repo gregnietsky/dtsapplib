@@ -1,0 +1,132 @@
+/*!
+\defgroup LIB Distrotech Application Library
+\brief A Collection of helper functions and wrapped up interfaces to other libraries
+
+\defgroup LIB-OBJ Referenced Lockable Objects
+\ingroup LIB
+\brief Utilities for managing referenced lockable objects.
+\see \ref refobj
+
+\defgroup LIB-OBJ-Bucket Hashed bucket linked lists of referenced objects
+\brief Store references in and retrive from linked lists based on a hash.
+\see \ref blists
+\see \ref LIB-Hash 
+\ingroup LIB-OBJ
+
+\defgroup LIB-Thread Posix thread interface
+\ingroup LIB
+\see \ref thread
+\brief Functions for starting and managing threads.
+
+\defgroup LIB-Sock Network socket interface
+\ingroup LIB
+\see \ref sockets
+\see \ref sock_ex
+\brief Allocate and initialise a socket for use as a client or server.
+
+\defgroup LIB-Sock-SSL SSL socket support
+\ingroup LIB-Sock
+\see LIB-Sock
+\brief TLSv1 SSLv2 SSLv3 DTLSv1 support
+
+The thread interface consists of a management thread managing
+a hashed bucket list of threads running optional clean up when done.
+
+\defgroup LIB-Sock-Unix Unix domain sockets
+\ingroup LIB-Sock
+\brief Support for unixdomain sockets using sockets interface
+
+A thread is started on the sockect and will start a new client thread
+on each connection with the socket and data reference.
+
+\defgroup LIB-Util Micelaneous utilities.
+\ingroup LIB
+\brief Utilities commonly used
+
+\defgroup LIB-Util-Hash Hashing and digest functions
+\ingroup LIB-Util
+\brief MD5/SHA1/SHA2(256/512) Hashing checking and HMAC Functions
+
+\defgroup LIB-Util-Hash-MD5 MD5 Hashing and digest functions
+\ingroup LIB-Util-Hash
+\brief MD5 Hashing checking and HMAC Functions
+
+\defgroup LIB-Util-Hash-SHA1 SHA1 Hashing and digest functions
+\ingroup LIB-Util-Hash
+\brief SHA1 Hashing checking and HMAC Functions
+
+\defgroup LIB-Util-Hash-SHA2-256 SHA2-256Hashing and digest functions
+\ingroup LIB-Util-Hash
+\brief SHA2-256 Hashing checking and HMAC Functions
+
+\defgroup LIB-Util-Hash-SHA2-512 SHA2-512 Hashing and digest functions
+\ingroup LIB-Util-Hash
+\brief SHA2-512 Hashing checking and HMAC Functions
+
+\defgroup LIB-Z Zlib Interface
+\ingroup LIB
+\brief Simplified implementation of zlib functions.
+
+\defgroup LIB-Hash Burtle Bob hash algorythim.
+\ingroup LIB
+\brief lookup3.c, by Bob Jenkins, May 2006, Public Domain (Original Documentation)
+
+\defgroup TLIB Distrotech Application Library (Todo)
+\brief Modules not completely documented
+
+\defgroup LIB-INI INI Style config file Interface
+\ingroup TLIB
+\brief Reads a ini config file into grouped hashed buckets.
+
+\defgroup LIB-CURL CURL Url interface.
+\ingroup TLIB
+\brief Interface to libCURL.
+
+\defgroup LIB-FILE File utility functions
+\ingroup TLIB
+\brief Convinece wrappers arround stat
+
+\defgroup LIB-IFACE Linux network interface functions
+\ingroup TLIB
+\brief Implement various interface routines from libnetlink
+
+\defgroup LIB-IP IPv4 and IPv6 functions
+\ingroup TLIB
+\brief Helper functions for various calculations
+
+\defgroup LIB-XML XML Interface
+\ingroup TLIB
+\brief Utilities for managing XML documents.
+
+\defgroup LIB-XSLT XSLT Interface
+\ingroup TLIB
+\brief Utilities for managing XML documents.
+
+This is part of the socket interface to support encrypted sockets
+a ssldata refernece will be created and passed on socket initialization.
+
+\defgroup LIB-LDAP Openldap/SASL Interface
+\ingroup TLIB
+\brief Functions to interface with a LDAP server.
+
+\defgroup LIB-NF Linux Netfilter
+\ingroup TLIB
+\brief Interface to linux netfilter
+
+\defgroup LIB-NF-CT Connection Tracking
+\ingroup LIB-NF
+\brief Interface to linux netfilter connection tracking
+
+\defgroup LIB-NF-Q Queue interface
+\ingroup LIB-NF
+\brief Interface to linux netfilter queue interface
+
+\defgroup LIB-RADIUS Radius client interface
+\ingroup TLIB
+\brief Simple implementation of experimental radius client
+
+\defgroup LIB-NAT6 IPv6 Nat Mapping
+\ingroup TLIB
+\brief Implementation of RFC6296
+
+*/

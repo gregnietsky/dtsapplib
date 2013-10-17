@@ -32,12 +32,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 The FreeRADIUS Server Project
  */
 
+/** @file
+  * @brief DTS Application library API Include file.
+  * 
+  * @ingroup LIB
+  * The library foremostly implements reference counted objects and hashed bucket lists
+  * @ref LIB-OBJ these are then used to implement simpler API's to common tasks.
+  * @par Key components
+  * @n INI style config file parser.
+  * @n CURL wraper with support for GET/POST, authentification and progress indication.
+  * @n File utilities as a wrapper arround fstat.
+  * @n IP 4/6 Utilities for calculating / checking subnets and checksuming packets.
+  * @n Interface API for Linux networking including libnetlink from iproute2
+  * @n XML/XSLT Simplified API for reading, managing and applying transforms.
+  * @n Some Application shortcuts and wrapper for main quick and dirty daemon app.
+  * @n Wrappers for Linux netfilter connection tracking and packet queueing
+  * @n Open LDAP API.
+  * @n Basic implementation of RADIUS.
+  * @n Implementation of RFC 6296.
+  * @n Thread API using pthreads.
+  * @n Simple implementation of UNIX Domain socket.
+  * @n Various Utilities including hashing and checksum.
+  * @n Z Lib Compression/Uncompression Functions.*/ 
+
 #ifndef _INCLUDE_DTSAPP_H
 #define _INCLUDE_DTSAPP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <signal.h>
 #ifdef __WIN32__
@@ -46,31 +65,85 @@ extern "C" {
 #include <ws2ipdef.h>
 #else
 #include <arpa/inet.h>
+#include <linux/un.h>
 #endif
 
-/*socket structure*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+/** @brief Socket union describing all address types.
+  *
+  * @ingroup LIB-Sock*/
 union sockstruct {
+	/** @brief Base socket addr structure.*/
 	struct sockaddr sa;
+#ifndef __WIN32
+	/** @brief Unix sockets.*/
+	struct sockaddr_un un;
+#endif
+	/** @brief IPv4 socket addr structure.*/
 	struct sockaddr_in sa4;
+	/** @brief IPv6 socket addr structure.*/
 	struct sockaddr_in6 sa6;
+	/** @brief Sockaddr storage is a "magic" struct been able to hold IPv4 or IPv6.*/
 	struct sockaddr_storage ss;
 };
 
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-Sock-SSL*/
 typedef struct ssldata ssldata;
 
+/** @brief Socket flags controling a socket.
+  *
+  * @ingroup LIB-Sock*/
 enum sock_flags {
+	/** @brief The socket has been bound and awaiting connections.*/
 	SOCK_FLAG_BIND		= 1 << 0,
-	SOCK_FLAG_CLOSE		= 1 << 1
+	/** @brief The socket is going away stop processing in its thread.*/
+	SOCK_FLAG_CLOSE		= 1 << 1,
+	/** @brief SSL has been requested on this socket dont allow clear read/send.*/
+	SOCK_FLAG_SSL		= 1 << 2,
+	/** @brief UNIX Domain Socket*/
+	SOCK_FLAG_UNIX		= 1 << 3
 };
 
+/** @brief Options supplied to framework_mkthread all defaults are unset
+  * @ingroup LIB-Thread
+  * @note this is shifted 16 bits limiting 16 options this maps to high 16 bits of threadopt*/
+enum thread_option_flags {
+        /** @brief Flag to enable pthread_cancel calls this is not recomended and can lead to memory leaks.*/
+        THREAD_OPTION_CANCEL		= 1 << 0,
+        /** @brief Create the the thread joinable only do this if you will be joining it cancelable threads are best detached.*/
+        THREAD_OPTION_JOINABLE		= 1 << 1,
+        /** @brief Return reference to thread this must be unreferenced.*/
+        THREAD_OPTION_RETURN		= 1 << 2
+};
+
+
+/** @brief Socket data structure.
+  *
+  * @ingroup LIB-Sock*/
 struct fwsocket {
+	/** @brief Socket FD.*/
 	int sock;
+	/** @brief Socket protocol.*/
 	int proto;
+	/** @brief Socket type.*/
 	int type;
+	/** @brief Socket control flags.
+	  * @see sock_flags*/
 	enum sock_flags flags;
+	/** @brief system socket data structure.
+	  * @see sockstruct*/
 	union sockstruct addr;
+	/** @brief SSL structure for encryption.
+	  * @see @ref LIB-Sock-SSL*/
 	struct ssldata *ssl;
+	/** @brief Parent socket if we connected to a server and were spawned.*/
 	struct fwsocket *parent;
+	/** @brief We are the parent this is a list of spawn.*/
 	struct bucket_list *children;
 };
 
@@ -79,71 +152,182 @@ struct config_entry {
 	const char *value;
 };
 
+/** @ingroup LIB-Z
+  * @brief Zlib buffer used for compression and decompression*/
 struct zobj {
+	/** @brief Buffer with compressed/uncompressed data*/
 	uint8_t *buff;
+	/** @brief Original size of data*/
 	uint16_t olen;
+	/** @brief Compressed size of data*/
 	uint16_t zlen;
 };
 
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NAT6*/
 typedef struct natmap natmap;
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-RADIUS*/
 typedef struct radius_packet radius_packet;
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NF-Q*/
 typedef struct nfq_queue nfq_queue;
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NF-Q*/
 typedef struct nfq_data nfq_data;
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NF-CT*/
 typedef struct nfct_struct nfct_struct;
+
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-NF-Q*/
 typedef struct nfqnl_msg_packet_hdr nfqnl_msg_packet_hdr;
 
 /*callback function type def's*/
-typedef void	(*radius_cb)(struct radius_packet *, void *);
-typedef void    *(*threadcleanup)(void *);
-typedef void    *(*threadfunc)(void **);
+
+/** @brief Framework callback function
+  *
+  * @ingroup LIB
+  * @param argc Argument count.
+  * @param argv Argument array.
+  * @returns Application exit code.*/
+typedef	int	(*frameworkfunc)(int, char **);
+
+/** @brief Callback to user supplied signal handler.
+  *
+  * @ingroup LIB
+  * @param sig Signal been handled.
+  * @param si Sa sigaction.
+  * @param unsed Unused cast to void from ucontext_t*/
 #ifndef __WIN32__
 typedef void	(*syssighandler)(int, siginfo_t *, void *);
+#else
+typedef void	(*syssighandler)(int, void*, void*);
 #endif
+
+/** @brief Function called after thread termination.
+  *
+  * @ingroup LIB-Thread
+  * @see framework_mkthread()
+  * @param data Reference of thread data.*/
+typedef void    (*threadcleanup)(void *);
+
+/** @brief Thread function
+  *
+  * @ingroup LIB-Thread
+  * @see framework_mkthread()
+  * @param data Poinnter to reference of thread data.*/
+typedef void    *(*threadfunc)(void *);
+
+/** @brief Thread signal handler function
+  *
+  * @ingroup LIB-Thread
+  * @see framework_mkthread()
+  * @param data Reference of thread data.*/
 typedef int     (*threadsighandler)(int, void *);
-typedef	int	(*frameworkfunc)(int, char **);
-typedef int	(*blisthash)(const void *, int);
-typedef void	(*objdestroy)(void *);
+
+/** @brief Callback function to register with a socket that will be called when there is data available.
+  *
+  * @ingroup LIB-Sock
+  * @param sock Socket structure data arrived on.
+  * @param data Reference to data held by client/server thread.*/
 typedef void	(*socketrecv)(struct fwsocket *, void *);
+
+/** @ingroup LIB-OBJ
+  * @brief Callback used to clean data of a reference object when it is to be freed.
+  * @param data Data held by reference about to be freed.*/
+typedef void	(*objdestroy)(void *);
+
+/** @ingroup LIB-OBJ-Bucket
+  * @brief Callback used to calculate the hash of a structure.
+  * @param data Data or key to calculate hash from.
+  * @param key Key if set to non zero data supplied is the key not data.
+  * @returns Hash for the Reference.*/
+typedef int32_t (*blisthash)(const void *, int);
+
+/** @ingroup LIB-OBJ-Bucket
+  * @brief This callback is run on each entry in a list
+  * @see bucketlist_callback()
+  * @param data Reference held by the list.
+  * @param data2 Reference to data supplied when calling bucketlist_callback.*/
 typedef void	(*blist_cb)(void *, void *);
+
+/** @ingroup LIB-INI*/
 typedef void	(*config_filecb)(struct bucket_list *, const char *, const char *);
+
+/** @ingroup LIB-INI*/
 typedef void	(*config_catcb)(struct bucket_list *, const char *);
+
+/** @ingroup LIB-INI*/
 typedef void	(*config_entrycb)(const char *, const char *);
+
+/** @ingroup LIB-NF-Q*/
 typedef uint32_t (*nfqueue_cb)(struct nfq_data *, struct nfqnl_msg_packet_hdr *, char *, uint32_t, void *, uint32_t *, void **);
 
-/*these can be set int the application */
-struct framework_core {
-	const char *developer;
-	const char *email;
-	const char *www;
-	const char *runfile;
-	const char *progname;
-	int  year;
-	int  flock;
-	long	my_pid;
-	struct sigaction *sa;
-#ifndef __WIN32__
-	syssighandler	sig_handler;
-#endif
+/** @ingroup LIB-RADIUS*/
+typedef void	(*radius_cb)(struct radius_packet *, void *);
+
+/** @brief Application control flags
+  * @ingroup LIB*/
+ enum framework_flags {
+	/** @brief Allow application daemonization.*/
+	FRAMEWORK_FLAG_DAEMON		= 1 << 0,
+	/** @brief Dont print GNU copyright.*/
+	FRAMEWORK_FLAG_NOGNU		= 1 << 1,
+	/** @brief Create lockfile on daemonize latter
+	  *
+	  * Its possible you want to call daemonize latter and want the lockfile created then
+	  * @note not compatible with FRAMEWORK_FLAG_DAEMON and has no effect FRAMEWORK_FLAG_DAEMON is set.*/
+	FRAMEWORK_FLAG_DAEMONLOCK	= 1 << 2
 };
 
-/*Initialise the framework */
-extern int framework_init(int argc, char *argv[], frameworkfunc callback, struct framework_core *core_info);
-/* Setup the run enviroment*/
-#ifndef __WIN32__
-extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, syssighandler sigfunc);
-#else
-extern struct framework_core *framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile);
-#endif
-/* Run a thread under the framework */
-extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data);
-/* Shutdown framework*/
-extern void framework_shutdown(void);
+/** @brief Application framework data
+  * @see framework_mkcore()
+  * @see framework_init()
+  * @see FRAMEWORK_MAIN()*/
+struct framework_core {
+	/** @brief Developer/Copyright holder*/
+	const char *developer;
+	/** @brief Email address of copyright holder*/
+	const char *email;
+	/** @brief URL displayed (use full URL ie with http://)*/
+	const char *www;
+	/** @brief File to write PID too and lock*/
+	const char *runfile;
+	/** @brief Detailed application name*/
+	const char *progname;
+	/** @brief Copyright year*/
+	int  year;
+	/** @brief if there is a file locked this is the FD that will be unlocked and unlinked*/
+	int  flock;
+	/** @brief sigaction structure allocated on execution*/
+	struct sigaction *sa;
+	/** @brief Signal handler to pass signals too
+	  * @note The application framework installs a signal handler but will pass calls to this as a callback*/
+	syssighandler	sig_handler;
+	/** @brief Application Options
+	  * @see application_flags*/
+	int flags;
+};
+
+void framework_mkcore(char *progname, char *name, char *email, char *web, int year, char *runfile, int flags, syssighandler sigfunc);
+extern int framework_init(int argc, char *argv[], frameworkfunc callback);
+void printgnu(const char *pname, int year, const char *dev, const char *email, const char *www);
+void daemonize();
+int lockpidfile(const char *runfile);
+extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data, int flags);
 /* UNIX Socket*/
-extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc connectfunc, threadcleanup cleanup);
+extern struct fwsocket *unixsocket_server(const char *sock, int protocol, int mask, socketrecv read, void *data);
+extern struct fwsocket *unixsocket_client(const char *sock, int protocol, socketrecv read, void *data);
 /* Test if the thread is running when passed data from thread */
-extern int framework_threadok(void *data);
+extern int framework_threadok(void);
 extern int startthreads(void);
-extern void stopthreads(void);
+extern void stopthreads(int join);
+int thread_signal(int sig);
 
 /*
  * ref counted objects
@@ -172,7 +356,6 @@ extern void bucketlist_callback(struct bucket_list *blist, blist_cb callback, vo
  * iteration through buckets
  */
 extern struct bucket_loop *init_bucket_loop(struct bucket_list *blist);
-extern void stop_bucket_loop(struct bucket_loop *bloop);
 extern void *next_bucket_loop(struct bucket_loop *bloop);
 extern void remove_bucket_loop(struct bucket_loop *bloop);
 
@@ -185,14 +368,14 @@ extern uint32_t hashlittle(const void *key, size_t length, uint32_t initval);
  */
 extern void seedrand(void);
 extern int genrand(void *buf, int len);
-extern void sha512sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern void sha512sum(unsigned char *buff, const void *data, unsigned long len);
-extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern void sha256sum(unsigned char *buff, const void *data, unsigned long len);
-extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern void sha1sum(unsigned char *buff, const void *data, unsigned long len);
-extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern void md5sum(unsigned char *buff, const void *data, unsigned long len);
+extern void sha512sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
+extern void sha256sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
+extern void sha1sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
+extern void md5sum2(unsigned char *buff, const void *data, unsigned long len, const void *data2, unsigned long len2);
 extern int sha512cmp(unsigned char *digest1, unsigned char *digest2);
 extern int sha256cmp(unsigned char *digest1, unsigned char *digest2);
 extern int sha1cmp(unsigned char *digest1, unsigned char *digest2);
@@ -223,6 +406,7 @@ extern char *b64enc_buf(const char *message, uint32_t len, int nonl);
 
 /*IP Utilities*/
 extern struct fwsocket *make_socket(int family, int type, int proto, void *ssl);
+extern struct fwsocket *accept_socket(struct fwsocket *sock);
 extern struct fwsocket *sockconnect(int family, int stype, int proto, const char *ipaddr, const char *port, void *ssl);
 extern struct fwsocket *udpconnect(const char *ipaddr, const char *port, void *ssl);
 extern struct fwsocket *tcpconnect(const char *ipaddr, const char *port, void *ssl);
@@ -289,6 +473,8 @@ extern int eui48to64(unsigned char *mac48, unsigned char *eui64);
 extern void closenetlink(void);
 
 /*Radius utilities*/
+/** @addtogroup LIB-RADIUS
+    @{*/
 #define RAD_AUTH_HDR_LEN	20
 #define RAD_AUTH_PACKET_LEN	4096
 #define RAD_AUTH_TOKEN_LEN	16
@@ -312,6 +498,7 @@ enum RADIUS_CODE {
 	RAD_CODE_ACCTRESPONSE	=	5,
 	RAD_CODE_AUTHCHALLENGE	=	11
 };
+/** @}*/
 
 extern unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len);
 extern void addradattrint(struct radius_packet *packet, char type, unsigned int val);
@@ -336,7 +523,7 @@ extern int socketwrite(struct fwsocket *sock, const void *buf, int num);
 extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstruct *addr);
 extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union sockstruct *addr);
 
-extern void ssl_shutdown(void *ssl);
+extern void ssl_shutdown(void *ssl, int sock);
 extern void tlsaccept(struct fwsocket *sock, struct ssldata *orig);
 extern struct fwsocket *dtls_listenssl(struct fwsocket *sock);
 extern void startsslclient(struct fwsocket *sock);
@@ -354,9 +541,17 @@ extern void config_cat_callback(struct bucket_list *categories, config_catcb ent
 extern void config_entry_callback(struct bucket_list *entries, config_entrycb entry_cb);
 
 /*Forward Decl*/
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-XML*/
 typedef struct xml_node xml_node;
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-XML*/
 typedef struct xml_search xml_search;
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-XML*/
 typedef struct xml_doc xml_doc;
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-XSLT*/
 typedef struct xslt_doc xslt_doc;
 
 /*XML*/
@@ -406,6 +601,8 @@ void xslt_init();
 void xslt_close();
 
 /* LDAP */
+/** @addtogroup LIB-LDAP
+  * @{*/
 enum ldap_starttls {
 	LDAP_STARTTLS_NONE,
 	LDAP_STARTTLS_ATTEMPT,
@@ -457,9 +654,13 @@ struct ldap_results {
 	struct bucket_list *entries;
 };
 
+/** @brief Forward decleration of structure.*/
 typedef struct ldap_conn ldap_conn;
+/** @brief Forward decleration of structure.*/
 typedef struct ldap_modify ldap_modify;
+/** @brief Forward decleration of structure.*/
 typedef struct ldap_add ldap_add;
+/** @}*/
 
 extern struct ldap_conn *ldap_connect(const char *uri, enum ldap_starttls starttls,int timelimit, int limit, int debug, int *err);
 extern int ldap_simplebind(struct ldap_conn *ld, const char *dn, const char *passwd);
@@ -507,10 +708,16 @@ struct curlbuf {
 	size_t bsize;
 };
 
+/** @brief Forward decleration of structure.
+  * @ingroup LIB-CURL*/
 typedef struct curl_post curl_post;
+/** @ingroup LIB-CURL*/
 typedef struct basic_auth *(*curl_authcb)(const char *user, const char *passwd, void *data);
+/** @ingroup LIB-CURL*/
 typedef int (*curl_progress_func)(void*, double, double, double, double);
+/** @ingroup LIB-CURL*/
 typedef void(*curl_progress_pause)(void*, int);
+/** @ingroup LIB-CURL*/
 typedef void *(*curl_progress_newdata)(void*);
 
 int curlinit(void);
@@ -538,32 +745,60 @@ int mk_dir(const char *dir);
 int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 #endif
 
-/*easter egg copied from <linux/jhash.h>*/
+/** @brief Default init value for hash function
+  * @ingroup LIB-Hash
+  *
+  * easter egg copied from <linux/jhash.h>*/
 #define JHASH_INITVAL           0xdeadbeef
+
+/** @brief Define jenhash as hashlittle on big endian it should be hashbig
+  *
+  * @ingroup LIB-Hash*/
 #define jenhash(key, length, initval)   hashlittle(key, length, (initval) ? initval : JHASH_INITVAL);
 
-/*
- * atomic flag routines for (obj)->flags
- */
-#define clearflag(obj, flag) objlock(obj); \
-	obj->flags &= ~flag; \
-	objunlock(obj)
+/** @ingroup LIB-OBJ
+  * @brief Atomically clear a flag in the flags field of a referenced object*/
+#define clearflag(obj, flag) \
+objlock(obj);\
+obj->flags &= ~flag;\
+objunlock(obj)
 
-#define setflag(obj, flag) objlock(obj); \
-	obj->flags |= flag; \
-	objunlock(obj)
+/** @ingroup LIB-OBJ
+  * @brief Atomically set a flag in the flags field of a referenced object*/
+#define setflag(obj, flag) \
+objlock(obj);\
+obj->flags |= flag; \
+objunlock(obj)
 
-#define testflag(obj, flag) (objlock(obj) | (obj->flags & flag) | objunlock(obj))
+/** @ingroup LIB-OBJ
+  * @brief Atomically test a flag in the flags field of a referenced object*/
+#define testflag(obj, flag) \
+(objlock(obj) | (obj->flags & flag) | objunlock(obj))
 
-#define FRAMEWORK_MAIN(progname, name, email, www, year, runfile, sighfunc) \
-	static int  framework_main(int argc, char *argv[]); \
-	static struct framework_core *core_info; \
-	int  main(int argc, char *argv[]) { \
-		core_info = framework_mkcore(progname, name, email, www, year, runfile, sighfunc); \
-		return (framework_init(argc, argv, framework_main, core_info)); \
-	} \
-	static int  framework_main(int argc, char *argv[])
+/** @ingroup LIB
+  * @brief A macro to replace main() with initilization and daemonization code
+  * @note Argument count is argc and arguments is array argv.
+  * @see framework_flags
+  * @see framework_mkcore()
+  * @see framework_init()
+  * @param progname Descriptive program name.
+  * @param name Copyright holders name.
+  * @param email Copyright holders email.
+  * @param www Web address.
+  * @param year Copyright year.
+  * @param runfile Application runfile.
+  * @param flags Application flags.
+  * @param sighfunc Signal handler function.*/
+#define FRAMEWORK_MAIN(progname, name, email, www, year, runfile, flags, sighfunc) \
+static int  framework_main(int argc, char *argv[]); \
+int  main(int argc, char *argv[]) { \
+	framework_mkcore(progname, name, email, www, year, runfile, flags, sighfunc); \
+	return (framework_init(argc, argv, framework_main)); \
+} \
+static int  framework_main(int argc, char *argv[])
 
+/** @brief Macro to assign values to char const
+  * @ingroup LIB*/
 #define ALLOC_CONST(const_var, val) { \
 		char *tmp_char; \
 		if (val) { \
@@ -575,21 +810,24 @@ int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group);
 		} \
 	}
 
+/** @ingroup LIB-OBJ
+  * @brief Add this macro to a C++ class to add refobj support.
+  *
+  * This macro defines operator overloads for new/delete and declares
+  * a destructor.
+  * @note this should not be used with inheritance*/
+#define DTS_OJBREF_CLASS(classtype) \
+void *operator new(size_t sz) {\
+	return objalloc(sz, &classtype::dts_unref_classtype);\
+}\
+void operator delete(void *obj) {\
+}\
+static void dts_unref_classtype(void *data) {\
+	delete (classtype*)data;\
+}\
+~classtype()
+
 #ifdef __cplusplus
 }
-/*
- * Macro to add refobj support too C++ overloading new/delete creating
- * unref method
- */
-#define DTS_OJBREF_CLASS(classtype)	void *operator new(size_t sz) {\
-			return objalloc(sz, &classtype::dts_unref_classtype);\
-		}\
-		void operator delete(void *obj) {\
-		}\
-		static void dts_unref_classtype(void *data) {\
-			delete (classtype*)data;\
-		}\
-		~classtype()
-
 #endif
 #endif

@@ -16,6 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @addtogroup LIB-Sock
+  * @{
+  *
+  * @file
+  * @brief Allocate and initialise a socket for use as a client or server.
+  *
+  * This is part of the socket interface to upport encrypted sockets
+  * a ssldata refernece will be created and passed on socket initialization.
+  *
+  * @see @ref LIB-Sock-SSL*/
+
 #ifndef __WIN32__
 #include <netdb.h>
 #endif
@@ -35,16 +46,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "include/dtsapp.h"
 #include "include/private.h"
 
-/* socket handling thread*/
+/** @brief Socket handling thread data.*/
 struct socket_handler {
+	/** @brief Socket this thread manages.*/
 	struct fwsocket *sock;
+	/** @brief Reference to data passed in callbacks*/
 	void *data;
+	/** @brief Callback called when the socket is ready to read*/
 	socketrecv	client;
+	/** @brief Callback to call when the thread closes to allow
+	  * additional cleanup*/
 	threadcleanup	cleanup;
+	/** @brief If a client connects to a bound port this callback is
+	  * called on connect*/
 	socketrecv	connect;
 };
 
-static int hash_socket(const void *data, int key) {
+static int32_t hash_socket(const void *data, int key) {
 	int ret;
 	const struct fwsocket *sock = data;
 	const int *hashkey = (key) ? data : &sock->sock;
@@ -54,6 +72,9 @@ static int hash_socket(const void *data, int key) {
 	return (ret);
 }
 
+/** @brief Mark the socket for closure and release the reference.
+  *
+  * @param sock Socket to close.*/
 extern void close_socket(struct fwsocket *sock) {
 	if (sock) {
 		setflag(sock, SOCK_FLAG_CLOSE);
@@ -86,6 +107,15 @@ static void clean_fwsocket(void *data) {
 	}
 }
 
+/** @brief Allocate a socket structure and return reference.
+  *
+  * The socket FD is assined by a call to socket.
+  * @warning This function should not be called directly.
+  * @param family Protocol family.
+  * @param type Socket type.
+  * @param proto Protocol to be used.
+  * @param ssl SSL structure to associate with the socket.
+  * @returns Reference to socket structure holding a FD.*/
 extern struct fwsocket *make_socket(int family, int type, int proto, void *ssl) {
 	struct fwsocket *si;
 
@@ -107,9 +137,15 @@ extern struct fwsocket *make_socket(int family, int type, int proto, void *ssl) 
 	return (si);
 }
 
-static struct fwsocket *accept_socket(struct fwsocket *sock) {
+/** @brief Create and return a socket structure from accept()
+  * @param sock Reference to the socket its accepted on.
+  * @return Reference to new socket.*/
+extern struct fwsocket *accept_socket(struct fwsocket *sock) {
 	struct fwsocket *si;
 	socklen_t salen = sizeof(si->addr);
+#ifdef __WIN32
+/*	unsigned long on = 1;*/
+#endif
 
 	if (!(si = objalloc(sizeof(*si),clean_fwsocket))) {
 		return NULL;
@@ -121,6 +157,10 @@ static struct fwsocket *accept_socket(struct fwsocket *sock) {
 		objunref(si);
 		return NULL;
 	}
+
+#ifdef __WIN32
+/*	ioctlsocket(si->sock, FIONBIO, (unsigned long*)&on);*/
+#endif
 
 	si->type = sock->type;
 	si->proto = sock->proto;
@@ -154,6 +194,16 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 		if (!(sock = make_socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol, ssl))) {
 			continue;
 		}
+		if (ctype) {
+#ifndef __WIN32__
+			setsockopt(sock->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+#ifdef SO_REUSEPORT
+			setsockopt(sock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
+#endif
+#else
+/*		ioctlsocket(sock->sock, SO_REUSEADDR, (unsigned long*)&on);*/
+#endif
+		}
 		if ((!ctype && !connect(sock->sock, rp->ai_addr, rp->ai_addrlen)) ||
 				(ctype && !bind(sock->sock, rp->ai_addr, rp->ai_addrlen))) {
 			break;
@@ -161,6 +211,7 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 		objunref(sock);
 		sock = NULL;
 	}
+
 
 	if (!sock || !rp) {
 		if (sock) {
@@ -171,22 +222,19 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 		return (NULL);
 	}
 
+
 	if (ctype) {
+#ifdef __WIN32
+/*		ioctlsocket(sock->sock, FIONBIO, (unsigned long*)&on);*/
+#endif
 		sock->flags |= SOCK_FLAG_BIND;
 		memcpy(&sock->addr.ss, rp->ai_addr, sizeof(sock->addr.ss));
-#ifndef __WIN32__
-		setsockopt(sock->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-#ifdef SO_REUSEPORT
-		setsockopt(sock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
-#endif
-#endif
 		switch(sock->type) {
 			case SOCK_STREAM:
 			case SOCK_SEQPACKET:
 				listen(sock->sock, backlog);
 				/* no break */
-			default
-					:
+			default:
 				break;
 		}
 	} else {
@@ -197,31 +245,87 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 	return (sock);
 }
 
+/** @brief Generic client socket.
+  *
+  * @see udpconnect
+  * @see tcpconnect
+  * @param family Protocol family.
+  * @param stype Socket type.
+  * @param proto Socket protocol.
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *sockconnect(int family, int stype, int proto, const char *ipaddr, const char *port, void *ssl) {
 	return(_opensocket(family, stype, proto, ipaddr, port, ssl, 0, 0));
 }
 
+/** @brief UDP Socket client.
+  *
+  * @see sockconnect
+  * @see tcpconnect
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *udpconnect(const char *ipaddr, const char *port, void *ssl) {
 	return (_opensocket(PF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, ipaddr, port, ssl, 0, 0));
 }
 
+/** @brief TCP Socket client.
+  *
+  * @see sockconnect
+  * @see udpconnect
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *tcpconnect(const char *ipaddr, const char *port, void *ssl) {
 	return (_opensocket(PF_UNSPEC, SOCK_STREAM, IPPROTO_TCP, ipaddr, port, ssl, 0, 0));
 }
 
+/** @brief Generic server socket.
+  *
+  * @see udpbind
+  * @see tcpbind
+  * @param family Protocol family.
+  * @param stype Socket type.
+  * @param proto Socket protocol.
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @param backlog Connection backlog passed to listen.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *sockbind(int family, int stype, int proto, const char *ipaddr, const char *port, void *ssl, int backlog) {
 	return(_opensocket(family, stype, proto, ipaddr, port, ssl, 1, backlog));
 }
 
+/** @brief UDP server socket.
+  *
+  * @see sockbind
+  * @see tcpbind
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *udpbind(const char *ipaddr, const char *port, void *ssl) {
 	return (_opensocket(PF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, ipaddr, port, ssl, 1, 0));
 }
 
+/** @brief Generic server socket.
+  *
+  * @see udpbind
+  * @see sockbind
+  * @param ipaddr Ipaddr to connect too.
+  * @param port Port to connect too.
+  * @param ssl SSL structure to associate with socket.
+  * @param backlog Connection backlog passed to listen.
+  * @returns Reference to socket structure.*/
 extern struct fwsocket *tcpbind(const char *ipaddr, const char *port, void *ssl, int backlog) {
 	return (_opensocket(PF_UNSPEC, SOCK_STREAM, IPPROTO_TCP, ipaddr, port, ssl, 1, backlog));
 }
 
-static void *_socket_handler_clean(void *data) {
+static void _socket_handler_clean(void *data) {
 	struct socket_handler *fwsel = data;
 
 	/*call cleanup and remove refs to data*/
@@ -231,19 +335,19 @@ static void *_socket_handler_clean(void *data) {
 	if (fwsel->data) {
 		objunref(fwsel->data);
 	}
-
-	return NULL;
 }
 
-static void *_socket_handler(void **data) {
-	struct socket_handler *sockh = *data;
+static void *_socket_handler(void *data) {
+	struct socket_handler *sockh = data;
 	struct fwsocket *sock = sockh->sock;
 	struct fwsocket *newsock;
 	struct	timeval	tv;
 	fd_set	rd_set, act_set;
 	int selfd, sockfd, type, flags;
 	struct bucket_loop *bloop;
-
+#ifdef __WIN32
+	int errcode;
+#endif
 	objlock(sock);
 	FD_ZERO(&rd_set);
 	sockfd = sock->sock;
@@ -256,7 +360,7 @@ static void *_socket_handler(void **data) {
 	FD_SET(sockfd, &rd_set);
 	objunlock(sock);
 
-	while (framework_threadok(data) && !testflag(sock, SOCK_FLAG_CLOSE)) {
+	while (framework_threadok() && !testflag(sock, SOCK_FLAG_CLOSE)) {
 		act_set = rd_set;
 		tv.tv_sec = 0;
 		tv.tv_usec = 20000;
@@ -264,15 +368,19 @@ static void *_socket_handler(void **data) {
 		selfd = select(sockfd + 1, &act_set, NULL, NULL, &tv);
 
 		/*returned due to interupt continue or timed out*/
+#ifndef __WIN32
 		if ((selfd < 0 && errno == EINTR) || (!selfd)) {
+#else
+		errcode = WSAGetLastError();
+		if (((selfd == SOCKET_ERROR) && (errcode == WSAEINTR)) || (!selfd)) {
+#endif
 			if ((type == SOCK_DGRAM) && (flags & SOCK_FLAG_BIND)) {
 				dtlshandltimeout(sock);
 			}
 			continue;
-		} else
-			if (selfd < 0) {
-				break;
-			}
+		} else if (selfd < 0) {
+			break;
+		}
 
 		if (FD_ISSET(sockfd, &act_set)) {
 			if (flags & SOCK_FLAG_BIND) {
@@ -284,8 +392,7 @@ static void *_socket_handler(void **data) {
 					case SOCK_DGRAM:
 						newsock = dtls_listenssl(sock);
 						break;
-					default
-							:
+					default:
 						newsock = NULL;
 						break;
 				}
@@ -306,7 +413,7 @@ static void *_socket_handler(void **data) {
 	}
 
 	if (sock->ssl) {
-		ssl_shutdown(sock->ssl);
+		ssl_shutdown(sock->ssl, sock->sock);
 	}
 
 	/*close children*/
@@ -322,7 +429,7 @@ static void *_socket_handler(void **data) {
 			objunlock(newsock);
 			close_socket(newsock); /*remove ref*/
 		}
-		stop_bucket_loop(bloop);
+		objunref(bloop);
 	}
 
 	objunref(sock);
@@ -347,10 +454,21 @@ static void _start_socket_handler(struct fwsocket *sock, socketrecv read,
 	/* grab ref for data and pass sockh*/
 	objref(data);
 	objref(sock);
-	framework_mkthread(_socket_handler, _socket_handler_clean, NULL, sockh);
+	framework_mkthread(_socket_handler, _socket_handler_clean, NULL, sockh, 0);
 	objunref(sockh);
 }
 
+/** @brief Create a server thread with a socket that has been created with
+  * sockbind udpbind or tcpbind.
+  *
+  * @see sockclient
+  * @see threadcleanup
+  * @see socketrecv
+  * @param sock Reference to a bound socket.
+  * @param read Callback to handle data when ready to read.
+  * @param acceptfunc Function to call on connection accept.
+  * @param cleanup Thread cleanup function for when the socket closes.
+  * @param data to send to the callbacks in paramaters.*/
 extern void socketserver(struct fwsocket *sock, socketrecv read,
 						 socketrecv acceptfunc, threadcleanup cleanup, void *data) {
 
@@ -371,8 +489,20 @@ extern void socketserver(struct fwsocket *sock, socketrecv read,
 	_start_socket_handler(sock, read, acceptfunc, cleanup, data);
 }
 
+/** @brief Create a server thread with a socket that has been created with
+  * sockbind udpbind or tcpbind.
+  *
+  * @see sockclient
+  * @see threadcleanup
+  * @see socketrecv
+  * @param sock Reference to a bound socket.
+  * @param data to send to the callbacks in paramaters.
+  * @param read Callback to handle data when ready to read.
+  * @param cleanup Thread cleanup function for when the socket closes.*/
 extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, threadcleanup cleanup) {
 	startsslclient(sock);
 
 	_start_socket_handler(sock, read, NULL, cleanup, data);
 }
+
+/** @}*/

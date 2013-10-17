@@ -6,3 +6,10 @@ DIST_TARGETS = dist-gzip dist-bzip2 dist-xz dist-zip
 distclean-local:
 	rm -rf $(top_srcdir)/autom4te.cache $(top_srcdir)/config.h.in~ || true
 
+
+doxygen: Doxyfile
+	doxygen
+
+manual.pdf: doxygen
+	make -C doxygen/latex
+	cp doxygen/latex/refman.pdf manual.pdf

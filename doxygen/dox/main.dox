@@ -1,0 +1,30 @@
+/*!
+\page main
+\section intro Using helper macro instead of main()
+
+This library includes functions to simplify startup.
+\li printgnu() Displays a standard message on the console at startup.
+\li daemonize() Forks and exits the process to run it in the background.
+\li lockpidfile() Creates a file that contains the pid and locks it.
+\li seedrand() Seed the random number generator.
+\li sslstartup() Start open ssl.
+\li Install a default signal handler and use a callback to handle signals (Not supported on WIN32).
+
+These are all wrapped up in a macro FRAMEWORK_MAIN() that replaces main().
+This is done by implementing main creating a callback initialising the services and calling the callback
+
+\snippet  socket.c main
+
+As you can see this macro has replaced main() you have access to the arg count and arg list as usual
+via argc / argv.
+
+Various flags control the behaviour in this case daemonize was run after the args have been checked.
+
+\see framework_flags
+\see framework_init()
+\see framework_mkcore()
+
+\warning memory allocated by framework_mkcore() is only released by framework_init() always call framework_mkcore()
+first and always call framework_init() when calling framework_mkcore().
+
+*/

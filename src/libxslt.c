@@ -1,3 +1,8 @@
+/** @file
+  * @brief XSLT Interface.
+  * @addtogroup LIB-XSLT
+  * @{*/
+
 #include <stdint.h>
 #ifdef __WIN32__
 #include <winsock2.h>
@@ -36,7 +41,7 @@ void free_parser(void *data) {
 	xmlCleanupParser();
 }
 
-int xslt_hash(const void *data, int key) {
+static int32_t xslt_hash(const void *data, int key) {
 	int ret;
 	const struct xslt_param *xp = data;
 	const char *hashkey = (key) ? data : xp->name;
@@ -207,3 +212,5 @@ extern void xslt_close() {
 		objunref(xslt_has_init_parser);
 	}
 }
+
+/** @}*/

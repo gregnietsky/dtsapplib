@@ -16,6 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief TLSv1 SSLv2 SSLv3 DTLSv1 support
+  * @ingroup LIB-Sock LIB-Sock-SSL
+  * @addtogroup LIB-Sock-SSL
+  * @{
+  *
+  * This is part of the socket interface to upport encrypted sockets
+  * a ssldata refernece will be created and passed on socket initialization.
+  *
+  * @see @ref LIB-Sock*/
+
 #include <stdint.h>
 #ifdef __WIN32__
 #include <winsock2.h>
@@ -33,25 +44,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "include/dtsapp.h"
 
+/** @brief SSL configuration flags*/
 enum SSLFLAGS {
+	/** @brief TLSv1*/
 	SSL_TLSV1	= 1 << 0,
+	/** @brief SSLv2 This may not be available due to security issues*/
 	SSL_SSLV2	= 1 << 1,
+	/** @brief SSLv3*/
 	SSL_SSLV3	= 1 << 2,
+	/** @brief DTLSv1 (UDP Connections)*/
 	SSL_DTLSV1	= 1 << 3,
+	/** @brief This session is client mode*/
 	SSL_CLIENT	= 1 << 4,
+	/** @brief This session is server mode*/
 	SSL_SERVER	= 1 << 5,
+	/** @brief UDP connection is listening.*/
 	SSL_DTLSCON	= 1 << 6
 };
 
+/** @brief SSL data structure for enabling encryption on sockets*/
 struct ssldata {
+	/** @brief OpenSSL context.*/
 	SSL_CTX *ctx;
+	/** @brief OpenSSL ssl.*/
 	SSL *ssl;
+	/** @brief OpenSSL BIO.*/
 	BIO *bio;
+	/** @brief SSL flags.
+	  * @see SSLFLAGS*/
 	int flags;
+	/** @brief SSL method.*/
 	const SSL_METHOD *meth;
+	/** @brief Parent structure*/
 	struct ssldata *parent;
 };
 
+/** @brief length of cookie secret using SHA2-256 HMAC*/
 #define COOKIE_SECRET_LENGTH 32
 static unsigned char *cookie_secret = NULL;
 
@@ -89,30 +117,24 @@ static int verify_cookie(SSL *ssl, unsigned char *cookie, unsigned int cookie_le
 	return (0);
 }
 
-extern void ssl_shutdown(void *data) {
-	struct ssldata *ssl = data;
-	int err, ret;
+static int _ssl_shutdown(struct ssldata *ssl) {
+	int err, ret = 0;
 
-	if (!ssl) {
-		return;
-	}
-
-	objlock(ssl);
-	if (ssl->ssl && ((ret = SSL_shutdown(ssl->ssl)) < 1)) {
+	if ((ret = SSL_shutdown(ssl->ssl)) < 1) {
 		objunlock(ssl);
 		if (ret == 0) {
 			objlock(ssl);
-			ret = SSL_shutdown(ssl->ssl);
+				ret = SSL_shutdown(ssl->ssl);
 		} else {
 			objlock(ssl);
 		}
 		err = SSL_get_error(ssl->ssl, ret);
 		switch(err) {
 			case SSL_ERROR_WANT_READ:
-				printf("SSL_shutdown wants read\n");
+				ret = 1;
 				break;
 			case SSL_ERROR_WANT_WRITE:
-				printf("SSL_shutdown wants write\n");
+				ret = -1;
 				break;
 			case SSL_ERROR_SSL:
 				/*ignore im going away now*/
@@ -121,12 +143,57 @@ extern void ssl_shutdown(void *data) {
 			case SSL_ERROR_NONE:
 				/* nothing to see here moving on*/
 				break;
-			default
-					:
+			default:
 				printf("SSL Shutdown unknown error %i\n", err);
 				break;
 		}
 	}
+	return ret;
+}
+
+
+static int socket_select(int sock, int read) {
+	int selfd;
+	struct timeval tv;
+	fd_set act_set;
+	FD_ZERO(&act_set);
+	FD_SET(sock, &act_set);
+	tv.tv_sec = 0;
+	tv.tv_usec = 100000;
+
+	if (read == 1) {
+		selfd = select(sock + 1, &act_set, NULL, NULL, &tv);
+	} else {
+		selfd = select(sock + 1, NULL, &act_set, NULL, &tv);
+	}
+	return selfd;
+}
+
+/** @brief Shutdown the SSL connection.
+  *
+  * Extra read/write may be required if so use select
+  * on failure the port has probably gone only try 3 times.
+  * @todo Make sure this is only called when the thread has stoped selecting here may be wrong.
+  * @param data Refernece to the SSL data of socket.
+  * @param sock Socket FD to wait for data on.*/
+extern void ssl_shutdown(void *data, int sock) {
+	struct ssldata *ssl = data;
+	int ret, selfd, cnt = 0;
+
+	if (!ssl) {
+		return;
+	}
+
+	objlock(ssl);
+
+	while (ssl->ssl &&  (ret = _ssl_shutdown(ssl) && (cnt < 3))) {
+		selfd = socket_select(sock, ret);
+		if (selfd <= 0) {
+			break;
+		}
+		cnt++;
+	}
+
 	if (ssl->ssl) {
 		SSL_free(ssl->ssl);
 		ssl->ssl = NULL;
@@ -211,12 +278,23 @@ static struct ssldata *sslinit(const char *cacert, const char *cert, const char 
 	return (ssl);
 }
 
+
+/** @brief Create a SSL structure for TLSv1
+  * @param cacert Path to the CA certificate[s].
+  * @param cert Public certificate to use.
+  * @param key Private key file.
+  * @param verify OpenSSL flags.*/
 extern void *tlsv1_init(const char *cacert, const char *cert, const char *key, int verify) {
 	const SSL_METHOD *meth = TLSv1_method();
 
 	return (sslinit(cacert, cert, key, verify, meth, SSL_TLSV1));
 }
 
+/** @brief Create a SSL structure for SSLv2 (If available)
+  * @param cacert Path to the CA certificate[s].
+  * @param cert Public certificate to use.
+  * @param key Private key file.
+  * @param verify OpenSSL flags.*/
 #ifndef OPENSSL_NO_SSL2
 extern void *sslv2_init(const char *cacert, const char *cert, const char *key, int verify) {
 	const SSL_METHOD *meth = SSLv2_method();
@@ -225,6 +303,11 @@ extern void *sslv2_init(const char *cacert, const char *cert, const char *key, i
 }
 #endif
 
+/** @brief Create a SSL structure for SSLv3
+  * @param cacert Path to the CA certificate[s].
+  * @param cert Public certificate to use.
+  * @param key Private key file.
+  * @param verify OpenSSL flags.*/
 extern void *sslv3_init(const char *cacert, const char *cert, const char *key, int verify) {
 	const SSL_METHOD *meth = SSLv3_method();
 	struct ssldata *ssl;
@@ -234,6 +317,11 @@ extern void *sslv3_init(const char *cacert, const char *cert, const char *key, i
 	return (ssl);
 }
 
+/** @brief Create a SSL structure for DTLSv1
+  * @param cacert Path to the CA certificate[s].
+  * @param cert Public certificate to use.
+  * @param key Private key file.
+  * @param verify OpenSSL flags.*/
 extern void *dtlsv1_init(const char *cacert, const char *cert, const char *key, int verify) {
 	const SSL_METHOD *meth = DTLSv1_method();
 	struct ssldata *ssl;
@@ -287,30 +375,57 @@ static void sslsockstart(struct fwsocket *sock, struct ssldata *orig,int accept)
 	}
 }
 
+/** @brief Create SSL session for new connection
+  * @warning This should never be called.
+  * @param sock Reference too new incoming socket.
+  * @param orig Servers SSL session to clone.*/
 extern void tlsaccept(struct fwsocket *sock, struct ssldata *orig) {
+	setflag(sock, SOCK_FLAG_SSL);
 	if ((sock->ssl = objalloc(sizeof(*sock->ssl), free_ssldata))) {
 		sslsockstart(sock, orig, 1);
 	}
-
 }
 
+/** @}
+  * @addtogroup LIB-Sock
+  * @{*/
+
+/** @brief Read from a socket into a buffer.
+  *
+  * There are 2 functions each for reading and writing data to a socket.
+  * @par Connected (client) sockets (Including UDP [SOCK_DGRAM])
+  * Use of socketwrite and socketread is acceptable.
+  * @par UDP (SOCK_DGRAM) servers.
+  * These require use of socketread_d and socketwrite_d the exception
+  * is DTLS connections that use there own routines and either works.
+  * @param sock Socket structure to read from.
+  * @param buf Buffer to fill.
+  * @param num Size of the buffer.
+  * @param addr Addr structure to fill remote address in.
+  * @returns Number of bytes read or -1 on error 0 will indicate connection closed.*/
 extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstruct *addr) {
 	struct ssldata *ssl = sock->ssl;
 	socklen_t salen = sizeof(*addr);
 	int ret, err, syserr;
 
-	if (!ssl || !ssl->ssl) {
+	if (!ssl && !testflag(sock, SOCK_FLAG_SSL)) {
 		objlock(sock);
 		if (addr && (sock->type == SOCK_DGRAM)) {
 			ret = recvfrom(sock->sock, buf, num, 0, &addr->sa, &salen);
 		} else {
+#ifndef __WIN32
 			ret = read(sock->sock, buf, num);
+#else
+			ret = recv(sock->sock, buf, num, 0);
+#endif
 		}
 		if (ret == 0) {
 			sock->flags |= SOCK_FLAG_CLOSE;
 		}
 		objunlock(sock);
 		return (ret);
+	} else if (!ssl) {
+		return -1;
 	}
 
 	objlock(ssl);
@@ -332,10 +447,10 @@ extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstr
 			printf("Want X509\n");
 			break;
 		case SSL_ERROR_WANT_READ:
-			printf("Want Read\n");
+			printf("Read Want Read\n");
 			break;
 		case SSL_ERROR_WANT_WRITE:
-			printf("Want write\n");
+			printf("Read Want write\n");
 			break;
 		case SSL_ERROR_ZERO_RETURN:
 		case SSL_ERROR_SSL:
@@ -359,10 +474,37 @@ extern int socketread_d(struct fwsocket *sock, void *buf, int num, union sockstr
 	return (ret);
 }
 
+/** @brief Read from a socket into a buffer.
+  *
+  * There are 2 functions each for reading and writing data to a socket.
+  * @par Connected (client) sockets (Including UDP [SOCK_DGRAM])
+  * Use of socketwrite and socketread is acceptable.
+  * @par UDP (SOCK_DGRAM) servers.
+  * These require use of socketread_d and socketwrite_d the exception
+  * is DTLS connections that use there own routines and either works.
+  * @param sock Socket structure to read from.
+  * @param buf Buffer to fill.
+  * @param num Size of the buffer.
+  * @returns Number of bytes read or -1 on error 0 will indicate connection closed.*/
 extern int socketread(struct fwsocket *sock, void *buf, int num) {
 	return (socketread_d(sock, buf, num, NULL));
 }
 
+
+/** @brief Write a buffer to a socket.
+  *
+  * There are 2 functions each for reading and writing data to a socket.
+  * @par Connected (client) sockets (Including UDP [SOCK_DGRAM])
+  * Use of socketwrite and socketread is acceptable.
+  * @par UDP (SOCK_DGRAM) servers.
+  * These require use of socketread_d and socketwrite_d the exception
+  * is DTLS connections that use there own routines and either works.
+  * @todo implement send/sendto in WIN32
+  * @param sock Socket structure to send data too.
+  * @param buf Buffer to send.
+  * @param num Lengthe of the buffer.
+  * @param addr Addr structure to send the buffer too (SOCK_DGRAM) see notes.
+  * @returns Number of bytes written or -1 on error 0 will indicate some error in SSL.*/
 extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union sockstruct *addr) {
 	struct ssldata *ssl = (sock) ? sock->ssl : NULL;
 	int ret, err, syserr;
@@ -371,37 +513,55 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 		return (-1);
 	}
 
-#ifndef __WIN32__
-	if (!ssl || !ssl->ssl) {
+	if (!ssl && !testflag(sock, SOCK_FLAG_SSL)) {
 		objlock(sock);
 		if (addr && (sock->type == SOCK_DGRAM)) {
-			ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &addr->sa, sizeof(*addr));
+#ifndef __WIN32
+			if (sock->flags & SOCK_FLAG_UNIX) {
+				ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, (const struct sockaddr *)&addr->un, sizeof(addr->un));
+			} else {
+				ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &addr->sa, sizeof(*addr));
+			}
+#else
+			ret = sendto(sock->sock, buf, num, 0, &addr->sa, sizeof(*addr));
+#endif
 		} else {
+#ifndef __WIN32
 			ret = send(sock->sock, buf, num, MSG_NOSIGNAL);
+#else
+			ret = send(sock->sock, buf, num, 0);
+#endif
 		}
 		if (ret == -1) {
 			switch(errno) {
 				case EBADF:
 				case EPIPE:
+#ifndef __WIN32
 				case ENOTCONN:
 				case ENOTSOCK:
+#endif
 					sock->flags |= SOCK_FLAG_CLOSE;
 					break;
 			}
 		}
 		objunlock(sock);
 		return (ret);
+	} else if (!ssl) {
+		return -1;
 	}
-#endif
 
-	objlock(ssl);
-	if (SSL_state(ssl->ssl) != SSL_ST_OK) {
+	if (ssl && ssl->ssl) {
+		objlock(ssl);
+		if (SSL_state(ssl->ssl) != SSL_ST_OK) {
+			objunlock(ssl);
+			return (SSL_ERROR_SSL);
+		}
+		ret = SSL_write(ssl->ssl, buf, num);
+		err = SSL_get_error(ssl->ssl, ret);
 		objunlock(ssl);
-		return (SSL_ERROR_SSL);
+	} else {
+		return -1;
 	}
-	ret = SSL_write(ssl->ssl, buf, num);
-	err = SSL_get_error(ssl->ssl, ret);
-	objunlock(ssl);
 
 	if (ret == -1) {
 		setflag(sock, SOCK_FLAG_CLOSE);
@@ -411,10 +571,10 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 		case SSL_ERROR_NONE:
 			break;
 		case SSL_ERROR_WANT_READ:
-			printf("Want Read\n");
+			printf("Send Want Read\n");
 			break;
 		case SSL_ERROR_WANT_WRITE:
-			printf("Want write\n");
+			printf("Send Want write\n");
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			printf("Want X509\n");
@@ -432,8 +592,7 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 				printf("W syscall %i %i\n", syserr, ret);
 			}
 			break;
-		default
-				:
+		default:
 			printf("other\n");
 			break;
 	}
@@ -441,10 +600,28 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 	return (ret);
 }
 
+/** @brief Write a buffer to a socket.
+  *
+  * There are 2 functions each for reading and writing data to a socket.
+  * @par Connected (client) sockets (Including UDP [SOCK_DGRAM])
+  * Use of socketwrite and socketread is acceptable.
+  * @par UDP (SOCK_DGRAM) servers.
+  * These require use of socketread_d and socketwrite_d the exception
+  * is DTLS connections that use there own routines and either works.
+  * @param sock Socket structure to send data too.
+  * @param buf Buffer to send.
+  * @param num Lengthe of the buffer.
+  * @returns Number of bytes written or -1 on error 0 will indicate some error in SSL.*/
 extern int socketwrite(struct fwsocket *sock, const void *buf, int num) {
 	return (socketwrite_d(sock, buf, num, NULL));
 }
 
+/** @}
+  * @addtogroup LIB-Sock-SSL
+  * @{*/
+
+/** @brief Initialise SSL support this should be called at startup.
+  * @see FRAMEWORK_MAIN*/
 extern void sslstartup(void) {
 	SSL_library_init();
 	SSL_load_error_strings();
@@ -484,8 +661,13 @@ static void dtlssetopts(struct ssldata *ssl, struct ssldata *orig, struct fwsock
 	}
 	SSL_set_bio(ssl->ssl, ssl->bio, ssl->bio);
 	objunlock(ssl);
+	setflag(sock, SOCK_FLAG_SSL);
 }
 
+/** @brief Start up the DTLSv1 Server
+  * @warning This should not be called directly
+  * @see socketserver
+  * @param sock Reference to socket structure of DTLSv1 Server*/
 extern void dtsl_serveropts(struct fwsocket *sock) {
 	struct ssldata *ssl = sock->ssl;
 
@@ -527,6 +709,11 @@ static void dtlsaccept(struct fwsocket *sock) {
 	objunlock(ssl);
 }
 
+
+/** @brief Implementation of "listen" for DTLSv1
+  * @warning Do not call this directly.
+  * @param sock Reference to server socket.
+  * @returns New socket reference for the new connection.*/
 extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 	struct ssldata *ssl = sock->ssl;
 	struct ssldata *newssl;
@@ -534,6 +721,8 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 	union sockstruct client;
 #ifndef __WIN32__
 	int on = 1;
+#else
+/*	unsigned long on = 1;*/
 #endif
 
 	if (!(newssl = objalloc(sizeof(*newssl), free_ssldata))) {
@@ -562,6 +751,8 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 #ifdef SO_REUSEPORT
 	setsockopt(newsock->sock, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
 #endif
+#else
+/*	ioctlsocket(newsock->sock, FIONBIO, (unsigned long*)&on);*/
 #endif
 	objlock(sock);
 	bind(newsock->sock, &sock->addr.sa, sizeof(sock->addr));
@@ -569,6 +760,7 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock) {
 	connect(newsock->sock, &newsock->addr.sa, sizeof(newsock->addr));
 
 	dtlsaccept(newsock);
+	setflag(newsock, SOCK_FLAG_SSL);
 
 	return (newsock);
 }
@@ -598,7 +790,10 @@ static void dtlsconnect(struct fwsocket *sock) {
 	objunlock(ssl);
 }
 
-
+/** @brief Start SSL on a client socket
+  * @warning This should not be called directly
+  * @see clientsocket()
+  * @param sock Reference to client socket.*/
 extern void startsslclient(struct fwsocket *sock) {
 	if (!sock || !sock->ssl || (sock->ssl->flags & SSL_SERVER)) {
 		return;
@@ -614,6 +809,11 @@ extern void startsslclient(struct fwsocket *sock) {
 	}
 }
 
+/** @brief Get DTLSv1 timeout setting todefault timeout.
+  * @warning Do not call this directly.
+  * @param sock Reference to socket.
+  * @param timeleft timeval to store timeleft or set to default.
+  * @param defusec Default timeout to set.*/
 extern void dtlstimeout(struct fwsocket *sock, struct timeval *timeleft, int defusec) {
 	if (!sock || !sock->ssl || !sock->ssl->ssl) {
 		return;
@@ -627,6 +827,8 @@ extern void dtlstimeout(struct fwsocket *sock, struct timeval *timeleft, int def
 	objunlock(sock->ssl);
 }
 
+/** @brief Handle DTLSv1 timeout.
+  * @param sock Reference to socket.*/
 extern void dtlshandltimeout(struct fwsocket *sock) {
 	if (!sock->ssl) {
 		return;
@@ -636,3 +838,5 @@ extern void dtlshandltimeout(struct fwsocket *sock) {
 	DTLSv1_handle_timeout(sock->ssl->ssl);
 	objunlock(sock->ssl);
 }
+
+/** @}*/

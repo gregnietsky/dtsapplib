@@ -16,6 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief File utilities to test files (fstat)
+  * @addtogroup LIB-FILE
+  * @{*/
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -74,3 +79,5 @@ extern int mk_dir(const char *dir, mode_t mode, uid_t user, gid_t group) {
 	}
 	return -1;
 }
+
+/** @}*/

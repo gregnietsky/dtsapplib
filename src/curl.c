@@ -1,3 +1,8 @@
+/** @file
+  * @brief CURL Interface.
+  * @addtogroup LIB-CURL
+  * @{*/
+
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -412,3 +417,4 @@ extern struct xml_doc *curl_buf2xml(struct curlbuf *cbuf) {
 	return xmldoc;
 }
 
+/** @}*/

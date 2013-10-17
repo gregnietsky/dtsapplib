@@ -16,6 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief INI style config file interface.
+  * @addtogroup LIB-INI
+  * @{*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -35,7 +40,7 @@ struct config_file {
 
 static struct bucket_list *configfiles = NULL;
 
-static int hash_files(const void *data, int key) {
+static int32_t hash_files(const void *data, int key) {
 	int ret;
 	const struct config_file *file = data;
 	const char *hashkey = (key) ? data : file->filename;
@@ -45,7 +50,7 @@ static int hash_files(const void *data, int key) {
 	return(ret);
 }
 
-static int hash_cats(const void *data, int key) {
+static int32_t hash_cats(const void *data, int key) {
 	int ret;
 	const struct config_category *cat = data;
 	const char *hashkey = (key) ? data : cat->name;
@@ -357,3 +362,5 @@ extern struct config_entry *get_config_entry(struct bucket_list *categories, con
 
 	return (entry);
 }
+
+/** @}*/

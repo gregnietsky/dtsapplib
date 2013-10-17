@@ -1,0 +1,96 @@
+/*!
+\page blists
+\section Introduction
+
+The only method of creating the concept of a list is via an array these are not ideal and have the folowing downsides.
+\li The size of the array needs to be known ahead of time or it needs to be big enough and can be resized at a processing / memmory expense.
+\li Inserting a value at a position involves resizing as above then moving all of the existing items over one at a time.
+\li Removing elements from an array is either done in reverse to inserting or the item is NULL'd and left.
+\li Requires locking the whole array in multithreaded applications not only a record/records.
+
+Arrays have the following upsides
+\li Elements can be accessed randomly if there position is known this is not so simple as the index is linear and can change on insertion/deletion.
+\li As the elements are adjacent in memory accessing them sequntially is faster than non seqential access.
+
+The concept of the linked list was introduced to circumvent these downsides in its simplest form a structure will have a pointer
+of its data type called next initially this is null to add a element to the list you set the last element in the lists next pointer to
+the element adding while its next element is set to NULL
+
+\verbatim
+struct test {
+	const char *name;
+	struct test *next;
+};
+
+
+struct test a, b, c, *i;
+
+a.name = "a";
+a.next = NULL;
+
+b.name = "b";
+b.next = NULL;
+
+c.name = "c";
+c.next = NULL;
+
+/*lets link em*/
+
+a.next = &b;
+b.next = &c;
+
+for(i = &a; i; i=i->next) {
+	.....
+}
+
+\endverbatim
+
+This shows the basic linked list and is effectivly equivilent as to interating through an array except for the loss of speed not been adjacent.
+
+Double linked lists will have a prev pointer too that will allow traversal in any direction.
+
+Looking at structure blist_obj you can see the next/prev pointers in addition to a hash and data pointer that points to the data so any item can be linked without the item 
+itself requireing next/prev pointers this is the storage of all bucket lists.
+
+The reason they are bucket lists is that they have elements of both arrays and linked lists the  bucket list is infact a array of linked lists see the bucket_list structure.
+
+The list is a array of 2^bucketbits these are the buckets so for 8192 elements using 6 bits will create 64 buckets if filled equally there will be 128 elements in each. this 
+will allow better access to the chunk you want access too and allows for quicker more efficent traversal than traversing all 8192 elements.
+
+Allocating the elements to a bucket is where the hash comes in each element will via some unique immutable "key" be hashed see \ref jenhash() this hash will be masked 
+with the bucket bits to determine the bucket to be placed in they are then inserted basesd on there hash, this allows the algorythim to search forward or backward theortically
+only ever having to traverse 64 elements of 8192.
+
+Using this hybrid approach gives us a good compromise and benifits of either method.
+
+The big disadvantage is that the data needs to have some immutable element to be able to search with and does not afford the same random access that arrays do but far 
+better than standard linked lists. In both these cases with most data having some unique key and machines been faster with faster memory they acceptable.
+
+\section usage Usage of hashed bucket lists
+
+Hashed bucket lists are easy to use they are created with a call to create_bucketlist() you will need a hash function to generate the hash if you want to use
+search by key function you need to accept both the data and the key and return the hash.
+
+\verbatim
+int32_t hash(const void *data, int key) {
+	int ret = 0;
+
+	/*cast the data to the correct structure*/
+	struct form_item *fi = data;
+	/*Return the data as the key if we searching key=1 or the name otherwise*/
+	const char *hashkey = (key) ? (const char*)data : fi->name;
+
+	ret = jenhash(hashkey, strlen(hashkey), 0);
+
+	return(ret);
+}
+
+\endverbatim
+
+Thats that folks use addtobucket() to add a item to the list, remove_bucket_item() to remove reference and bucket_list_cnt() to get number of elements in the list.
+
+Searching the list can be done via iteration or by key using bucketlist_callback() and bucket_list_find_key() respectivly.
+
+Too implement your own interator use init_bucket_loop() next_bucket_loop() and remove_bucket_loop().
+
+*/

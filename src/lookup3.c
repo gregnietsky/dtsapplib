@@ -1,4 +1,5 @@
-/*
+/** @addtogroup LIB-Hash
+@verbatim
 -------------------------------------------------------------------------------
 lookup3.c, by Bob Jenkins, May 2006, Public Domain.
 
@@ -32,9 +33,14 @@ then mix those integers.  This is fast (you can do a lot more thorough
 mixing with 12*3 instructions on 3 integers than you can with 3 instructions
 on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 -------------------------------------------------------------------------------
+@endverbatim
+  * @{*/
 
-#define SELF_TEST 1
+/** @file
+  * @brief by Bob Jenkins, May 2006, Public Domain.
 */
+
+/*#define SELF_TEST 1*/
 
 #include <stdio.h>      /* defines printf for tests */
 #include <time.h>       /* defines time_t for timings in the test */
@@ -68,7 +74,8 @@ on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 #define hashmask(n) (hashsize(n)-1)
 #define rot(x,k) (((x)<<(k)) | ((x)>>(32-(k))))
 
-/*
+  
+/** @brief mix 3 32-bit values reversibly@verbatim
 -------------------------------------------------------------------------------
 mix -- mix 3 32-bit values reversibly.
 
@@ -111,7 +118,7 @@ seem to cost as much as shifts on every machine I could lay my hands
 on, and rotates are much kinder to the top and bottom bits, so I used
 rotates.
 -------------------------------------------------------------------------------
-*/
+@endverbatim*/
 #define mix(a,b,c) \
 { \
   a -= c;  a ^= rot(c, 4);  c += b; \
@@ -122,7 +129,7 @@ rotates.
   c -= b;  c ^= rot(b, 4);  b += a; \
 }
 
-/*
+/** @brief final mixing of 3 32-bit values (a,b,c) into c@verbatim
 -------------------------------------------------------------------------------
 final -- final mixing of 3 32-bit values (a,b,c) into c
 
@@ -146,6 +153,7 @@ and these came close:
  10  8 15 26 3 22 24
  11  8 15 26 3 22 24
 -------------------------------------------------------------------------------
+@endverbatim
 */
 #define final(a,b,c) \
 { \
@@ -158,7 +166,7 @@ and these came close:
   c ^= b; c -= rot(b,24); \
 }
 
-/*
+/** @brief hash a variable-length key into a 32-bit value (Big Endian)@verbatim
 --------------------------------------------------------------------
  This works on all machines.  To be useful, it requires
  -- that the key be an array of uint32_t's, and
@@ -170,7 +178,7 @@ and these came close:
  bytes.  hashlittle() is more complicated than hashword() only because
  hashlittle() has to dance around fitting the key bytes into registers.
 --------------------------------------------------------------------
-*/
+@endverbatim*/
 uint32_t hashword(
 	const uint32_t *k,                   /* the key, an array of uint32_t values */
 	size_t          length,               /* the length of the key, in uint32_ts */
@@ -210,14 +218,14 @@ uint32_t hashword(
 }
 
 
-/*
+/** @brief same as hashword(), but take two seeds and return two 32-bit values@verbatim
 --------------------------------------------------------------------
 hashword2() -- same as hashword(), but take two seeds and return two
 32-bit values.  pc and pb must both be nonnull, and *pc and *pb must
 both be initialized with seeds.  If you pass in (*pb)==0, the output
 (*pc) will be the same as the return value from hashword().
 --------------------------------------------------------------------
-*/
+@endverbatim*/
 void hashword2 (
 	const uint32_t *k,                   /* the key, an array of uint32_t values */
 	size_t          length,               /* the length of the key, in uint32_ts */
@@ -260,7 +268,7 @@ void hashword2 (
 }
 
 
-/*
+/** @brief hash a variable-length key into a 32-bit value (Little Endian)@verbatim
 -------------------------------------------------------------------------------
 hashlittle() -- hash a variable-length key into a 32-bit value
   k       : the key (the unaligned variable-length array of bytes)
@@ -285,7 +293,7 @@ code any way you wish, private, educational, or commercial.  It's free.
 Use for hash table lookup, or anything where one collision in 2^^32 is
 acceptable.  Do NOT use for cryptographic purposes.
 -------------------------------------------------------------------------------
-*/
+@endverbatim*/
 
 uint32_t hashlittle( const void *key, size_t length, uint32_t initval) {
 	uint32_t a,b,c;                                          /* internal state */
@@ -553,7 +561,7 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval) {
 }
 
 
-/*
+/** @brief return 2 32-bit hash values.@verbatim
  * hashlittle2: return 2 32-bit hash values
  *
  * This is identical to hashlittle(), except it returns two 32-bit hash
@@ -562,7 +570,7 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval) {
  * happy with the first, or if you want a probably-unique 64-bit ID for
  * the key.  *pc is better mixed than *pb, so use *pc first.  If you want
  * a 64-bit value do something like "*pc + (((uint64_t)*pb)<<32)".
- */
+@endverbatim*/
 void hashlittle2(
 	const void *key,       /* the key to hash */
 	size_t      length,    /* length of the key */
@@ -845,12 +853,12 @@ void hashlittle2(
 
 
 
-/*
+/** @brief This is the same as hashword() on big-endian machines.@verbatim
  * hashbig():
  * This is the same as hashword() on big-endian machines.  It is different
  * from hashlittle() on all machines.  hashbig() takes advantage of
  * big-endian byte ordering.
- */
+@endverbatim*/
 uint32_t hashbig( const void *key, size_t length, uint32_t initval) {
 	uint32_t a,b,c;
 	union {
@@ -1052,11 +1060,12 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval) {
 	return (c);
 }
 
+/** @}*/
 
 #ifdef SELF_TEST
 
 /* used for timings */
-void driver1() {
+static void driver1() {
 	uint8_t buf[256];
 	uint32_t i;
 	uint32_t h=0;
@@ -1080,7 +1089,7 @@ void driver1() {
 #define HASHLEN   1
 #define MAXPAIR 60
 #define MAXLEN  70
-void driver2() {
+static void driver2() {
 	uint8_t qa[MAXLEN+1], qb[MAXLEN+2], *a = &qa[0], *b = &qb[1];
 	uint32_t c[HASHSTATE], d[HASHSTATE], i=0, j=0, k, l, m=0, z;
 	uint32_t e[HASHSTATE],f[HASHSTATE],g[HASHSTATE],h[HASHSTATE];
@@ -1152,7 +1161,7 @@ done:
 }
 
 /* Check for reading beyond the end of the buffer and alignment problems */
-void driver3() {
+static void driver3() {
 	uint8_t buf[MAXLEN+20], *b;
 	uint32_t len;
 	uint8_t q[] = "This is the time for all good men to come to the aid of their country...";
@@ -1243,7 +1252,7 @@ void driver3() {
 }
 
 /* check for problems with nulls */
-void driver4() {
+static void driver4() {
 	uint8_t buf[1];
 	uint32_t h,i,state[HASHSTATE];
 
@@ -1259,7 +1268,7 @@ void driver4() {
 	}
 }
 
-void driver5() {
+static void driver5() {
 	uint32_t b,c;
 	b=0, c=0, hashlittle2("", 0, &c, &b);
 	printf("hash is %.8lx %.8lx\n", c, b);   /* deadbeef deadbeef */
@@ -1280,7 +1289,7 @@ void driver5() {
 }
 
 
-int main() {
+static int main() {
 	driver1();   /* test that the key is hashed: used for timings */
 	driver2();   /* test that whole key is hashed thoroughly */
 	driver3();   /* test that nothing but the key is hashed */

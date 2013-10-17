@@ -16,6 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @addtogroup LIB-Z
+  * @{
+  * @file
+  * @brief Simplified implementation of zlib functions.*/
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,9 +38,12 @@ static void zobj_free(void *data) {
 	}
 }
 
-/*
- * return zobj containing the compressed data
- */
+/** @brief Allocate a buffer and return it with compressed data
+  *
+  * @param buff Buffer to compress.
+  * @param len Length of the buffer.
+  * @param level Compression level.
+  * @return reference to zobj data structure containing compressed data or NULL on error.*/
 extern struct zobj *zcompress(uint8_t *buff, uint16_t len, uint8_t level) {
 	struct zobj *ret;
 
@@ -54,9 +62,12 @@ extern struct zobj *zcompress(uint8_t *buff, uint16_t len, uint8_t level) {
 	return (ret);
 }
 
-/*
- * uncompress data to obuff must be buff->olen big
- */
+/** @brief Uncompress zobj buffer to buffer.
+  *
+  * @param buff Compressed buffer to uncompress.
+  * @param obuff Buffer to uncompress too.
+  * @warning obuff needs to be large enough to contain the data.
+  * @todo Implement this without needing original buff len using inflate*/
 extern void zuncompress(struct zobj *buff, uint8_t *obuff) {
 	uLongf olen = buff->olen;
 
@@ -67,6 +78,10 @@ extern void zuncompress(struct zobj *buff, uint8_t *obuff) {
 	uncompress(obuff, &olen, buff->buff, buff->zlen);
 }
 
+/** @brief check a buffer if it contains gzip magic
+  * @param buf buffer to check.
+  * @param buf_size buffer len it must be more than 4.
+  * @return non zero value if the buffer contains gzip data*/
 extern int is_gzip(uint8_t *buf, int buf_size) {
 	if (buf_size < 4) {
 		return 0;
@@ -77,6 +92,12 @@ extern int is_gzip(uint8_t *buf, int buf_size) {
 	return 1;
 }
 
+/** @brief Ungzip a buffer.
+  *
+  * @param buf_in Buffer to inflate.
+  * @param buf_size Size of buf_in buffer.
+  * @param len Pointer that will contain the uncompressed data length.
+  * @return Uncompressed data in a buffer or NULL on error.*/
 extern uint8_t *gzinflatebuf(uint8_t *buf_in, int buf_size, uint32_t *len) {
 	z_stream zdat;
 	uint8_t *buf = NULL, *tmp;
@@ -120,3 +141,5 @@ extern uint8_t *gzinflatebuf(uint8_t *buf_in, int buf_size, uint32_t *len) {
 
 	return buf;
 }
+
+/** @}*/

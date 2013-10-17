@@ -16,6 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @file
+  * @brief linux Netfilter Connection Tracking
+  * @ingroup LIB-NF-CT
+  * @addtogroup LIB-NF-CT
+  * @{*/
+
 #include "config.h"
 
 #include <stdint.h>
@@ -216,8 +222,8 @@ extern void nf_ctrack_dump(void) {
 	}
 }
 
-static void *nf_ctrack_trace_th(void **data) {
-	struct nfct_struct *nfct = *data;
+static void *nf_ctrack_trace_th(void *data) {
+	struct nfct_struct *nfct = data;
 	fd_set  rd_set, act_set;
 	struct timeval tv;
 	int selfd;
@@ -230,7 +236,7 @@ static void *nf_ctrack_trace_th(void **data) {
 	fcntl(nfct->fd, F_SETFD, O_NONBLOCK);
 	ioctl(nfct->fd, FIONBIO, &opt);
 
-	while (!testflag(nfct, NFCTRACK_DONE) && framework_threadok(data)) {
+	while (!testflag(nfct, NFCTRACK_DONE) && framework_threadok()) {
 		act_set = rd_set;
 		tv.tv_sec = 0;
 		tv.tv_usec = 20000;
@@ -253,15 +259,18 @@ static void *nf_ctrack_trace_th(void **data) {
 
 struct nfct_struct *nf_ctrack_trace(void) {
 	struct nfct_struct *nfct;
+	void *thr;
 
 	if (!(nfct = nf_ctrack_alloc(CONNTRACK, NFCT_ALL_CT_GROUPS))) {
 		return (NULL);
 	}
 
-	if (!framework_mkthread(nf_ctrack_trace_th, NULL, NULL, nfct)) {
+	if (!(thr = framework_mkthread(nf_ctrack_trace_th, NULL, NULL, nfct, THREAD_OPTION_RETURN))) {
 		objunref(nfct);
-		return (NULL);
+		return NULL;
 	}
+	objunref(thr);
+
 	return (nfct);
 }
 
@@ -278,3 +287,5 @@ extern void nf_ctrack_close(void) {
 	}
 	ctrack = NULL;
 }
+
+/** @}*/

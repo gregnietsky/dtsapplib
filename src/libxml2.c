@@ -1,3 +1,8 @@
+/** @file
+  * @brief XML Interface.
+  * @addtogroup LIB-XML
+  * @{*/
+
 #include <string.h>
 #include <stdint.h>
 #ifdef __WIN32__
@@ -76,7 +81,7 @@ static void free_xmldata(void *data) {
 	xml_close();
 }
 
-int node_hash(const void *data, int key) {
+static int32_t node_hash(const void *data, int key) {
 	int ret;
 	const struct xml_node *ni = data;
 	const char *hashkey = (key) ? data : ni->key;
@@ -89,7 +94,7 @@ int node_hash(const void *data, int key) {
 	return(ret);
 }
 
-int attr_hash(const void *data, int key) {
+static int32_t attr_hash(const void *data, int key) {
 	int ret;
 	const struct xml_attr *ai = data;
 	const char *hashkey = (key) ? data : ai->name;
@@ -687,3 +692,5 @@ extern void xml_modify2(struct xml_search *xpsearch, struct xml_node *xnode, con
 		}
 	}
 }
+
+/** @}*/
