@@ -76,7 +76,8 @@ static void framework_sig_handler(int sig, siginfo_t *si, void *unused) {
   * @param email Email address.
   * @param www HTTP URL.*/
 extern void printgnu(const char *pname, int year, const char *dev, const char *email, const char *www) {
-	printf("%s\n\n"
+	printf("\n"
+	       "    %s\n\n"
 	       "    Copyright (C) %i %s <%s>\n\n"
 	       "        %s\n\n"
 	       "    This program comes with ABSOLUTELY NO WARRANTY\n"

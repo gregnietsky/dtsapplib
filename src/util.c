@@ -20,11 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
 
-/** @addtogroup LIB-Util
-  * @{
-  * @file
-  * @brief Utilities commonly used
-  *
+/** @addtogroup LIB-Util-Hash
   * 
 @verbatim
  * Acknowledgments [MD5 HMAC http://www.ietf.org/rfc/rfc2104.txt]
@@ -36,7 +32,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *      Oorschot have provided useful comments and suggestions during the
  *      investigation of the HMAC construction.
  *
-@endverbatim
+@endverbatim*/
+
+/** @file
+  * @ingroup LIB-Util LIB-Util-Hash
+  * @brief Utilities commonly used
+  *
+
+  * @addtogroup LIB-Util
+  * @{
 */
 
 #ifdef __WIN32__
@@ -78,6 +82,11 @@ extern void seedrand(void) {
 extern int genrand(void *buf, int len) {
 	return (RAND_bytes(buf, len));
 }
+
+/** @}
+  * @addtogroup LIB-Util-Hash
+  * @{ */
+
 
 /** @brief Calculate the SHA2-512 hash accross 2 data chunks.
   *
@@ -303,6 +312,11 @@ extern void sha256hmac(unsigned char *buff, const void *data, unsigned long len,
 extern void sha512hmac(unsigned char *buff, const void *data, unsigned long len, const void *key, unsigned long klen) {
 	_hmac(buff, data, len, key, klen, sha512sum2, 64);
 }
+
+/** @}
+  *
+  * @addtogroup LIB-Util
+  * @{ */
 
 /** @brief Check if a string is zero length
   *

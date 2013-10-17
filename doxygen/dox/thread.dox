@@ -1,0 +1,37 @@
+/*!
+\page thread
+\section intro Introduction
+
+Most modern CPU's come with multiple cores the ability to thread a progam will allow taking advantage of
+these cores more fully. In a single core system using threads will allow processes to run in the background
+possibly waiting for input and "sleeping" this can happen while other processes continue.
+
+This library makes use of threads on all sockets a socket is created and processed in its own thread.
+
+The easiest way to see a thread is as a program inside a program a thread starts in a function with a reference to data supplied at thread initilization. what function is 
+called and what data is provided is up to the programer.
+
+On exiting the thread a cleanup function can be executed if required.
+
+Its also possible on some systems [not windows] to handle signals that are delivered to the thread from the systems signal handler where it arrives in the thread.
+SIGUSR1 SIGUSR2 SIGHUP SIGALRM SIGINT and SIGTERM will be processed by thread signal handlers before been passed to the application handler.
+
+A signal can be sent to a thread using pthread_kill external events are handled at application level.
+
+\section create Creating A Thread
+
+A thread is created by calling framework_mkthread() passing the thread function, cleanup function, signal handler, refernece to data to pass to thread and options 
+@ref thread_option_flags.
+
+By default NULL is returned and the thread is started not cancelable and detached its important to check framework_threadok() periodically ideally as a loop control
+to check if the thread should exit shutdown will be blocked till all threads return unless they cacelable.
+
+If the application is running under framework_init() or FRAMEWORK_MAIN() then on return of the "main" function stopthreads() is run . stopthreads() flags the manager thread 
+for shutdown and terminate all runnig threads passing a non zerop value for the join paramater will cause the process to join and block on the management thead.
+
+\see threadfunc
+\see threadcleanup
+\see threadsighandler
+\see thread_option_flags
+
+*/

@@ -517,7 +517,11 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 		objlock(sock);
 		if (addr && (sock->type == SOCK_DGRAM)) {
 #ifndef __WIN32
-			ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &addr->sa, sizeof(*addr));
+			if (sock->flags & SOCK_FLAG_UNIX) {
+				ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, (const struct sockaddr *)&addr->un, sizeof(addr->un));
+			} else {
+				ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &addr->sa, sizeof(*addr));
+			}
 #else
 			ret = sendto(sock->sock, buf, num, 0, &addr->sa, sizeof(*addr));
 #endif

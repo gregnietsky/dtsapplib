@@ -1,3 +1,10 @@
+#ifdef __WIN32
+#include <winsock2.h>
+#include <stdint.h>
+#else
+#include <fcntl.h>
+#endif
+
 #include <string.h>
 #include <stdio.h>
 
@@ -121,6 +128,35 @@ void socktest(const char *ipaddr, int tcp, int ssl) {
 	close_socket(serv);
 }
 
+/** @brief Same test as for socktest() but for unix domain sockets.
+  *
+  * Unix domain sockets are "file" sockets and function in similar way to network sockets
+  * there scope is local to the machine so are often used for inter process control and networkless
+  * services. Instead of a IP address a file name is specified that is created by the server.
+  * @param socket File name to create server on and connect too.
+  * @param protocol Theis is either SOCK_STREAM or SOCK_DGRAM and are similar to TCP/UDP respectivly.*/
+#ifndef __WIN32
+void unixsocktest(const char *socket, int protocol) {
+	char *buff = "client 1";
+	char *buff2 = "client 2";
+	struct fwsocket *client, *client2, *server;
+
+	server = unixsocket_server(socket, protocol, S_IXUSR | S_IWGRP | S_IRGRP | S_IXGRP | S_IWOTH | S_IROTH | S_IXOTH, server_func, NULL);
+	sleep(1); /*wait for socket*/
+	client = unixsocket_client(socket, protocol, client_func, NULL);
+	client2 = unixsocket_client(socket, protocol, client_func, NULL);
+
+	socketwrite_d(client, buff, strlen(buff)+1, NULL);
+	socketwrite_d(client2, buff2, strlen(buff2)+1, NULL);
+
+	sleep(5);
+
+	close_socket(client);
+	close_socket(client2);
+	close_socket(server);
+}
+#endif
+
 /** @brief Initialise the application under the library replacing main()
   *
   * @see FRAMEWORK_MAIN()
@@ -129,11 +165,17 @@ void socktest(const char *ipaddr, int tcp, int ssl) {
   */
 /*![main]*/
 FRAMEWORK_MAIN("Socket Client/Server Echo (TCP/TLS/UDP/DTLS)", "Gregory Hinton Nietsky", "gregory@distrotech.co.za",
-        "http://www.distrotech.co.za", 2013, "/var/run/sockettest", 0, NULL) {
+        "http://www.distrotech.co.za", 2013, "/var/run/sockettest", FRAMEWORK_FLAG_DAEMONLOCK, NULL) {
+
 	if (argc < 3) {
+#ifndef __WIN32
+		printf("Requires arguments %s [tcp|tls|udp|dtls|unix_d|unix_s] [ipaddr|socket]\n", argv[0]);
+#else
 		printf("Requires arguments %s [tcp|tls|udp|dtls] ipaddr\n", argv[0]);
+#endif
 		return (-1);
 	}
+
 	daemonize();
 /*![main]*/
 
@@ -145,6 +187,12 @@ FRAMEWORK_MAIN("Socket Client/Server Echo (TCP/TLS/UDP/DTLS)", "Gregory Hinton N
 		socktest(argv[2], 1, 0);
 	} else if (!strcmp(argv[1], "tls")) {
 		socktest(argv[2], 1, 1);
+#ifndef __WIN32
+	} else if (!strcmp(argv[1], "unix_d")) {
+		unixsocktest(argv[2], SOCK_DGRAM);
+	} else if (!strcmp(argv[1], "unix_s")) {
+		unixsocktest(argv[2], SOCK_STREAM);
+#endif
 	} else {
 		printf("Invalid Option\n");
 	}

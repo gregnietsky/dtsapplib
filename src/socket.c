@@ -137,7 +137,10 @@ extern struct fwsocket *make_socket(int family, int type, int proto, void *ssl) 
 	return (si);
 }
 
-static struct fwsocket *accept_socket(struct fwsocket *sock) {
+/** @brief Create and return a socket structure from accept()
+  * @param sock Reference to the socket its accepted on.
+  * @return Reference to new socket.*/
+extern struct fwsocket *accept_socket(struct fwsocket *sock) {
 	struct fwsocket *si;
 	socklen_t salen = sizeof(si->addr);
 #ifdef __WIN32

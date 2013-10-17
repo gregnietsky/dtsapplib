@@ -65,6 +65,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ws2ipdef.h>
 #else
 #include <arpa/inet.h>
+#include <linux/un.h>
 #endif
 
 #ifdef __cplusplus
@@ -78,6 +79,10 @@ extern "C" {
 union sockstruct {
 	/** @brief Base socket addr structure.*/
 	struct sockaddr sa;
+#ifndef __WIN32
+	/** @brief Unix sockets.*/
+	struct sockaddr_un un;
+#endif
 	/** @brief IPv4 socket addr structure.*/
 	struct sockaddr_in sa4;
 	/** @brief IPv6 socket addr structure.*/
@@ -99,7 +104,9 @@ enum sock_flags {
 	/** @brief The socket is going away stop processing in its thread.*/
 	SOCK_FLAG_CLOSE		= 1 << 1,
 	/** @brief SSL has been requested on this socket dont allow clear read/send.*/
-	SOCK_FLAG_SSL		= 1 << 2
+	SOCK_FLAG_SSL		= 1 << 2,
+	/** @brief UNIX Domain Socket*/
+	SOCK_FLAG_UNIX		= 1 << 3
 };
 
 /** @brief Options supplied to framework_mkthread all defaults are unset
@@ -314,7 +321,8 @@ void daemonize();
 int lockpidfile(const char *runfile);
 extern struct thread_pvt *framework_mkthread(threadfunc, threadcleanup, threadsighandler, void *data, int flags);
 /* UNIX Socket*/
-extern void framework_unixsocket(char *sock, int protocol, int mask, threadfunc connectfunc, threadcleanup cleanup);
+extern struct fwsocket *unixsocket_server(const char *sock, int protocol, int mask, socketrecv read, void *data);
+extern struct fwsocket *unixsocket_client(const char *sock, int protocol, socketrecv read, void *data);
 /* Test if the thread is running when passed data from thread */
 extern int framework_threadok(void);
 extern int startthreads(void);
@@ -398,6 +406,7 @@ extern char *b64enc_buf(const char *message, uint32_t len, int nonl);
 
 /*IP Utilities*/
 extern struct fwsocket *make_socket(int family, int type, int proto, void *ssl);
+extern struct fwsocket *accept_socket(struct fwsocket *sock);
 extern struct fwsocket *sockconnect(int family, int stype, int proto, const char *ipaddr, const char *port, void *ssl);
 extern struct fwsocket *udpconnect(const char *ipaddr, const char *port, void *ssl);
 extern struct fwsocket *tcpconnect(const char *ipaddr, const char *port, void *ssl);

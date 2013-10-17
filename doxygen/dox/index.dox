@@ -1,15 +1,16 @@
 /*!
 \page main Application Startup
-\page refobj Referenced Locakable Objects
+\page refobj Referenced Lockable Objects
 \page blists Hashed Bucket Lists
 \page thread Thread Interface
+\page sockets Socket Interface
 \page sock_ex Socket Example (Echo Server/Client)
 
 \mainpage Distrotech Application Library Manual
 \section intro Introduction
 This library has grown over time to include various interfaces as i have required them or have experimented with them and added them.
 
-The core functionality are the referenced locakable data structures that i reimplemented for my own experimentation to understand how and why
+The core functionality are the referenced lockable data structures that i reimplemented for my own experimentation to understand how and why
 they were used in the asterisk project.
 
 There is now a partner to this lib to support GUI applications using the wxWidgets library.
@@ -20,7 +21,7 @@ Please see the following links before diving into the modules.\n\n
 \ref refobj\n
 \ref blists\n
 \ref thread\n
-\ref sock_ex\n
+\ref sockets\n
 \ref todo\n
 
 \section licinfo Copyright information.

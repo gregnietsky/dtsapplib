@@ -1,0 +1,66 @@
+/*!
+\page sockets
+\section intro Introduction
+
+The socket interface allows creating a thread per socket that passes output to a callback when available.
+
+TCP/TLSv1/SSLv3/UDP are supported on linux and windows, additionaly SSLv2 is supported depending on the openssl implementation.
+DTLSv1 is supported on linux only.
+
+\par Steps to creating a socket
+\li Create a SSL session if required use one of tlsv1_init() sslv2_init() sslv3_init() dtlsv1_init().
+\li Create a socket either as a server [bind] or client [connect] choices are tcpbind() tcpconnect() udpbind() udpconnect()
+\li Start up the client and or server threads using socketserver() and socketclient()
+\li When done call close_sock() on the socket.
+
+
+\section ssl SSL Support
+
+Internally this is supplied from openssl various other openssl functions are used in this library ie base64 encoding.
+you will require a CA certificate[s] and a signed client certificate and key supply the paths to the initilization routines.
+The verify flag can be used to pass openssl verification flags.
+
+\todo passphrase support
+
+
+\section sockcreate Socket Creation
+
+To create a socket pass the socket creation function the ipaddr/hostname either ipv4 or ipv6 the port and the optional ssl 
+session created above.
+
+the result from this function will be the socket used in all other interactions.
+
+\section sockstart Starting A Socket
+
+A socket is started when the thread for the socket starts with socketclient or socketserver the latter creates a bucketlist for children and enables
+some extra options for DTLSv1.
+
+They both requre the socket structure created above a callback routine called when data is available and a reference to data that is passed back in the callback.
+For thread management a thread cleanup function can be supplied that is called on thread closure this will allow cleaning up the data reference will be passed to this 
+function as well.
+
+In addition there is a optional callback for servers that will be called when a connection is accepted to allow for any handling needed on the server.
+
+@see socketrecv
+@see threadcleanup
+
+\section sockio Reading/Writeing To Sockets
+
+There are 2 functions each for reading and writing to sockets socketread_d() and socketwrite_d() are required for stateless datagram sockets (UDP), they
+differ from socketread() and socketwrite() in that they use a additional addr paramater containing the remote address. passing NULL for this value
+is equivilent too socketread() / socketwrite().
+
+
+\section unix Unix Domain Sockets
+
+These are supported for SOCK_DGRAM and SOCK_STREAM and are capable of multiple connections.
+
+unixsock_server() and unixsock_client() return sockets (fwsock) and use of socketread_d() and socketwrite_d().
+
+SOCK_DGRAM requires creating a tempoary socket file for use as a endpoint to support multiple connections.
+
+\section example Example Code
+
+@ref sock_ex contains a example of socket code implementing a a echo server with 2 clients.
+
+*/

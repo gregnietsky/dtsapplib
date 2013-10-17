@@ -8,39 +8,47 @@
 \defgroup LIB-OBJ Referenced Lockable Objects
 \ingroup LIB
 \brief Utilities for managing referenced lockable objects.
-\see @ref refobj
+\see \ref refobj
 
 \defgroup LIB-OBJ-Bucket Hashed bucket linked lists of referenced objects
 \brief Store references in and retrive from linked lists based on a hash.
-\see @ref blists
+\see \ref blists
 \see \ref LIB-Hash 
 \ingroup LIB-OBJ
 
 \defgroup LIB-Thread Posix thread interface
 \ingroup LIB
+\see \ref thread
 \brief Functions for starting and managing threads.
 
 \defgroup LIB-Sock Network socket interface
 \ingroup LIB
+\see \ref sockets
+\see \ref sock_ex
 \brief Allocate and initialise a socket for use as a client or server.
 
 \defgroup LIB-Sock-SSL SSL socket support
 \ingroup LIB-Sock
+\see LIB-Sock
 \brief TLSv1 SSLv2 SSLv3 DTLSv1 support
 
 The thread interface consists of a management thread managing
 a hashed bucket list of threads running optional clean up when done.
 
-\defgroup LIB-Usock Unix socket thread
-\ingroup LIB
-\brief Attach a thread to a unix socket start a new thread on connect.
+\defgroup LIB-Sock-Unix Unix domain sockets
+\ingroup LIB-Sock
+\brief Support for unixdomain sockets using sockets interface
 
 A thread is started on the sockect and will start a new client thread
-on each connection with the socket as the data
+on each connection with the socket and data reference.
 
 \defgroup LIB-Util Micelaneous utilities.
 \ingroup LIB
 \brief Utilities commonly used
+
+\defgroup LIB-Util-Hash Hashing and digest functions
+\ingroup LIB-Util
+\brief MD5/SHA1/SHA2(256/512) Hashing checking and HMAC Functions
 
 \defgroup LIB-Z Zlib Interface
 \ingroup LIB
