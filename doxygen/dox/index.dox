@@ -15,6 +15,10 @@ they were used in the asterisk project.
 
 There is now a partner to this lib to support GUI applications using the wxWidgets library.
 
+\htmlonly
+<A HREF=dtsapplib_man.pdf>PDF Version of documentation</A>
+\endhtmlonly
+
 \section links Further information
 Please see the following links before diving into the modules.\n\n
 \ref main\n
