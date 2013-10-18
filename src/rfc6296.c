@@ -29,16 +29,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "include/dtsapp.h"
 
+/** @brief RFC6296 Nat map.*/
 struct natmap {
+	/** @brief The greater of internal or external subnet mask*/
 	uint16_t mask;
+	/** @brief Outbound adjustment*/
 	uint16_t adjo;
+	/** @brief Inbound adjustment*/
 	uint16_t adji;
+	/** @brief Internal prefix*/
 	uint8_t ipre[16];
+	/** @brief External prefix*/
 	uint8_t epre[16];
-	uint32_t hash;
 };
 
-struct bucket_list *nptv6tbl = NULL;
+static struct bucket_list *nptv6tbl = NULL;
 
 static int32_t nptv6_hash(const void *data, int key) {
 	const struct natmap *map = data;
@@ -50,6 +55,10 @@ static int32_t nptv6_hash(const void *data, int key) {
 	return (ret);
 }
 
+/** @brief Lookup and process a NAT transform as per RFC 6296.
+  * @param map Nat map structure to procees against.
+  * @param ipaddr Address to transform.
+  * @param out Set to non zero if ipaddr is internal and must be transformed to external.*/
 extern void rfc6296_map(struct natmap *map, struct in6_addr *ipaddr, int out) {
 	uint16_t *addr_16 = (uint16_t *)&ipaddr->s6_addr;
 	uint32_t calc;
@@ -74,29 +83,31 @@ extern void rfc6296_map(struct natmap *map, struct in6_addr *ipaddr, int out) {
 		if (! ~addr_16[3]) {
 			addr_16[3] = 0;
 		}
-	} else
-		if ((bytelen > 6) && (bytelen < 15)) {
-			/* find first non 0xFFFF word in lower 64 bits*/
-			for(cnt = ((bytelen-1) >> 1) + 1; cnt < 8; cnt++) {
-				if (! ~addr_16[cnt]) {
-					continue;
-				}
-				if (bitlen) {
-					ipaddr->s6_addr[bytelen-1] = prefix[bytelen-1] | (ipaddr->s6_addr[bytelen-1] & ((1 << (8 - bitlen)) -1));
-				} else {
-					ipaddr->s6_addr[bytelen-1] = prefix[bytelen-1];
-				}
-				memcpy(&ipaddr->s6_addr, prefix, bytelen - 1);
-				calc = ntohs(addr_16[cnt]) + adj;
-				addr_16[cnt] = htons((calc & 0xFFFF) + (calc >> 16));
-				if (! ~addr_16[cnt]) {
-					addr_16[cnt] = 0;
-				}
-				break;
+	} else if ((bytelen > 6) && (bytelen < 15)) {
+		/* find first non 0xFFFF word in lower 64 bits*/
+		for(cnt = ((bytelen-1) >> 1) + 1; cnt < 8; cnt++) {
+			if (! ~addr_16[cnt]) {
+				continue;
 			}
+			if (bitlen) {
+				ipaddr->s6_addr[bytelen-1] = prefix[bytelen-1] | (ipaddr->s6_addr[bytelen-1] & ((1 << (8 - bitlen)) -1));
+			} else {
+				ipaddr->s6_addr[bytelen-1] = prefix[bytelen-1];
+			}
+			memcpy(&ipaddr->s6_addr, prefix, bytelen - 1);
+			calc = ntohs(addr_16[cnt]) + adj;
+			addr_16[cnt] = htons((calc & 0xFFFF) + (calc >> 16));
+			if (! ~addr_16[cnt]) {
+				addr_16[cnt] = 0;
+			}
+			break;
 		}
+	}
 }
 
+/** @brief Calculate and add a NAT map.
+  * @param intaddr Internal prefix/subnet.
+  * @param extaddr External prefix/subnet.*/
 extern int rfc6296_map_add(char *intaddr, char *extaddr) {
 	struct natmap *map;
 	uint16_t emask, imask, isum, esum, bytelen, bitlen;
@@ -178,6 +189,11 @@ extern int rfc6296_map_add(char *intaddr, char *extaddr) {
 	return (0);
 }
 
+/** @brief Quick test function.
+  *
+  * Run a callback against each entry in the table with the internal address as data.
+  * @param callback Bucket list callback.
+  * @param internal Ip addr passed as data to the callback.*/
 extern void rfc6296_test(blist_cb callback, struct in6_addr *internal) {
 	/*find and run map*/
 	bucketlist_callback(nptv6tbl, callback, internal);

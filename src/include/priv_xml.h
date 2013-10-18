@@ -31,6 +31,6 @@ struct xml_doc {
 	xmlValidCtxtPtr ValidCtxt;
 };
 
-void free_buffer(void *data);
+void xml_free_buffer(void *);
 
 #endif

@@ -17,6 +17,7 @@
 */
 
 /** @file
+  * @ingroup LIB-FILE
   * @brief File utilities to test files (fstat)
   * @addtogroup LIB-FILE
   * @{*/
@@ -36,6 +37,9 @@
 #include <grp.h>
 #endif
 
+/** @brief Determine if a file exists.
+  * @param path Filename.
+  * @returns 1 if the file exists 0 othewise.*/
 extern int is_file(const char *path) {
 	struct stat sr;
 	if (!stat(path, &sr)) {
@@ -45,6 +49,9 @@ extern int is_file(const char *path) {
 	}
 }
 
+/** @brief Determine if a path is a directory
+  * @param path Path of directory to check.
+  * @returns 1 if the path exists and is a directory 0 othewise.*/
 extern int is_dir(const char *path) {
 	struct stat sr;
 	if (!stat(path, &sr) && S_ISDIR(sr.st_mode)) {
@@ -54,6 +61,9 @@ extern int is_dir(const char *path) {
 	}
 }
 
+/** @brief Determine if a file is executable
+  * @param path Path of file to check.
+  * @returns 1 if the path exists and is executable 0 othewise.*/
 extern int is_exec(const char *path) {
 	struct stat sr;
 	if (!stat(path, &sr) && (S_IXUSR & sr.st_mode)) {
@@ -63,6 +73,14 @@ extern int is_exec(const char *path) {
 	}
 }
 
+/** @brief Create a directory
+  *
+  * On *NIX systems a mode, uid and gid can be used to set initial permisions.
+  * @param dir Directory to create.
+  * @param mode Initial mode to set.
+  * @param user Initial UID.
+  * @param group Initial GID.
+  * @returns non 0 on success on failure the directory may be created but no ownership not set.*/
 #ifdef __WIN32
 extern int mk_dir(const char *dir) {
 #else

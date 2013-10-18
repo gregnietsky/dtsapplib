@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /** @file
+  * @ingroup LIB-IFACE
   * @brief Wrapper arround Linux libnetlink for managing network interfaces.
   * @addtogroup LIB-IFACE
   * @{*/
@@ -43,15 +44,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 static struct rtnl_handle *nlh;
 
+/** @brief IP Netlink request.*/
 struct iplink_req {
+	/** @brief Netlink message header*/
 	struct nlmsghdr		n;
+	/** @brief Interface info message*/
 	struct ifinfomsg	i;
+	/** @brief Request buffer*/
 	char			buf[1024];
 };
 
+/** @brief IP Netlink IP addr request.*/
 struct ipaddr_req {
+	/** @brief Netlink message header*/
 	struct nlmsghdr		n;
+	/** @brief Interface addr message*/
 	struct ifaddrmsg	i;
+	/** @brief Request buffer*/
 	char			buf[1024];
 };
 
@@ -80,12 +89,16 @@ static struct rtnl_handle *nlhandle(int subscriptions) {
 	return (nlh);
 }
 
+/** @brief Close netlink socket on application termination.*/
 extern void closenetlink() {
 	if (nlh) {
 		objunref(nlh);
 	}
 }
 
+/** @brief Get the netlink interface for a named interface.
+  * @param ifname Interface name.
+  * @returns Index of the interface.*/
 extern int get_iface_index(const char *ifname) {
 	int ifindex;
 
@@ -103,9 +116,9 @@ extern int get_iface_index(const char *ifname) {
 	return (ifindex);
 }
 
-/*
- * instruct the kernel to remove a link
- */
+/** @brief Delete network interface
+  * @param iface Interface name to delete.
+  * @returns -1 on error.*/
 static int delete_interface(char *iface) {
 	struct iplink_req *req;
 	int ifindex, ret;
@@ -144,6 +157,10 @@ static int delete_interface(char *iface) {
 	return (ret);
 }
 
+/** @brief Delete a VLAN.
+  * @param ifname Interface we deleting vlan from.
+  * @param vid VLAN id to delete.
+  * @returns -1 on error.*/
 extern int delete_kernvlan(char *ifname, int vid) {
 	char iface[IFNAMSIZ+1];
 
@@ -152,9 +169,11 @@ extern int delete_kernvlan(char *ifname, int vid) {
 	return (delete_interface(iface));
 }
 
-/*
- * instruct the kernel to create a VLAN
- */
+
+/** @brief Create a VLAN on a interface
+  * @param ifname Interface to add VLAN to.
+  * @param vid VLAN id to add.
+  * @returns -1 on error.*/
 extern int create_kernvlan(char *ifname, unsigned short vid) {
 	struct iplink_req *req;
 	char iface[IFNAMSIZ+1];
@@ -210,14 +229,19 @@ extern int create_kernvlan(char *ifname, unsigned short vid) {
 	return (ret);
 }
 
-/*
- * instruct the kernel to remove a VLAN
- */
+/** @brief Delete Kernel MAC VLAN
+  * @param ifname Interface to delete.
+  * @returns -1 on error.*/
 extern int delete_kernmac(char *ifname) {
 
 	return (delete_interface(ifname));
 }
 
+/** @brief Create a kernal MAC VLAN
+  * @param ifname Interface name to create
+  * @param macdev Base interface
+  * @param mac MAC address to use or random if NULL.
+  * @returns -1 on error.*/
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	struct iplink_req *req;
 	struct rtattr *data, *linkinfo;
@@ -279,6 +303,11 @@ extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	return (ret);
 }
 
+/** @brief Alter interface flags.
+  * @param ifindex Interface index.
+  * @param set Flags to set.
+  * @param clear Flags to clear.
+  * @returns -1 on error.*/
 extern int set_interface_flags(int ifindex, int set, int clear) {
 	struct iplink_req *req;
 	int flags;
@@ -315,6 +344,10 @@ extern int set_interface_flags(int ifindex, int set, int clear) {
 	return (0);
 }
 
+/** @brief Set interface MAC addr.
+  * @param ifindex Interface index.
+  * @param hwaddr MAC address to set.
+  * @returns -1 on error.*/
 extern int set_interface_addr(int ifindex, const unsigned char *hwaddr) {
 	struct iplink_req *req;
 
@@ -344,6 +377,10 @@ extern int set_interface_addr(int ifindex, const unsigned char *hwaddr) {
 	return (0);
 }
 
+/** @brief Rename interface
+  * @param ifindex Interface index.
+  * @param name New interface name.
+  * @returns -1 on error.*/
 extern int set_interface_name(int ifindex, const char *name) {
 	struct iplink_req *req;
 
@@ -372,10 +409,11 @@ extern int set_interface_name(int ifindex, const char *name) {
 	return (0);
 }
 
-/*
- * bind to device fd may be a existing socket
- */
-extern int interface_bind(char *iface, int protocol, int flags) {
+/** @brief Bind to device fd may be a existing socket.
+  * @param iface Interface to bind too.
+  * @param protocol Protocol to use.
+  * @returns -1 on error.*/
+extern int interface_bind(char *iface, int protocol) {
 	struct sockaddr_ll sll;
 	int proto = htons(protocol);
 	int fd, ifindex;
@@ -405,60 +443,19 @@ extern int interface_bind(char *iface, int protocol, int flags) {
 	return (fd);
 }
 
-/*
- * this method is sourced from the following IEEE publication
- * Guidelines for 64-bit Global Identifier (EUI-64TM) Registration Authority
- * mac48 is char[ETH_ALEN] eui64 is char[8]
- */
-extern int eui48to64(unsigned char *mac48, unsigned char *eui64) {
-	eui64[0] = (mac48[0] & 0xFE) ^ 0x02; /*clear multicast bit and flip local asignment*/
-	eui64[1] = mac48[1];
-	eui64[2] = mac48[2];
-	eui64[3] = 0xFF;
-	eui64[4] = 0xFE;
-	eui64[5] = mac48[3];
-	eui64[6] = mac48[4];
-	eui64[7] = mac48[5];
-
-	return (0);
-}
-
-/*
- * Unique Local IPv6 Unicast Addresses RFC 4193
- * buff is char[6]
- */
-extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
-	uint64_t ntpts;
-	unsigned char eui64[8];
-	unsigned char sha1[20];
-	unsigned char mac48[ETH_ALEN];
-	struct timeval tv;
-
-	if (ifhwaddr(iface, mac48)) {
-		return (-1);
-	}
-
-	gettimeofday(&tv, NULL);
-	ntpts = tvtontp64(&tv);
-
-	eui48to64(mac48, eui64);
-	sha1sum2(sha1, (void *)&ntpts, sizeof(ntpts), (void *)eui64, sizeof(eui64));
-
-	prefix[0] = 0xFD; /*0xFC | 0x01 FC00/7 with local bit set [8th bit]*/
-	memcpy(prefix + 1, sha1+15, 5); /*LSD 40 bits of the SHA hash*/
-
-	return (0);
-}
-
-/*
- * create random MAC address
- */
+/** @brief create random MAC address
+  * @param addr Buffer char[ETH_ALEN] filled with the new address.*/
 extern void randhwaddr(unsigned char *addr) {
 	genrand(addr, ETH_ALEN);
 	addr [0] &= 0xfe;       /* clear multicast bit */
 	addr [0] |= 0x02;       /* set local assignment bit (IEEE802) */
 }
 
+/** @brief Create a tunnel device.
+  * @param ifname Interface name to create..
+  * @param hwaddr Hardware address to assign (optionally).
+  * @param flags Flags to set device properties.
+  * @returns Tunnel FD or -1 on error.*/
 extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags) {
 	struct ifreq ifr;
 	int fd, ifindex;
@@ -494,6 +491,10 @@ extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags
 	return (fd);
 }
 
+/** @brief Set interface down.
+  * @param ifname Interface name.
+  * @param flags Additional flags to clear.
+  * @returns -1 on error 0 on success.*/
 extern int ifdown(const char *ifname, int flags) {
 	int ifindex;
 
@@ -508,6 +509,10 @@ extern int ifdown(const char *ifname, int flags) {
 	return (0);
 }
 
+/** @brief Set interface up.
+  * @param ifname Interface name.
+  * @param flags Additional flags to set.
+  * @returns -1 on error 0 on success.*/
 extern int ifup(const char *ifname, int flags) {
 	int ifindex;
 
@@ -522,6 +527,10 @@ extern int ifup(const char *ifname, int flags) {
 	return (0);
 }
 
+/** @brief Rename interface helper.
+  * @param oldname Original name.
+  * @param newname New name.
+  * @returns 0 on success.*/
 extern int ifrename(const char *oldname, const char *newname) {
 	int ifindex;
 
@@ -535,6 +544,10 @@ extern int ifrename(const char *oldname, const char *newname) {
 	return (0);
 }
 
+/** @brief Get MAC addr for interface.
+  * @param ifname Interface name
+  * @param hwaddr Buffer to place MAC in char[ETH_ALEN]
+  * @returns 0 on success.*/
 extern int ifhwaddr(const char *ifname, unsigned char *hwaddr) {
 	int ifindex;
 
@@ -554,7 +567,10 @@ extern int ifhwaddr(const char *ifname, unsigned char *hwaddr) {
 	return (0);
 }
 
-
+/** @brief Set IP addr on interface.
+  * @param ifname Interface to assign IP to
+  * @param ipaddr IP Addr to assign.
+  * @returns -1 on error.*/
 extern int set_interface_ipaddr(char *ifname, char *ipaddr) {
 	struct ipaddr_req *req;
 	inet_prefix lcl;
@@ -603,3 +619,52 @@ extern int set_interface_ipaddr(char *ifname, char *ipaddr) {
 }
 
 /** @}*/
+
+/** @brief Generate IPv6 address from mac address.
+  *
+  * @ingroup LIB-IP-IP6
+  * this method is sourced from the following IEEE publication
+  * Guidelines for 64-bit Global Identifier (EUI-64TM) Registration Authority
+  * mac48 is char[ETH_ALEN] eui64 is char[8]
+  * @param mac48 Buffer containing MAC address 6 bytes.
+  * @param eui64 Buffer that will be written with address 8bytes.*/
+extern void eui48to64(unsigned char *mac48, unsigned char *eui64) {
+	eui64[0] = (mac48[0] & 0xFE) ^ 0x02; /*clear multicast bit and flip local asignment*/
+	eui64[1] = mac48[1];
+	eui64[2] = mac48[2];
+	eui64[3] = 0xFF;
+	eui64[4] = 0xFE;
+	eui64[5] = mac48[3];
+	eui64[6] = mac48[4];
+	eui64[7] = mac48[5];
+}
+
+/** @brief Generate Unique Local IPv6 Unicast Addresses RFC 4193.
+  *
+  * @ingroup LIB-IP-IP6
+  * @param iface External system interface name.
+  * @param prefix A buffer char[6] that will contain the prefix.
+  * @returns -1 on error.*/
+extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
+	uint64_t ntpts;
+	unsigned char eui64[8];
+	unsigned char sha1[20];
+	unsigned char mac48[ETH_ALEN];
+	struct timeval tv;
+
+	if (ifhwaddr(iface, mac48)) {
+		return (-1);
+	}
+
+	gettimeofday(&tv, NULL);
+	ntpts = tvtontp64(&tv);
+
+	eui48to64(mac48, eui64);
+	sha1sum2(sha1, (void *)&ntpts, sizeof(ntpts), (void *)eui64, sizeof(eui64));
+
+	prefix[0] = 0xFD; /*0xFC | 0x01 FC00/7 with local bit set [8th bit]*/
+	memcpy(prefix + 1, sha1+15, 5); /*LSD 40 bits of the SHA hash*/
+
+	return (0);
+}
+

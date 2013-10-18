@@ -21,56 +21,87 @@
  * http://www.opensource.apple.com/source/OpenLDAP/OpenLDAP-186/OpenLDAP/libraries/liblutil/sasl.c
  */
 
+/** @brief SASL Paramaters used in authentification.*/
 struct sasl_defaults {
+	/** @brief SASL Mechanisim.*/
 	const char *mech;
+	/** @brief SASL Realm.*/
 	const char *realm;
+	/** @brief Auth ID*/
 	const char *authcid;
+	/** @brief Password.*/
 	const char *passwd;
+	/** @brief Proxy auth ID.*/
 	const char *authzid;
 };
 
+/** @brief LDAP Simple bind.*/
 struct ldap_simple {
+	/** @brief Distingushed Name.*/
 	const char *dn;
+	/** @brief Credentials (password).*/
 	struct berval *cred;
 };
 
+/** @brief LDAP connection*/
 struct ldap_conn {
+	/** @brief LDAP pointer.*/
 	LDAP	*ldap;
+	/** @brief Address.*/
 	char	*uri;
+	/** @brief Time limit.*/
 	int	timelim;
+	/** @brief Results limit.*/
 	int	limit;
+	/** @brief LDAP control.*/
 	LDAPControl **sctrlsp;
+	/** @brief SASL auth information.*/
 	struct sasl_defaults *sasl;
+	/** @brief LDAP Simple bind information.*/
 	struct ldap_simple *simple;
 };
 
+/** @brief LDAP Modify structure.*/
 struct ldap_modify {
+	/** @brief Distingushed name*/
 	const char *dn;
+	/** @brief Bucket list containg modify / modify_add / delete requests.*/
 	struct bucket_list *bl[3];
 };
 
+/** @brief LDAP Add structure.*/
 struct ldap_add {
+	/** @brief Distingushed name*/
 	const char *dn;
+	/** @brief bucket containing item to add*/
 	struct bucket_list *bl;
 };
 
+/** @brief Linked list of mod values*/
 struct ldap_modval {
+	/** @brief Value.*/
 	const char *value;
+	/** @brief Next Value.*/
 	struct ldap_modval *next;
 };
 
+/** @brief LDAP mod request.*/
 struct ldap_modreq {
+	/** @brief Attribute modified.*/
 	const char *attr;
+	/** @brief Count.*/
 	int cnt;
+	/** @brief Linked list head.*/
 	struct ldap_modval *first;
+	/** @brief Linked list tail.*/
 	struct ldap_modval *last;
 };
 
-int ldap_count(LDAP *ld, LDAPMessage *message, int *err);
-struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *result, int b64enc, int *err);
-int dts_sasl_interact(LDAP *ld, unsigned flags, void *defaults, void *in );
+static int ldap_count(LDAP *ld, LDAPMessage *message, int *err);
+static struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *result, int b64enc, int *err);
+static int dts_sasl_interact(LDAP *ld, unsigned flags, void *defaults, void *in );
 
-void free_simple(void *data) {
+static void free_simple(void *data) {
 	struct ldap_simple *simple = data;
 	struct berval *bv = simple->cred;
 
@@ -85,7 +116,7 @@ void free_simple(void *data) {
 	}
 }
 
-void free_modval(void *data) {
+static void free_modval(void *data) {
 	struct ldap_modval *modv = data;
 
 	if (modv->value) {
@@ -93,7 +124,7 @@ void free_modval(void *data) {
 	}
 }
 
-void free_modreq(void *data) {
+static void free_modreq(void *data) {
 	struct ldap_modreq *modr = data;
 	struct ldap_modval *modv;
 
@@ -105,7 +136,7 @@ void free_modreq(void *data) {
 	}
 }
 
-void free_modify(void *data) {
+static void free_modify(void *data) {
 	struct ldap_modify *lmod = data;
 	int cnt;
 	if (lmod->dn) {
@@ -119,7 +150,7 @@ void free_modify(void *data) {
 	}
 }
 
-void free_add(void *data) {
+static void free_add(void *data) {
 	struct ldap_add *lmod = data;
 
 	if (lmod->dn) {
@@ -131,7 +162,7 @@ void free_add(void *data) {
 	}
 }
 
-void free_sasl(void *data) {
+static void free_sasl(void *data) {
 	struct sasl_defaults *sasl = data;
 
 	if (sasl->mech) {
@@ -151,7 +182,7 @@ void free_sasl(void *data) {
 	}
 }
 
-void free_ldapconn(void *data) {
+static void free_ldapconn(void *data) {
 	struct ldap_conn *ld = data;
 
 
@@ -169,14 +200,14 @@ void free_ldapconn(void *data) {
 	}
 }
 
-void free_result(void *data) {
+static void free_result(void *data) {
 	struct ldap_results *res = data;
 	if (res->entries) {
 		objunref(res->entries);
 	}
 }
 
-void free_entry(void *data) {
+static void free_entry(void *data) {
 	struct ldap_entry *ent = data;
 	struct ldap_attr *la;
 
@@ -206,7 +237,7 @@ void free_entry(void *data) {
 	}
 }
 
-void free_rdnarr(void *data) {
+static void free_rdnarr(void *data) {
 	struct ldap_rdn **rdn = data;
 
 	for(; *rdn; rdn++) {
@@ -214,7 +245,7 @@ void free_rdnarr(void *data) {
 	}
 }
 
-void free_rdn(void *data) {
+static void free_rdn(void *data) {
 	struct ldap_rdn *rdn = data;
 
 	if (rdn->name) {
@@ -225,7 +256,7 @@ void free_rdn(void *data) {
 	}
 }
 
-void free_attr(void *data) {
+static void free_attr(void *data) {
 	struct ldap_attr *la = data;
 	if (la->next) {
 		la->next->prev = la->prev;
@@ -239,25 +270,17 @@ void free_attr(void *data) {
 	}
 }
 
-void free_attrvalarr(void *data) {
+static void free_attrvalarr(void *data) {
 	struct ldap_attrval **av = data;
 	for(; *av; av++) {
 		objunref(*av);
 	}
 }
 
-void free_attrval(void *data) {
+static void free_attrval(void *data) {
 	struct ldap_attrval *av = data;
 	if (av->buffer) {
 		objunref(av->buffer);
-	}
-}
-
-void free_entarr(void *data) {
-	struct ldap_entry **entarr = data;
-
-	for(; *entarr; entarr++) {
-		objunref(*entarr);
 	}
 }
 
@@ -274,7 +297,7 @@ static int32_t modify_hash(const void *data, int key) {
 	return(ret);
 }
 
-int ldap_rebind_proc(LDAP *ld, LDAP_CONST char *url, ber_tag_t request, ber_int_t msgid, void *params) {
+static int ldap_rebind_proc(LDAP *ld, LDAP_CONST char *url, ber_tag_t request, ber_int_t msgid, void *params) {
 	struct ldap_conn *ldap = params;
 	int res = LDAP_UNAVAILABLE;
 
@@ -375,7 +398,7 @@ static int interaction(unsigned flags, sasl_interact_t *interact, struct sasl_de
 	return LDAP_SUCCESS;
 }
 
-int dts_sasl_interact(LDAP *ld, unsigned flags, void *defaults, void *in ) {
+static int dts_sasl_interact(LDAP *ld, unsigned flags, void *defaults, void *in ) {
 	sasl_interact_t *interact = in;
 
 	if (!ld) {
@@ -717,7 +740,7 @@ int ldap_count(LDAP *ld, LDAPMessage *message, int *err) {
 	return x;
 }
 
-char *ldap_getdn(LDAP *ld, LDAPMessage *message, int *err) {
+static char *ldap_getdn(LDAP *ld, LDAPMessage *message, int *err) {
 	char *dn;
 
 	objlock(ld);
@@ -739,7 +762,7 @@ char *ldap_getdn(LDAP *ld, LDAPMessage *message, int *err) {
 	return dn;
 }
 
-char *ldap_getattribute(LDAP *ld, LDAPMessage *message, BerElement **berptr, int *err) {
+static char *ldap_getattribute(LDAP *ld, LDAPMessage *message, BerElement **berptr, int *err) {
 	BerElement *ber = *berptr;
 	char *attr = NULL;
 
@@ -793,7 +816,7 @@ char *ldap_encattr(void *attrval, int b64enc, enum ldap_attrtype *type) {
 	return aval;
 }
 
-struct berval **ldap_attrvals(LDAP *ld, LDAPMessage *message, char *attr, int *cnt, int *err) {
+static struct berval **ldap_attrvals(LDAP *ld, LDAPMessage *message, char *attr, int *cnt, int *err) {
 	struct berval **vals = NULL;
 
 	objlock(ld);
@@ -830,7 +853,7 @@ static int32_t ldapattr_hash(const void *data, int key) {
 	return(ret);
 }
 
-struct bucket_list *attr2bl(LDAP *ld, LDAPMessage *message, struct ldap_attr **first, int b64enc, int *res) {
+static struct bucket_list *attr2bl(LDAP *ld, LDAPMessage *message, struct ldap_attr **first, int b64enc, int *res) {
 	BerElement *ber = NULL;
 	struct bucket_list *bl;
 	struct ldap_attr *la, *prev = NULL;

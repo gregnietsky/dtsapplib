@@ -147,8 +147,12 @@ struct fwsocket {
 	struct bucket_list *children;
 };
 
+/**@brief Configuration category entry
+  * @ingroup LIB-INI*/
 struct config_entry {
+	/**@ brief Item name*/
 	const char *item;
+	/**@ brief Item value*/
 	const char *value;
 };
 
@@ -256,19 +260,32 @@ typedef int32_t (*blisthash)(const void *, int);
   * @param data2 Reference to data supplied when calling bucketlist_callback.*/
 typedef void	(*blist_cb)(void *, void *);
 
-/** @ingroup LIB-INI*/
+/** @brief Calback used when processing config files.
+  * @ingroup LIB-INI
+  * @param categories Bucket list of categories.
+  * @param filename The filename.
+  * @param filepath The filepath.*/
 typedef void	(*config_filecb)(struct bucket_list *, const char *, const char *);
 
-/** @ingroup LIB-INI*/
+/** @brief Calback used when processing a category
+  * @ingroup LIB-INI
+  * @param entries Bucket list containing entries.
+  * @param name Category name.*/
 typedef void	(*config_catcb)(struct bucket_list *, const char *);
 
-/** @ingroup LIB-INI*/
+/** @brief Callback used when processing a entry
+  * @ingroup LIB-INI
+  * @param item Name of the entry.
+  * @param value Value of the entry.*/
 typedef void	(*config_entrycb)(const char *, const char *);
 
 /** @ingroup LIB-NF-Q*/
 typedef uint32_t (*nfqueue_cb)(struct nfq_data *, struct nfqnl_msg_packet_hdr *, char *, uint32_t, void *, uint32_t *, void **);
 
-/** @ingroup LIB-RADIUS*/
+/** @ingroup LIB-RADIUS
+  * @brief Callback to call when response arrives.
+  * @param packet Reference to radius packet.
+  * @param data Reference to userdata.*/
 typedef void	(*radius_cb)(struct radius_packet *, void *);
 
 /** @brief Application control flags
@@ -422,7 +439,7 @@ extern void socketserver(struct fwsocket *sock, socketrecv connectfunc, socketre
 extern int checkipv6mask(const char *ipaddr, const char *network, uint8_t bits);
 extern void ipv4tcpchecksum(uint8_t *pkt);
 extern void ipv4udpchecksum(uint8_t *pkt);
-extern void icmpchecksum(uint8_t *pkt);
+extern void ipv4icmpchecksum(uint8_t *pkt);
 extern void ipv4checksum(uint8_t *pkt);
 extern int packetchecksumv4(uint8_t *pkt);
 extern int packetchecksumv6(uint8_t *pkt);
@@ -456,7 +473,7 @@ extern int delete_kernvlan(char *ifname, int vid);
 extern int create_kernvlan(char *ifname, unsigned short vid);
 extern int delete_kernmac(char *macdev);
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac);
-extern int interface_bind(char *iface, int protocol, int flags);
+extern int interface_bind(char *iface, int protocol);
 extern void randhwaddr(unsigned char *addr);
 extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags);
 extern int ifrename(const char *oldname, const char *newname);
@@ -469,42 +486,72 @@ extern int set_interface_addr(int ifindex, const unsigned char *hwaddr);
 extern int set_interface_name(int ifindex, const char *name);
 extern int set_interface_ipaddr(char *ifname, char *ipaddr);
 extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix);
-extern int eui48to64(unsigned char *mac48, unsigned char *eui64);
+extern void eui48to64(unsigned char *mac48, unsigned char *eui64);
 extern void closenetlink(void);
 
 /*Radius utilities*/
 /** @addtogroup LIB-RADIUS
     @{*/
+/** @brief Authentification header length.*/
 #define RAD_AUTH_HDR_LEN	20
+
+/** @brief Auth packet length*/
 #define RAD_AUTH_PACKET_LEN	4096
+
+/** @brief Auth token length*/
 #define RAD_AUTH_TOKEN_LEN	16
+
+/** @brief Auth max password length*/
 #define RAD_MAX_PASS_LEN	128
 
+/** @brief Radius attribute username.*/
 #define RAD_ATTR_USER_NAME	1	/*string*/
+
+/** @brief Radius attribute password.*/
 #define RAD_ATTR_USER_PASSWORD	2	/*passwd*/
+
+/** @brief Radius attribute server IP.*/
 #define RAD_ATTR_NAS_IP_ADDR	4	/*ip*/
+
+/** @brief Radius attribute server port.*/
 #define RAD_ATTR_NAS_PORT	5	/*int*/
+
+/** @brief Radius attribute service type.*/
 #define RAD_ATTR_SERVICE_TYPE	6	/*int*/
+
+/** @brief Radius attribute account id.*/
 #define RAD_ATTR_ACCTID		44
+
+/** @brief Radius attribute port type.*/
 #define RAD_ATTR_PORT_TYPE	61	/*int*/
+
+/** @brief Radius attribute EAP.*/
 #define RAD_ATTR_EAP		79	/*oct*/
+
+/** @brief Radius attribute message.*/
 #define RAD_ATTR_MESSAGE	80	/*oct*/
 
+/** @brief Radius packet codes.*/
 enum RADIUS_CODE {
+	/** @brief Radius auth request.*/
 	RAD_CODE_AUTHREQUEST	=	1,
+	/** @brief Radius auth accept.*/
 	RAD_CODE_AUTHACCEPT	=	2,
+	/** @brief Radius auth reject.*/
 	RAD_CODE_AUTHREJECT	=	3,
+	/** @brief Radius accounting request.*/
 	RAD_CODE_ACCTREQUEST	=	4,
+	/** @brief Radius accounting response.*/
 	RAD_CODE_ACCTRESPONSE	=	5,
+	/** @brief Radius auth challenge*/
 	RAD_CODE_AUTHCHALLENGE	=	11
 };
 /** @}*/
 
-extern unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len);
 extern void addradattrint(struct radius_packet *packet, char type, unsigned int val);
 extern void addradattrip(struct radius_packet *packet, char type, char *ipaddr);
 extern void addradattrstr(struct radius_packet *packet, char type, char *str);
-extern struct radius_packet *new_radpacket(unsigned char code, unsigned char id);
+extern struct radius_packet *new_radpacket(unsigned char code);
 extern int send_radpacket(struct radius_packet *packet, const char *userpass, radius_cb read_cb, void *cb_data);
 extern void add_radserver(const char *ipaddr, const char *auth, const char *acct, const char *secret, int timeout);
 extern unsigned char *radius_attr_first(struct radius_packet *packet);
@@ -529,7 +576,6 @@ extern struct fwsocket *dtls_listenssl(struct fwsocket *sock);
 extern void startsslclient(struct fwsocket *sock);
 
 /*config file parsing functions*/
-extern void initconfigfiles(void);
 extern void unrefconfigfiles(void);
 extern int process_config(const char *configname, const char *configfile);
 extern struct bucket_loop *get_category_loop(const char *configname);
@@ -555,16 +601,27 @@ typedef struct xml_doc xml_doc;
 typedef struct xslt_doc xslt_doc;
 
 /*XML*/
+/** @brief XML attribute name value pair.
+  * @ingroup LIB-XML*/
 struct xml_attr {
+	/** @brief Name of attribute.*/
 	const char	*name;
+	/** @brief Value of attribute.*/
 	const char	*value;
 };
 
+/** @brief Reference to a XML Node
+  * @ingroup LIB-XML*/
 struct xml_node {
+	/** @brief Name of the node.*/
 	const char		*name;
+	/** @brief Value of the node.*/
 	const char		*value;
+	/** @brief Attribute key for searching and indexing.*/
 	const char		*key;
+	/** @brief Bucket list of attributes.*/
 	struct bucket_list	*attrs;
+	/** @brief Internal libxml2 node pointer.*/
 	void			*nodeptr;
 };
 
@@ -603,54 +660,91 @@ void xslt_close();
 /* LDAP */
 /** @addtogroup LIB-LDAP
   * @{*/
+/** @brief SSL connection requirements.*/
 enum ldap_starttls {
+	/** @brief SSL not attempted at all.*/
 	LDAP_STARTTLS_NONE,
+	/** @brief SSL attempted but not required.*/
 	LDAP_STARTTLS_ATTEMPT,
+	/** @brief SSL is required.*/
 	LDAP_STARTTLS_ENFORCE
 };
 
+/** @brief LDAP attribute types.*/
 enum ldap_attrtype {
+	/** @brief Plain text.*/
 	LDAP_ATTRTYPE_CHAR,
+	/** @brief Base64 encoded.*/
 	LDAP_ATTRTYPE_B64,
+	/** @brief Binary data.*/
 	LDAP_ATTRTYPE_OCTET
 };
 
+/** @brief LDAP Relative distingushed name linked list*/
 struct ldap_rdn {
+	/** @brief RDN element name.*/
 	const char *name;
+	/** @brief RDN element value.*/
 	const char *value;
+	/** @brief Next RDN element*/
 	struct ldap_rdn *next;
+	/** @brief Previous RDN element*/
 	struct ldap_rdn *prev;
 };
 
+/** @brief LDAP attribute value.*/
 struct ldap_attrval {
+	/** @brief Size of buffer.*/
 	int	len;
+	/** @brief Data type stored in buffer.*/
 	enum ldap_attrtype type;
+	/** @brief Value buffer.*/
 	char *buffer;
 };
 
+/** @brief LDAP attirbute.*/
 struct ldap_attr {
+	/** @brief Name of attribute.*/
 	const char *name;
+	/** @brief Value count*/
 	int count;
+	/** @brief Attribute value array.*/
 	struct ldap_attrval **vals;
+	/** @brief Next attribute.*/
 	struct ldap_attr *next;
+	/** @brief Previous attribute.*/
 	struct ldap_attr *prev;
 };
 
+/** @brief LDAP entry.*/
 struct ldap_entry {
+	/** @brief LDAP distiguished name.*/
 	const char *dn;
+	/** @brief LDAP user format distingushed name.*/
 	const char *dnufn;
+	/** @brief RDN element count.*/
 	int rdncnt;
+	/** @brief RDN element array.*/
 	struct ldap_rdn **rdn;
+	/** @brief Linked list of attributes.*/
 	struct ldap_attr *list;
+	/** @brief Bucket list of attributes.*/
 	struct bucket_list *attrs;
+	/** @brief First attr (head of list).*/
 	struct ldap_attr *first_attr;
+	/** @brief Next entry.*/
 	struct ldap_entry *next;
+	/** @brief Previous entry.*/
 	struct ldap_entry *prev;
 };
 
+/** @brief LDAP results.*/
 struct ldap_results {
+	/** @brief Number of entries*/
 	int count;
+	/** @brief Linked list of entries.*/
 	struct ldap_entry *first_entry;
+	/** @brief Bucket list of entries.*/
 	struct bucket_list *entries;
 };
 
@@ -692,33 +786,65 @@ extern int ldap_mod_delattr(struct ldap_conn *ldap, const char *dn, const char *
 extern int ldap_mod_addattr(struct ldap_conn *ldap, const char *dn, const char *attr, const char *value);
 extern int ldap_mod_repattr(struct ldap_conn *ldap, const char *dn, const char *attr, const char *value);
 
-/*
- * CURL Bits
- */
+/** @addtogroup LIB-CURL
+  * @{*/
+
+/** @brief Basic authentification structure.*/
 struct basic_auth {
+	/** @brief Username.*/
 	const char *user;
+	/** @brief Password.*/
 	const char *passwd;
 };
 
+/** @brief Buffer containing the result of a curl transaction.*/
 struct curlbuf {
+	/** @brief Header buffer*/
 	uint8_t *header;
+	/** @brief Body buffer*/
 	uint8_t *body;
+	/** @brief Mime Type*/	
 	char *c_type;
+	/** @brief Header size*/	
 	size_t hsize;
+	/** @brief Body size*/	
 	size_t bsize;
 };
 
-/** @brief Forward decleration of structure.
-  * @ingroup LIB-CURL*/
+/** @brief Forward decleration of structure.*/
 typedef struct curl_post curl_post;
-/** @ingroup LIB-CURL*/
-typedef struct basic_auth *(*curl_authcb)(const char *user, const char *passwd, void *data);
-/** @ingroup LIB-CURL*/
+
+/** @brief Callback to set the authentification ie on error 401
+  * @param user Initial username (currently set)
+  * @param passwd Initial password (currently set)
+  * @param data Reference to data passed.
+  * @returns New auth structure to re attempt authentification.*/
+typedef struct basic_auth *(*curl_authcb)(const char*, const char*, void*);
+
+/** @brief CURL callback function called when there is progress (CURLOPT_PROGRESSFUNCTION).
+  * @param clientp Reference to userdata supplied.
+  * @param dltotal Total download bytes.
+  * @param dlnow Current bytes downloaded.
+  * @param ultotal Total upload bytes.
+  * @param ulnow Current upload bytes.
+  * @returns Returning a non-zero value from this callback will cause the transfer to abort.*/
 typedef int (*curl_progress_func)(void*, double, double, double, double);
-/** @ingroup LIB-CURL*/
+
+/** @brief Callback function to control the progress bar.
+  * @param data Reference to userdata supplied.
+  * @param state one of 0, 1 or -1 for Pause, Unpause and Close respectfully.*/
 typedef void(*curl_progress_pause)(void*, int);
-/** @ingroup LIB-CURL*/
+
+/** @brief Create a new progress data structure
+  * @see curl_setprogress()
+  *
+  * curl_setprogress() allows setting a default progress callback if set it will
+  * call a callback to create a new callback progress userdata for the current session.
+  * @param data Reference to userdata supplied to curl_setprogress().
+  * @returns Reference to userdata to be used in current session.*/
 typedef void *(*curl_progress_newdata)(void*);
+
+/** @}*/
 
 int curlinit(void);
 void curlclose(void);
