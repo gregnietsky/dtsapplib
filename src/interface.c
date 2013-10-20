@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * @addtogroup LIB-IFACE
   * @{*/
 
+
 #include <netinet/in.h>
 #include <linux/if_vlan.h>
 #include <linux/if_ether.h>
@@ -30,8 +31,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/if_arp.h>
 #include <linux/sockios.h>
 #include <linux/if.h>
+#include <ifaddrs.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <netdb.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,6 +46,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "libnetlink/include/utils.h"
 
 static struct rtnl_handle *nlh;
+
+/** @brief Order of precidence of ipv4*/
+enum ipv4_score {
+	/** @brief Zeroconf IP's 169.254/16*/
+	IPV4_SCORE_ZEROCONF = 1 << 0,
+	/** @brief Reseverd "private" ip addresses*/
+	IPV4_SCORE_RESERVED = 1 << 1,
+	/** @brief Routable IP's*/
+	IPV4_SCORE_ROUTABLE = 1 << 2
+};
+
+/** @brief Return best ipv6 address in order of FFC/7 2002/16 ...*/
+enum ipv6_score {
+	/** @brief Adminstrivly allocated addresses (FC/7)*/
+	IPV6_SCORE_RESERVED = 1 << 0,
+	/** @brief 6in4 address space*/
+	IPV6_SCORE_SIXIN4 = 1 << 1,
+	/** @brief Other routable addresses*/
+	IPV6_SCORE_ROUTABLE = 1 << 2
+};
 
 /** @brief IP Netlink request.*/
 struct iplink_req {
@@ -668,3 +691,90 @@ extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
 	return (0);
 }
 
+
+/** @brief Find best IP adress for a interface.
+  * @ingroup LIB-IFACE
+  * @param iface Interface name.
+  * @param family PF_INET or PF_INET6.
+  * @returns Best matching IP address for the interface.*/
+const char *get_ifipaddr(const char *iface, int family) {
+	struct ifaddrs *ifaddr, *ifa;
+	struct sockaddr_in6 *ipv6addr;
+	struct sockaddr_in *ipv4addr;
+	int score = 0, nscore, iflen;
+	uint32_t subnet = 0, match;
+	uint32_t ipaddr, *ipptr;
+	char host[NI_MAXHOST] = "", tmp[NI_MAXHOST];
+
+	if (!iface || getifaddrs(&ifaddr) == -1) {
+		return NULL;
+	}
+
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		iflen = strlen(iface);
+		if ((ifa->ifa_addr == NULL) ||  strncmp(ifa->ifa_name, iface, iflen) || (ifa->ifa_addr->sa_family != family)) {
+			continue;
+		}
+
+		/* Match aliases not vlans*/
+		if ((strlen(ifa->ifa_name) > iflen) && (ifa->ifa_name[iflen] != ':')) {
+			continue;
+		}
+
+		switch (ifa->ifa_addr->sa_family) {
+			case AF_INET:
+				/* Find best ip address for a interface lowest priority is given to zeroconf then reserved ip's
+				 * finally find hte ip with shortest subnet bits.*/
+				ipv4addr = (struct sockaddr_in*)ifa->ifa_netmask;
+				match = ntohl(~ipv4addr->sin_addr.s_addr);
+				ipv4addr = (struct sockaddr_in*)ifa->ifa_addr;
+				ipaddr = ipv4addr->sin_addr.s_addr;
+
+				/* Get ipaddr string*/
+				inet_ntop(AF_INET, &ipaddr, tmp, NI_MAXHOST);
+
+				/* Score the IP*/
+				if (!((0xa9fe0000 ^  ntohl(ipaddr)) >> 16)) {
+					nscore = IPV4_SCORE_ZEROCONF;
+				} else if (reservedip(tmp)) {
+					nscore = IPV4_SCORE_RESERVED;
+				} else {
+					nscore = IPV4_SCORE_ROUTABLE;
+				}
+
+				/* match score and subnet*/
+				if  ((nscore > score) || ((nscore == score) && (match > subnet))) {
+					score = nscore;
+					subnet = match;
+					strncpy(host, tmp, NI_MAXHOST);
+				}
+				break;
+			case AF_INET6:
+				ipv6addr =(struct sockaddr_in6*)ifa->ifa_addr;
+				ipptr = ipv6addr->sin6_addr.s6_addr32;
+				match = ntohl(ipptr[0]) >> 16;
+
+				/* exclude link local multicast and special addresses */
+				if (!(0xFE80 ^ match) || !(0xFF ^ (match >> 8)) || !match) {
+					break;
+				}
+
+				/*Score ip private/sixin4/routable*/
+				if (!(0xFC ^ (match >> 9))) {
+					nscore = IPV6_SCORE_RESERVED;
+				} else if (match == 2002) {
+					nscore = IPV6_SCORE_SIXIN4;
+				} else {
+					nscore = IPV6_SCORE_ROUTABLE;
+				}
+
+				if (nscore > score) {
+					score = nscore;
+					inet_ntop(AF_INET6, ipptr, host, NI_MAXHOST);
+				}
+				break;
+		}
+	}
+	freeifaddrs(ifaddr);
+	return (strlenzero(host)) ? NULL : strdup(host);
+}

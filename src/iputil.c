@@ -424,3 +424,36 @@ extern int check_ipv4(const char* ip, int cidr, const char *test) {
 		return 0;
 	}
 }
+
+/** @breif Randomally assign a SSM Multicast address.
+  * @ingroup LIB-IP
+  * param addr Ip address structure to fill out.*/
+void mcast6_ip(struct in6_addr *addr) {
+	int mip, rand;
+
+	addr->s6_addr32[0] = htonl(0xFF350000);
+	addr->s6_addr32[1] = 0;
+	addr->s6_addr32[2] = 0;
+	addr->s6_addr32[3] = 1 << 31;
+
+	do {
+		rand = genrand(&mip, 4);
+	} while (!rand);
+
+	addr->s6_addr32[3] = htonl(addr->s6_addr32[3] | mip);
+}
+
+/** @breif Randomally assign a SSM Multicast address.
+  * @ingroup LIB-IP
+  * param addr Ip address structure to fill out.*/
+void mcast4_ip(struct in_addr *addr) {
+	uint32_t mip, rand;
+
+	do {
+		rand = genrand(&mip, 3);
+	} while (!rand || !(mip >> 8));
+	mip |= 232 << 24;
+
+ 	addr->s_addr = htonl(mip);
+}
+

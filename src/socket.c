@@ -42,6 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #include <arpa/inet.h>
 #endif
+#include <stdlib.h>
 
 #include "include/dtsapp.h"
 #include "include/private.h"
@@ -505,4 +506,176 @@ extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, thr
 	_start_socket_handler(sock, read, NULL, cleanup, data);
 }
 
+/** @brief Create a multicast socket.
+  *
+  * A multicast socket is both a client and server due to the nature of multicasting
+  * writing to a multicast socket should only be done with socketwrite not socketwrite_d
+  * the socket is created on a interface and the initial address can be set.
+  * @param iface Interface to send and recieve multicast traffic.
+  * @param family IP address family PF_INET or PF_INET6.
+  * @param mcastip Multicast ip to use must be in "family".
+  * @param port Port to use.
+  * @param flags Multicast flags currently disables LOOP.
+  * @returns Reference to multicast ocket structure.*/
+struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip, const char *port, int flags) {
+	struct fwsocket *fws;
+	struct  addrinfo hint, *result, *rp;
+	struct in_addr *srcif;
+	const char *srcip;
+	int on = 1;
+	int off = 0;
+	int ttl = 50;
+	socklen_t slen = sizeof(union sockstruct);
+
+        memset(&hint, 0, sizeof(hint));
+	hint.ai_family = PF_UNSPEC;
+	hint.ai_socktype = SOCK_DGRAM;
+	hint.ai_protocol = IPPROTO_UDP;
+
+	if (!(srcip = get_ifipaddr(iface, family))) {
+                return NULL;
+	}
+
+        if (getaddrinfo(srcip, port, &hint, &result) || !result) {
+		free((void*)srcip);
+                return NULL;
+        }
+	free((void*)srcip);
+
+	for(rp = result; rp; rp = result->ai_next) {
+		if (!(fws = make_socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol, NULL))) {
+			continue;
+		}
+		break;
+	}
+
+	if (!rp || !fws) {
+		freeaddrinfo(result);
+		return NULL;
+	}
+
+	if(setsockopt(fws->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))) {
+		objunref(fws);
+		freeaddrinfo(result);
+		return NULL;
+	}
+
+	if (rp->ai_family == PF_INET) {
+		struct in_addr mcastip4;
+		struct ip_mreq mg;
+		struct sockaddr_in *src_ip;
+
+		src_ip = (struct sockaddr_in*)rp->ai_addr;
+
+		if (setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl))) {
+			objunref(fws);
+			freeaddrinfo(result);
+			return NULL;
+		}
+
+		if (flags && setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_LOOP, &off, sizeof(off))) {
+			freeaddrinfo(result);
+			objunref(fws);
+			return NULL;
+		}
+
+		if (mcastip) {
+			mcastip4.s_addr = inet_addr(mcastip);
+		} else {
+			seedrand();
+			mcast4_ip(&mcastip4);
+		}
+
+		mg.imr_multiaddr = mcastip4;
+		mg.imr_interface.s_addr = src_ip->sin_addr.s_addr;
+		if (setsockopt(fws->sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mg, sizeof(mg))) {
+			objunref(fws);
+			freeaddrinfo(rp);
+			return NULL;
+		}
+
+		memset(&srcif, 0, sizeof(srcif));
+		srcif = &src_ip->sin_addr;
+		if(setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_IF, srcif, sizeof(*srcif))) {
+			freeaddrinfo(rp);
+			objunref(fws);
+			return NULL;
+		}
+		src_ip->sin_addr.s_addr = mcastip4.s_addr;
+	} else if (rp->ai_family == PF_INET6) {
+		struct in6_addr mcastip6;
+		struct ipv6_mreq mg;
+		struct sockaddr_in6 *src_ip;
+		int ifidx;
+
+		ifidx = get_iface_index(iface);
+		src_ip = (struct sockaddr_in6*)rp->ai_addr;
+
+		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &ttl, sizeof(ttl))) {
+			objunref(fws);
+			freeaddrinfo(result);
+			return NULL;
+		}
+
+		if (flags && setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &off, sizeof(off))) {
+			freeaddrinfo(result);
+			objunref(fws);
+			return NULL;
+		}
+
+		if (mcastip) {
+			inet_pton(PF_INET6, mcastip, &mcastip6);
+		} else {
+			seedrand();
+			mcast6_ip(&mcastip6);
+		}
+
+		mg.ipv6mr_multiaddr = mcastip6;
+		mg.ipv6mr_interface = ifidx;
+		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mg, sizeof(mg))) {
+			objunref(fws);
+			freeaddrinfo(rp);
+			return NULL;
+		}
+
+		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifidx, sizeof(ifidx))) {
+			objref(fws);
+			freeaddrinfo(rp);
+			return NULL;
+		}
+
+		src_ip->sin6_addr = mcastip6;
+	}
+
+	if (bind(fws->sock, (struct sockaddr*)rp->ai_addr, sizeof(struct sockaddr_storage))) {
+		freeaddrinfo(result);
+		objunref(fws);
+		return NULL;
+	}
+
+	getsockname(fws->sock, &fws->addr.sa, &slen);
+	freeaddrinfo(result);
+	fws->flags |= SOCK_FLAG_MCAST;
+
+	return fws;
+}
+
+const char *getmcastip(struct fwsocket *sock, char *buf, int len) {
+	char tmp[NI_MAXHOST];
+	char *buff = (buf) ? buf : (char*)&tmp;
+	int blen = (buf) ? len : NI_MAXHOST;
+
+	switch (sock->addr.ss.ss_family) {
+		case PF_INET:
+			inet_ntop(PF_INET, &sock->addr.sa4.sin_addr, buff, blen);
+		case PF_INET6:
+			inet_ntop(PF_INET6, &sock->addr.sa6.sin6_addr, buff, blen);
+			break;
+	}
+
+	printf("Using multicast IP %s\n", buff);
+	return (buf) ? buff : NULL;
+}
+
 /** @}*/
+

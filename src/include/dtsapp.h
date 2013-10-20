@@ -34,7 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /** @file
   * @brief DTS Application library API Include file.
-  * 
+  *
   * @ingroup LIB
   * The library foremostly implements reference counted objects and hashed bucket lists
   * @ref LIB-OBJ these are then used to implement simpler API's to common tasks.
@@ -53,7 +53,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * @n Thread API using pthreads.
   * @n Simple implementation of UNIX Domain socket.
   * @n Various Utilities including hashing and checksum.
-  * @n Z Lib Compression/Uncompression Functions.*/ 
+  * @n Z Lib Compression/Uncompression Functions.*/
 
 #ifndef _INCLUDE_DTSAPP_H
 #define _INCLUDE_DTSAPP_H
@@ -106,7 +106,9 @@ enum sock_flags {
 	/** @brief SSL has been requested on this socket dont allow clear read/send.*/
 	SOCK_FLAG_SSL		= 1 << 2,
 	/** @brief UNIX Domain Socket*/
-	SOCK_FLAG_UNIX		= 1 << 3
+	SOCK_FLAG_UNIX		= 1 << 3,
+	/** @brief Multicast Socket*/
+	SOCK_FLAG_MCAST		= 1 << 4
 };
 
 /** @brief Options supplied to framework_mkthread all defaults are unset
@@ -434,6 +436,8 @@ extern void close_socket(struct fwsocket *sock);
 
 extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, threadcleanup cleanup);
 extern void socketserver(struct fwsocket *sock, socketrecv connectfunc, socketrecv acceptfunc, threadcleanup cleanup, void *data);
+struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip, const char *port, int flags);
+const char *getmcastip(struct fwsocket *sock, char *buf, int len);
 
 /*IP Utilities*/
 extern int checkipv6mask(const char *ipaddr, const char *network, uint8_t bits);
@@ -455,6 +459,8 @@ uint32_t cidrcnt(int bitlen);
 int reservedip(const char *ipaddr);
 char* ipv6to4prefix(const char *ipaddr);
 int check_ipv4(const char* ip, int cidr, const char *test);
+void mcast4_ip(struct in_addr *addr);
+void mcast6_ip(struct in6_addr *addr);
 
 /*netfilter queue*/
 extern struct nfq_queue *nfqueue_attach(uint16_t pf, uint16_t num, uint8_t mode, uint32_t range, nfqueue_cb cb, void *data);
@@ -488,6 +494,8 @@ extern int set_interface_ipaddr(char *ifname, char *ipaddr);
 extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix);
 extern void eui48to64(unsigned char *mac48, unsigned char *eui64);
 extern void closenetlink(void);
+extern int ifrename(const char *oldname, const char *newname);
+const char *get_ifipaddr(const char *iface, int family);
 
 /*Radius utilities*/
 /** @addtogroup LIB-RADIUS
