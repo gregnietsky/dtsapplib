@@ -450,7 +450,7 @@ extern int packetchecksumv6(uint8_t *pkt);
 extern int packetchecksum(uint8_t *pkt);
 extern void rfc6296_map(struct natmap *map, struct in6_addr *ipaddr, int out);
 extern int rfc6296_map_add(char *intaddr, char *extaddr);
-const char *cidrtosn(int bitlen, const char *buf, int size);
+const char *cidrtosn(int bitlen, char *buf, int size);
 const char *getnetaddr(const char *ipaddr, int cidr, const char *buf, int size);
 const char *getbcaddr(const char *ipaddr, int cidr, const char *buf, int size);
 const char *getfirstaddr(const char *ipaddr, int cidr, const char *buf, int size);

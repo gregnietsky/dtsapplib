@@ -21,12 +21,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * @brief IPv4 And IPv6 Utiliies*/
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 #include <stdio.h>
+#ifndef __WIN32
 #include <linux/ip.h>
 #include <linux/icmp.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
 
 #include "include/dtsapp.h"
 
@@ -86,6 +92,7 @@ struct pseudohdr {
 	uint16_t len;
 };
 
+#ifndef __WIN32
 /** @brief Update the TCP checksum of a IPv4 packet.
   * @ingroup LIB-IP-IP4
   * @param pkt Packet to update TCP checksum.*/
@@ -208,6 +215,7 @@ extern int packetchecksum(uint8_t *pkt) {
 	}
 	return (-1);
 }
+#endif
 
 /** @brief Return the dotted quad notation subnet mask from a CIDR.
   * @ingroup LIB-IP-IP4
@@ -215,8 +223,9 @@ extern int packetchecksum(uint8_t *pkt) {
   * @param buf Buffer to copy the subnet address too.
   * @param size Size of buffer.
   * @returns pointer to buffer on success or NULL.*/
-extern const char *cidrtosn(int bitlen, const char *buf, int size) {
+extern const char *cidrtosn(int bitlen, char *buf, int size) {
 	uint32_t nm;
+	uint8_t *nmb;
 
 	if (!buf) {
 		return NULL;
@@ -228,8 +237,9 @@ extern const char *cidrtosn(int bitlen, const char *buf, int size) {
 		nm = 0;
 	}
 
-	nm = htonl(nm);
-	return inet_ntop(AF_INET, &nm, (char *)buf, size);
+	nmb = (uint8_t*)&nm;
+	snprintf(buf, size, "%i.%i.%i.%i", nmb[0], nmb[1], nmb[2], nmb[3]);
+	return buf;
 }
 
 /** @brief Return the network address
@@ -237,9 +247,11 @@ extern const char *cidrtosn(int bitlen, const char *buf, int size) {
   * @note ipaddr will be truncated to network address based on cidr.
   * @param ipaddr Ipaddr to calculate for
   * @param cidr Length of the subnet bitmask.
+  * @todo Win32 support
   * @param buf Buffer that the result is placed in.
   * @param size Length of buffer.
   * @returns Pointer to buf with the result copied to buf.*/
+#ifndef __WIN32
 extern const char *getnetaddr(const char *ipaddr, int cidr, const char *buf, int size) {
 	uint32_t ip;
 	
@@ -257,15 +269,18 @@ extern const char *getnetaddr(const char *ipaddr, int cidr, const char *buf, int
 	}
 	return inet_ntop(AF_INET, &ip, (char *)buf, size);
 }
+#endif
 
 /** @brief Get the first usable address
   * @ingroup LIB-IP-IP4
   * @note ipaddr will be truncated to network address based on cidr.
   * @param ipaddr Network address.
+  * @todo WIN32 support
   * @param cidr Bits in the subnet mask.
   * @param buf Buffer that the result is placed in.
   * @param size Length of buffer.
   * @returns Pointer to buf with the result copied to buf.*/
+#ifndef __WIN32
 extern const char *getfirstaddr(const char *ipaddr, int cidr, const char *buf, int size) {
 	uint32_t ip;
 	
@@ -284,15 +299,18 @@ extern const char *getfirstaddr(const char *ipaddr, int cidr, const char *buf, i
 	}
 	return inet_ntop(AF_INET, &ip, (char *)buf, size);
 }
+#endif
 
 /** @brief Return broadcast address
   * @ingroup LIB-IP-IP4
   * @note ipaddr will be truncated to network address based on cidr.
+  * @todo WIN32 support
   * @param ipaddr Network address.
   * @param cidr CIDR subnet bit length.
   * @param buf Buffer to copy address too.
   * @param size Length of buffer.
   * @returns Pointer to buffer or NULL on error.*/
+#ifndef __WIN32
 extern const char *getbcaddr(const char *ipaddr, int cidr, const char *buf, int size) {
 	uint32_t ip, mask;
 
@@ -307,15 +325,18 @@ extern const char *getbcaddr(const char *ipaddr, int cidr, const char *buf, int 
 	}
 	return inet_ntop(AF_INET, &ip, (char *)buf, size);
 }
+#endif
 
 /** @brief Get the last usable address
   * @ingroup LIB-IP-IP4
   * @note ipaddr will be truncated to network address based on cidr.
+  * @todo WIN32 Support
   * @param ipaddr Network address.
   * @param cidr Bits in the subnet mask.
   * @param buf Buffer that the result is placed in.
   * @param size Length of buffer.
   * @returns Pointer to buf with the result copied to buf.*/
+#ifndef __WIN32
 extern const char *getlastaddr(const char *ipaddr, int cidr, const char *buf, int size) {
 	uint32_t ip, mask;
 
@@ -331,6 +352,7 @@ extern const char *getlastaddr(const char *ipaddr, int cidr, const char *buf, in
 	}
 	return inet_ntop(AF_INET, &ip, (char *)buf, size);
 }
+#endif
 
 /** @brief Return the number of IP addresses in a given bitmask
   * @ingroup LIB-IP-IP4
@@ -351,7 +373,12 @@ extern uint32_t cidrcnt(int bitlen) {
 extern int reservedip(const char *ipaddr) {
 	uint32_t ip;
 
-	inet_pton(AF_INET, ipaddr, &ip);
+#ifndef __WIN32
+	inet_pton(PF_INET, ipaddr, &ip);
+#else
+	ip = inet_addr(ipaddr);
+#endif
+
 	ip = ntohl(ip);
 
 	if (!((0xe0000000 ^ ip) >> 28)) { /* 224/4*/
@@ -391,9 +418,15 @@ extern char* ipv6to4prefix(const char *ipaddr) {
 	uint8_t *ipa;
 	char *pre6;
 
+#ifndef __WIN32
 	if (!inet_pton(AF_INET, ipaddr, &ip)) {
 		return NULL;
 	}
+#else
+	if (!(ip = inet_addr(ipaddr))) {
+		return NULL;
+	}
+#endif
 
 	pre6 = malloc(10);
 	ipa=(uint8_t*)&ip;
@@ -412,8 +445,13 @@ extern char* ipv6to4prefix(const char *ipaddr) {
 extern int check_ipv4(const char* ip, int cidr, const char *test) {
 	uint32_t ip1, ip2;
 
+#ifndef __WIN32
 	inet_pton(AF_INET, ip, &ip1);
 	inet_pton(AF_INET, test, &ip2);
+#else
+	ip1 = inet_addr(ip);
+	ip2 = inet_addr(test);
+#endif
 
 	ip1 = ntohl(ip1) >> (32-cidr);
 	ip2 = ntohl(ip2) >> (32-cidr);
@@ -430,17 +468,23 @@ extern int check_ipv4(const char* ip, int cidr, const char *test) {
   * param addr Ip address structure to fill out.*/
 void mcast6_ip(struct in6_addr *addr) {
 	int mip, rand;
+	uint32_t *i;
 
-	addr->s6_addr32[0] = htonl(0xFF350000);
-	addr->s6_addr32[1] = 0;
-	addr->s6_addr32[2] = 0;
-	addr->s6_addr32[3] = 1 << 31;
+#ifndef __WIN32
+	i = (uint32_t*)&addr->s6_addr32;
+#else
+	i = (uint32_t*)&addr->u.Word;
+#endif
+	i[0] = htonl(0xFF350000);
+	i[1] = 0;
+	i[2] = 0;
+	i[3] = 1 << 31;
 
 	do {
 		rand = genrand(&mip, 4);
 	} while (!rand);
 
-	addr->s6_addr32[3] = htonl(addr->s6_addr32[3] | mip);
+	i[3] = htonl(i[3] | mip);
 }
 
 /** @breif Randomally assign a SSM Multicast address.

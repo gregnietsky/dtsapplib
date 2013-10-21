@@ -511,27 +511,40 @@ extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, thr
   * A multicast socket is both a client and server due to the nature of multicasting
   * writing to a multicast socket should only be done with socketwrite not socketwrite_d
   * the socket is created on a interface and the initial address can be set.
+  * @todo Win32 support for inet_ntop/inet_pton
   * @param iface Interface to send and recieve multicast traffic.
   * @param family IP address family PF_INET or PF_INET6.
   * @param mcastip Multicast ip to use must be in "family".
   * @param port Port to use.
   * @param flags Multicast flags currently disables LOOP.
   * @returns Reference to multicast ocket structure.*/
+#ifndef __WIN32
 struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip, const char *port, int flags) {
+	const char *srcip;
+#else
+struct fwsocket *mcast_socket(const char *ipaddr, int family, const char *mcastip, const char *port, int flags) {
+#endif
 	struct fwsocket *fws;
 	struct  addrinfo hint, *result, *rp;
 	struct in_addr *srcif;
-	const char *srcip;
 	int on = 1;
 	int off = 0;
 	int ttl = 50;
 	socklen_t slen = sizeof(union sockstruct);
+
+#ifdef __WIN32
+	/* No support for win32 lacking inet_pton / inet_ntop*/
+	if (family == PF_INET6) {
+		return NULL;
+	}
+#endif
 
         memset(&hint, 0, sizeof(hint));
 	hint.ai_family = PF_UNSPEC;
 	hint.ai_socktype = SOCK_DGRAM;
 	hint.ai_protocol = IPPROTO_UDP;
 
+#ifndef __WIN32
 	if (!(srcip = get_ifipaddr(iface, family))) {
                 return NULL;
 	}
@@ -541,6 +554,11 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
                 return NULL;
         }
 	free((void*)srcip);
+#else
+        if (getaddrinfo(ipaddr, port, &hint, &result) || !result) {
+                return NULL;
+        }
+#endif
 
 	for(rp = result; rp; rp = result->ai_next) {
 		if (!(fws = make_socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol, NULL))) {
@@ -554,7 +572,7 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 		return NULL;
 	}
 
-	if(setsockopt(fws->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))) {
+	if(setsockopt(fws->sock, SOL_SOCKET, SO_REUSEADDR, (char*)&on, sizeof(on))) {
 		objunref(fws);
 		freeaddrinfo(result);
 		return NULL;
@@ -567,13 +585,13 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 
 		src_ip = (struct sockaddr_in*)rp->ai_addr;
 
-		if (setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl))) {
+		if (setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_TTL, (char*)&ttl, sizeof(ttl))) {
 			objunref(fws);
 			freeaddrinfo(result);
 			return NULL;
 		}
 
-		if (flags && setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_LOOP, &off, sizeof(off))) {
+		if (flags && setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_LOOP, (char*)&off, sizeof(off))) {
 			freeaddrinfo(result);
 			objunref(fws);
 			return NULL;
@@ -588,7 +606,7 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 
 		mg.imr_multiaddr = mcastip4;
 		mg.imr_interface.s_addr = src_ip->sin_addr.s_addr;
-		if (setsockopt(fws->sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mg, sizeof(mg))) {
+		if (setsockopt(fws->sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mg, sizeof(mg))) {
 			objunref(fws);
 			freeaddrinfo(rp);
 			return NULL;
@@ -596,12 +614,13 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 
 		memset(&srcif, 0, sizeof(srcif));
 		srcif = &src_ip->sin_addr;
-		if(setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_IF, srcif, sizeof(*srcif))) {
+		if(setsockopt(fws->sock, IPPROTO_IP, IP_MULTICAST_IF, (char*)srcif, sizeof(*srcif))) {
 			freeaddrinfo(rp);
 			objunref(fws);
 			return NULL;
 		}
 		src_ip->sin_addr.s_addr = mcastip4.s_addr;
+#ifndef __WIN32
 	} else if (rp->ai_family == PF_INET6) {
 		struct in6_addr mcastip6;
 		struct ipv6_mreq mg;
@@ -611,13 +630,13 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 		ifidx = get_iface_index(iface);
 		src_ip = (struct sockaddr_in6*)rp->ai_addr;
 
-		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &ttl, sizeof(ttl))) {
+		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char*)&ttl, sizeof(ttl))) {
 			objunref(fws);
 			freeaddrinfo(result);
 			return NULL;
 		}
 
-		if (flags && setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &off, sizeof(off))) {
+		if (flags && setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char*)&off, sizeof(off))) {
 			freeaddrinfo(result);
 			objunref(fws);
 			return NULL;
@@ -625,6 +644,7 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 
 		if (mcastip) {
 			inet_pton(PF_INET6, mcastip, &mcastip6);
+			/*NO WIN32 IPv6 Support*/
 		} else {
 			seedrand();
 			mcast6_ip(&mcastip6);
@@ -632,19 +652,20 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 
 		mg.ipv6mr_multiaddr = mcastip6;
 		mg.ipv6mr_interface = ifidx;
-		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mg, sizeof(mg))) {
+		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char*)&mg, sizeof(mg))) {
 			objunref(fws);
 			freeaddrinfo(rp);
 			return NULL;
 		}
 
-		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifidx, sizeof(ifidx))) {
+		if (setsockopt(fws->sock, IPPROTO_IPV6, IPV6_MULTICAST_IF, (char*)&ifidx, sizeof(ifidx))) {
 			objref(fws);
 			freeaddrinfo(rp);
 			return NULL;
 		}
 
 		src_ip->sin6_addr = mcastip6;
+#endif
 	}
 
 	if (bind(fws->sock, (struct sockaddr*)rp->ai_addr, sizeof(struct sockaddr_storage))) {
@@ -661,16 +682,31 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 }
 
 const char *sockaddr2ip(union sockstruct *addr, char *buff, int blen) {
+#ifdef __WIN32
+	uint32_t ip_addr4;
+	uint8_t	*ip4addr;
+#endif
+
 	if (!buff) {
 		return NULL;
 	}
 
 	switch (addr->ss.ss_family) {
 		case PF_INET:
+#ifndef __WIN32
 			inet_ntop(PF_INET, &addr->sa4.sin_addr, buff, blen);
+#else
+			ip_addr4 = ntohl(addr->sa4.sin_addr.s_addr);
+			ip4addr = (uint8_t*)&ip_addr4;
+			snprintf(buff, blen, "%i.%i.%i.%i", ip4addr[0], ip4addr[1], ip4addr[2], ip4addr[3]);
+#endif
 			break;
 		case PF_INET6:
+#ifndef __WIN32
 			inet_ntop(PF_INET6, &addr->sa6.sin6_addr, buff, blen);
+#else
+			return NULL;
+#endif
 			break;
 	}
 	return buff;

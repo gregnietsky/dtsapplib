@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * @{*/
 
 
+#ifndef __WIN32
 #include <netinet/in.h>
 #include <linux/if_vlan.h>
 #include <linux/if_ether.h>
@@ -33,19 +34,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/if.h>
 #include <ifaddrs.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <netdb.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#define ETH_ALEN 8
+#endif
+
+#include <sys/time.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "include/dtsapp.h"
+#ifndef __WIN32
 #include "libnetlink/include/libnetlink.h"
 #include "libnetlink/include/ll_map.h"
 #include "libnetlink/include/utils.h"
 
 static struct rtnl_handle *nlh;
+
+#endif
+
 
 /** @brief Order of precidence of ipv4*/
 enum ipv4_score {
@@ -66,6 +78,8 @@ enum ipv6_score {
 	/** @brief Other routable addresses*/
 	IPV6_SCORE_ROUTABLE = 1 << 2
 };
+
+#ifndef __WIN32
 
 /** @brief IP Netlink request.*/
 struct iplink_req {
@@ -640,7 +654,7 @@ extern int set_interface_ipaddr(char *ifname, char *ipaddr) {
 	objunref(req);
 	return (0);
 }
-
+#endif
 /** @}*/
 
 /** @brief Generate IPv6 address from mac address.
@@ -665,9 +679,11 @@ extern void eui48to64(unsigned char *mac48, unsigned char *eui64) {
 /** @brief Generate Unique Local IPv6 Unicast Addresses RFC 4193.
   *
   * @ingroup LIB-IP-IP6
+  * @todo WIN32 support
   * @param iface External system interface name.
   * @param prefix A buffer char[6] that will contain the prefix.
   * @returns -1 on error.*/
+#ifndef __WIN32
 extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
 	uint64_t ntpts;
 	unsigned char eui64[8];
@@ -690,10 +706,12 @@ extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
 
 	return (0);
 }
+#endif
 
-
+#ifndef __WIN32
 /** @brief Find best IP adress for a interface.
   * @ingroup LIB-IFACE
+  * @todo WIN32 Support
   * @param iface Interface name.
   * @param family PF_INET or PF_INET6.
   * @returns Best matching IP address for the interface.*/
@@ -778,3 +796,10 @@ const char *get_ifipaddr(const char *iface, int family) {
 	freeifaddrs(ifaddr);
 	return (strlenzero(host)) ? NULL : strdup(host);
 }
+#endif
+
+#ifdef __WIN32
+/*extern int get_iface_index(const char *ifname) {
+	return 0;
+}*/
+#endif
