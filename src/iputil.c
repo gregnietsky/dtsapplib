@@ -426,7 +426,7 @@ extern int check_ipv4(const char* ip, int cidr, const char *test) {
 }
 
 /** @breif Randomally assign a SSM Multicast address.
-  * @ingroup LIB-IP
+  * @ingroup LIB-IP-IP6
   * param addr Ip address structure to fill out.*/
 void mcast6_ip(struct in6_addr *addr) {
 	int mip, rand;
@@ -444,7 +444,7 @@ void mcast6_ip(struct in6_addr *addr) {
 }
 
 /** @breif Randomally assign a SSM Multicast address.
-  * @ingroup LIB-IP
+  * @ingroup LIB-IP-IP4
   * param addr Ip address structure to fill out.*/
 void mcast4_ip(struct in_addr *addr) {
 	uint32_t mip, rand;
