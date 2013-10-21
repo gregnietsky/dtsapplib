@@ -716,7 +716,7 @@ int score_ipv4(struct sockaddr_in *sa4, char *ipaddr, int iplen) {
 
 	/* Get ipaddr string*/
 #ifndef __WIN32
-	inet_ntop(AF_INET, &ipaddr, ipaddr, iplen);
+	inet_ntop(AF_INET, &sa4->sin_addr, ipaddr, iplen);
 #else
 	inet_ntop_sa(AF_INET, sa4, ipaddr, iplen);
 #endif
