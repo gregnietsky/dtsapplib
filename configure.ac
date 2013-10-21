@@ -118,6 +118,7 @@ AC_CHECK_FUNCS([memset munmap select socket])
 AM_CONDITIONAL([FRAMEWORK_INSTALL], [test "x$enable_framework_install" = xyes])
 AM_CONDITIONAL([FRAMEWORK_SYSTEM], [test "x$ac_cv_lib_framework_framework_mkthread" != "xyes"])
 AM_CONDITIONAL([LINUXSYSTEM], [test "x$ac_cv_header_linux_version_h" = "xyes"])
+AM_CONDITIONAL([WIN32SYSTEM], [test "x$ac_cv_header_linux_version_h" = "xno"])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
