@@ -225,7 +225,7 @@ extern int packetchecksum(uint8_t *pkt) {
   * @returns pointer to buffer on success or NULL.*/
 extern const char *cidrtosn(int bitlen, char *buf, int size) {
 	uint32_t nm;
-	uint8_t *nmb;
+	uint8_t *nmb = (uint8_t*)&nm;
 
 	if (!buf) {
 		return NULL;
@@ -237,7 +237,6 @@ extern const char *cidrtosn(int bitlen, char *buf, int size) {
 		nm = 0;
 	}
 
-	nmb = (uint8_t*)&nm;
 	snprintf(buf, size, "%i.%i.%i.%i", nmb[3], nmb[2], nmb[1], nmb[0]);
 	return buf;
 }
@@ -247,19 +246,22 @@ extern const char *cidrtosn(int bitlen, char *buf, int size) {
   * @note ipaddr will be truncated to network address based on cidr.
   * @param ipaddr Ipaddr to calculate for
   * @param cidr Length of the subnet bitmask.
-  * @todo Win32 support
   * @param buf Buffer that the result is placed in.
   * @param size Length of buffer.
   * @returns Pointer to buf with the result copied to buf.*/
-#ifndef __WIN32
-extern const char *getnetaddr(const char *ipaddr, int cidr, const char *buf, int size) {
+extern const char *getnetaddr(const char *ipaddr, int cidr, char *buf, int size) {
 	uint32_t ip;
+	uint8_t *ipb = (uint8_t*)&ip;
 	
 	if (!buf) {
 		return NULL;
 	}
 
+#ifndef __WIN32
 	inet_pton(AF_INET, ipaddr, &ip);
+#else
+	ip = inet_addr(ipaddr);
+#endif
 	if (cidr) {
 		ip = ntohl(ip);
 		ip = ip & ~((1 << (32-cidr))-1);
@@ -267,28 +269,32 @@ extern const char *getnetaddr(const char *ipaddr, int cidr, const char *buf, int
 	} else {
 		ip = 0;
 	}
-	return inet_ntop(AF_INET, &ip, (char *)buf, size);
+
+	snprintf(buf, size, "%i.%i.%i.%i", ipb[3], ipb[2], ipb[1], ipb[0]);
+	return buf;
 }
-#endif
 
 /** @brief Get the first usable address
   * @ingroup LIB-IP-IP4
   * @note ipaddr will be truncated to network address based on cidr.
   * @param ipaddr Network address.
-  * @todo WIN32 support
   * @param cidr Bits in the subnet mask.
   * @param buf Buffer that the result is placed in.
   * @param size Length of buffer.
   * @returns Pointer to buf with the result copied to buf.*/
-#ifndef __WIN32
-extern const char *getfirstaddr(const char *ipaddr, int cidr, const char *buf, int size) {
+extern const char *getfirstaddr(const char *ipaddr, int cidr, char *buf, int size) {
 	uint32_t ip;
+	uint8_t *ipb = (uint8_t*)&ip;
 	
 	if (!buf) {
 		return NULL;
 	}
 
+#ifndef __WIN32
 	inet_pton(AF_INET, ipaddr, &ip);
+#else
+	ip = inet_addr(ipaddr);
+#endif
 	if (cidr) {
 		ip = ntohl(ip);
 		ip = ip & ~((1 << (32-cidr))-1);
@@ -297,24 +303,28 @@ extern const char *getfirstaddr(const char *ipaddr, int cidr, const char *buf, i
 	} else {
 		ip = 1;
 	}
-	return inet_ntop(AF_INET, &ip, (char *)buf, size);
+
+	snprintf(buf, size, "%i.%i.%i.%i", ipb[3], ipb[2], ipb[1], ipb[0]);
+	return buf;
 }
-#endif
 
 /** @brief Return broadcast address
   * @ingroup LIB-IP-IP4
   * @note ipaddr will be truncated to network address based on cidr.
-  * @todo WIN32 support
   * @param ipaddr Network address.
   * @param cidr CIDR subnet bit length.
   * @param buf Buffer to copy address too.
   * @param size Length of buffer.
   * @returns Pointer to buffer or NULL on error.*/
-#ifndef __WIN32
-extern const char *getbcaddr(const char *ipaddr, int cidr, const char *buf, int size) {
+extern const char *getbcaddr(const char *ipaddr, int cidr, char *buf, int size) {
 	uint32_t ip, mask;
+	uint8_t *ipb = (uint8_t*)&mask;
 
+#ifndef __WIN32
 	inet_pton(AF_INET, ipaddr, &ip);
+#else
+	ip = inet_addr(ipaddr);
+#endif
 	if (cidr) {
 		mask = (1 << (32-cidr))-1;
 		ip = ntohl(ip);
@@ -323,24 +333,27 @@ extern const char *getbcaddr(const char *ipaddr, int cidr, const char *buf, int 
 	} else {
 		ip = 0;
 	}
-	return inet_ntop(AF_INET, &ip, (char *)buf, size);
+	snprintf(buf, size, "%i.%i.%i.%i", ipb[3], ipb[2], ipb[1], ipb[0]);
+	return buf;
 }
-#endif
 
 /** @brief Get the last usable address
   * @ingroup LIB-IP-IP4
   * @note ipaddr will be truncated to network address based on cidr.
-  * @todo WIN32 Support
   * @param ipaddr Network address.
   * @param cidr Bits in the subnet mask.
   * @param buf Buffer that the result is placed in.
   * @param size Length of buffer.
   * @returns Pointer to buf with the result copied to buf.*/
-#ifndef __WIN32
-extern const char *getlastaddr(const char *ipaddr, int cidr, const char *buf, int size) {
+extern const char *getlastaddr(const char *ipaddr, int cidr, char *buf, int size) {
 	uint32_t ip, mask;
+	uint8_t *ipb = (uint8_t*)&mask;
 
+#ifndef __WIN32
 	inet_pton(AF_INET, ipaddr, &ip);
+#else
+	ip = inet_addr(ipaddr);
+#endif
 	if (cidr) {
 		mask = (1 << (32-cidr))-1;
 		ip = ntohl(ip);
@@ -350,9 +363,9 @@ extern const char *getlastaddr(const char *ipaddr, int cidr, const char *buf, in
 	} else {
 		ip = 0;
 	}
-	return inet_ntop(AF_INET, &ip, (char *)buf, size);
+	snprintf(buf, size, "%i.%i.%i.%i", ipb[3], ipb[2], ipb[1], ipb[0]);
+	return buf;
 }
-#endif
 
 /** @brief Return the number of IP addresses in a given bitmask
   * @ingroup LIB-IP-IP4
