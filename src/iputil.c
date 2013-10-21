@@ -238,7 +238,7 @@ extern const char *cidrtosn(int bitlen, char *buf, int size) {
 	}
 
 	nmb = (uint8_t*)&nm;
-	snprintf(buf, size, "%i.%i.%i.%i", nmb[0], nmb[1], nmb[2], nmb[3]);
+	snprintf(buf, size, "%i.%i.%i.%i", nmb[3], nmb[2], nmb[1], nmb[0]);
 	return buf;
 }
 

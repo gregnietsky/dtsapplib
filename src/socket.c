@@ -698,7 +698,7 @@ const char *sockaddr2ip(union sockstruct *addr, char *buff, int blen) {
 #else
 			ip_addr4 = ntohl(addr->sa4.sin_addr.s_addr);
 			ip4addr = (uint8_t*)&ip_addr4;
-			snprintf(buff, blen, "%i.%i.%i.%i", ip4addr[0], ip4addr[1], ip4addr[2], ip4addr[3]);
+			snprintf(buff, blen, "%i.%i.%i.%i", ip4addr[3], ip4addr[2], ip4addr[1], ip4addr[0]);
 #endif
 			break;
 		case PF_INET6:
