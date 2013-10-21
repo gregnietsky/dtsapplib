@@ -437,7 +437,7 @@ extern void close_socket(struct fwsocket *sock);
 extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, threadcleanup cleanup);
 extern void socketserver(struct fwsocket *sock, socketrecv connectfunc, socketrecv acceptfunc, threadcleanup cleanup, void *data);
 struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip, const char *port, int flags);
-const char *getmcastip(struct fwsocket *sock, char *buf, int len);
+const char *sockaddr2ip(union sockstruct *addr, char *buf, int len);
 
 /*IP Utilities*/
 extern int checkipv6mask(const char *ipaddr, const char *network, uint8_t bits);

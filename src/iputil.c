@@ -451,6 +451,7 @@ void mcast4_ip(struct in_addr *addr) {
 
 	do {
 		rand = genrand(&mip, 3);
+		mip >>= 8;
 	} while (!rand || !(mip >> 8));
 	mip |= 232 << 24;
 

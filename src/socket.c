@@ -660,21 +660,20 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 	return fws;
 }
 
-const char *getmcastip(struct fwsocket *sock, char *buf, int len) {
-	char tmp[NI_MAXHOST];
-	char *buff = (buf) ? buf : (char*)&tmp;
-	int blen = (buf) ? len : NI_MAXHOST;
-
-	switch (sock->addr.ss.ss_family) {
-		case PF_INET:
-			inet_ntop(PF_INET, &sock->addr.sa4.sin_addr, buff, blen);
-		case PF_INET6:
-			inet_ntop(PF_INET6, &sock->addr.sa6.sin6_addr, buff, blen);
-			break;
+const char *sockaddr2ip(union sockstruct *addr, char *buff, int blen) {
+	if (!buff) {
+		return NULL;
 	}
 
-	printf("Using multicast IP %s\n", buff);
-	return (buf) ? buff : NULL;
+	switch (addr->ss.ss_family) {
+		case PF_INET:
+			inet_ntop(PF_INET, &addr->sa4.sin_addr, buff, blen);
+			break;
+		case PF_INET6:
+			inet_ntop(PF_INET6, &addr->sa6.sin6_addr, buff, blen);
+			break;
+	}
+	return buff;
 }
 
 /** @}*/
