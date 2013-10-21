@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "include/dtsapp.h"
 
-PIP_ADAPTER_ADDRESSES get_adaptorinfo(int obufsize, int tries) {
+static PIP_ADAPTER_ADDRESSES get_adaptorinfo(int obufsize, int tries) {
 	PIP_ADAPTER_ADDRESSES ainfo = NULL;
 	int i = 1;
 	unsigned long buflen;
@@ -28,16 +28,22 @@ PIP_ADAPTER_ADDRESSES get_adaptorinfo(int obufsize, int tries) {
 	return ainfo;
 }
 
-const char *inet_ntop_sa(int af, const void *src, char *dest, socklen_t size) {
+const char *inet_ntop(int af, const void *src, char *dest, socklen_t size) {
+	union sockstruct sa;
 	int res = 0;
 	char serv[NI_MAXSERV];
 
+	memset(&sa, 0, sizeof(sa));
+	sa.ss.ss_family = af;
+
 	switch(af) {
 		case AF_INET:
-			res = getnameinfo((struct sockaddr*)src, sizeof(struct sockaddr_in), dest, size, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
+			memcpy(&sa.sa4.sin_addr, src, sizeof(struct in_addr));
+			res = getnameinfo(&sa.sa, sizeof(struct sockaddr_in), dest, size, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
 			break;
 		case AF_INET6:
-			res = getnameinfo((struct sockaddr*)src, sizeof(struct sockaddr_in6), dest, size, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
+			memcpy(&sa.sa6.sin6_addr, src, sizeof(struct in6_addr));
+			res = getnameinfo(&sa.sa, sizeof(struct sockaddr_in6), dest, size, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
 			break;
 	}
 	return (!res) ? dest : NULL;

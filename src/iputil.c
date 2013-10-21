@@ -24,11 +24,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 #ifndef __WIN32
 #include <linux/ip.h>
 #include <linux/icmp.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
+#include <netdb.h>
 #else
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -511,3 +513,38 @@ void mcast4_ip(struct in_addr *addr) {
  	addr->s_addr = htonl(mip);
 }
 
+int inet_lookup(int family, const char *host, void *addr, socklen_t len) {
+	struct addrinfo hint, *result, *ainfo;
+	int ret = 0;
+
+	memset(&hint, 0, sizeof(hint));
+	hint.ai_family = family;
+
+	if (getaddrinfo(host, NULL, &hint, &result) || !result) {
+		return ret;
+	}
+
+	for(ainfo = result; ainfo; ainfo = ainfo->ai_next) {
+		switch(ainfo->ai_family) {
+			case PF_INET:
+				if (len >= sizeof(struct in_addr)) {
+					struct sockaddr_in *sa4 = (struct sockaddr_in*)ainfo->ai_addr;
+					memcpy(addr, &sa4->sin_addr, len);
+					ret = 1;
+				}
+				break;
+			case PF_INET6:
+				if (len >= sizeof(struct in6_addr)) {
+					struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)ainfo->ai_addr;
+					memcpy(addr, &sa6->sin6_addr, len);
+					ret = 1;
+				}
+				break;
+		}
+		if (ret) {
+			break;
+		}
+	}
+	freeaddrinfo(result);
+	return ret;
+}

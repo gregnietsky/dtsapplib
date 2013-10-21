@@ -144,9 +144,6 @@ extern struct fwsocket *make_socket(int family, int type, int proto, void *ssl) 
 extern struct fwsocket *accept_socket(struct fwsocket *sock) {
 	struct fwsocket *si;
 	socklen_t salen = sizeof(si->addr);
-#ifdef __WIN32
-/*	unsigned long on = 1;*/
-#endif
 
 	if (!(si = objalloc(sizeof(*si),clean_fwsocket))) {
 		return NULL;
@@ -158,10 +155,6 @@ extern struct fwsocket *accept_socket(struct fwsocket *sock) {
 		objunref(si);
 		return NULL;
 	}
-
-#ifdef __WIN32
-/*	ioctlsocket(si->sock, FIONBIO, (unsigned long*)&on);*/
-#endif
 
 	si->type = sock->type;
 	si->proto = sock->proto;
@@ -225,9 +218,6 @@ static struct fwsocket *_opensocket(int family, int stype, int proto, const char
 
 
 	if (ctype) {
-#ifdef __WIN32
-/*		ioctlsocket(sock->sock, FIONBIO, (unsigned long*)&on);*/
-#endif
 		sock->flags |= SOCK_FLAG_BIND;
 		memcpy(&sock->addr.ss, rp->ai_addr, sizeof(sock->addr.ss));
 		switch(sock->type) {
@@ -522,6 +512,7 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 	struct fwsocket *fws;
 	struct  addrinfo hint, *result, *rp;
 	struct in_addr *srcif;
+	const char *srcip;
 	int ifidx;
 	int on = 1;
 	int off = 0;
@@ -529,13 +520,6 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 	socklen_t slen = sizeof(union sockstruct);
 #ifdef __WIN32
 	struct ifinfo *ifinf;
-
-	/* No support for win32 lacking inet_pton / inet_ntop*/
-	if (family == PF_INET6) {
-		return NULL;
-	}
-#else
-	const char *srcip;
 #endif
 
         memset(&hint, 0, sizeof(hint));
@@ -558,8 +542,9 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 		return NULL;
 	}
 	ifidx = ifinf->idx;
-
-        if (getaddrinfo((family == AF_INET) ? ifinf->ipv4addr : ifinf->ipv6addr, port, &hint, &result) || !result) {
+	
+	srcip = (family == AF_INET) ? ifinf->ipv4addr : ifinf->ipv6addr;
+        if (!srcip || (getaddrinfo(srcip, port, &hint, &result) || !result)) {
 		objunref(ifinf);
                 return NULL;
         }
@@ -604,7 +589,7 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 		}
 
 		if (mcastip) {
-			mcastip4.s_addr = inet_addr(mcastip);
+			inet_lookup(PF_INET, mcastip, &mcastip4, sizeof(mcastip4));
 		} else {
 			seedrand();
 			mcast4_ip(&mcastip4);
@@ -649,11 +634,7 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 		}
 
 		if (mcastip) {
-#ifndef __WIN32
-			inet_pton(PF_INET6, mcastip, &mcastip6);
-#else
-			/*NO WIN32 IPv6 Support*/
-#endif
+			inet_lookup(PF_INET6, mcastip, &mcastip6, sizeof(mcastip6));
 		} else {
 			seedrand();
 			mcast6_ip(&mcastip6);
@@ -696,18 +677,10 @@ const char *sockaddr2ip(union sockstruct *addr, char *buff, int blen) {
 
 	switch (addr->ss.ss_family) {
 		case PF_INET:
-#ifndef __WIN32
 			inet_ntop(PF_INET, &addr->sa4.sin_addr, buff, blen);
-#else
-			inet_ntop_sa(PF_INET, &addr->ss, buff, blen);
-#endif
 			break;
 		case PF_INET6:
-#ifndef __WIN32
 			inet_ntop(PF_INET6, &addr->sa6.sin6_addr, buff, blen);
-#else
-			inet_ntop_sa(PF_INET6, &addr->ss, buff, blen);
-#endif
 			break;
 	}
 	return buff;

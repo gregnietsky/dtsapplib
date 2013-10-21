@@ -446,10 +446,11 @@ int score_ipv4(struct sockaddr_in *sa4, char *ipaddr, int iplen);
 int score_ipv6(struct sockaddr_in6 *sa6, char *ipaddr, int iplen);
 
 #ifdef __WIN32
-PIP_ADAPTER_ADDRESSES get_adaptorinfo(int obufsize, int tries);
-const char *inet_ntop_sa(int af, const void *src, char *dest, socklen_t size);
+const char *inet_ntop(int af, const void *src, char *dest, socklen_t size);
 struct ifinfo *get_ifinfo(const char *iface);
 #endif
+
+int inet_lookup(int family, const char *host, void *addr, socklen_t len);
 
 extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, threadcleanup cleanup);
 extern void socketserver(struct fwsocket *sock, socketrecv connectfunc, socketrecv acceptfunc, threadcleanup cleanup, void *data);

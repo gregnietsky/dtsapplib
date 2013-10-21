@@ -715,11 +715,7 @@ int score_ipv4(struct sockaddr_in *sa4, char *ipaddr, int iplen) {
 	addr = sa4->sin_addr.s_addr;
 
 	/* Get ipaddr string*/
-#ifndef __WIN32
 	inet_ntop(AF_INET, &sa4->sin_addr, ipaddr, iplen);
-#else
-	inet_ntop_sa(AF_INET, sa4, ipaddr, iplen);
-#endif
 
 	/* Score the IP*/
 	if (!((0xa9fe0000 ^  ntohl(addr)) >> 16)) {
@@ -757,11 +753,7 @@ int score_ipv6(struct sockaddr_in6 *sa6, char *ipaddr, int iplen) {
 	} else {
 		nscore = IPV6_SCORE_ROUTABLE;
 	}
-#ifndef __WIN32
 	inet_ntop(AF_INET6, ipptr, ipaddr, iplen);
-#else
-	inet_ntop_sa(AF_INET6, sa6, ipaddr, iplen);
-#endif
 
 	return nscore;
 }
@@ -825,10 +817,4 @@ const char *get_ifipaddr(const char *iface, int family) {
 	freeifaddrs(ifaddr);
 	return (strlenzero(host)) ? NULL : strdup(host);
 }
-#endif
-
-#ifdef __WIN32
-/*extern int get_iface_index(const char *ifname) {
-	return 0;
-}*/
 #endif
