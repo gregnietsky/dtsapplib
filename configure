@@ -636,6 +636,8 @@ ac_header_list=
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
+WIN32SYSTEM_FALSE
+WIN32SYSTEM_TRUE
 LINUXSYSTEM_FALSE
 LINUXSYSTEM_TRUE
 FRAMEWORK_SYSTEM_FALSE
@@ -18120,6 +18122,14 @@ else
   LINUXSYSTEM_FALSE=
 fi
 
+ if test "x$ac_cv_header_linux_version_h" = "xno"; then
+  WIN32SYSTEM_TRUE=
+  WIN32SYSTEM_FALSE='#'
+else
+  WIN32SYSTEM_TRUE='#'
+  WIN32SYSTEM_FALSE=
+fi
+
 
 ac_config_files="$ac_config_files Makefile src/Makefile src/libnetlink/Makefile src/libdtsapp.pc Doxyfile"
 
@@ -18270,6 +18280,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${LINUXSYSTEM_TRUE}" && test -z "${LINUXSYSTEM_FALSE}"; then
   as_fn_error $? "conditional \"LINUXSYSTEM\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${WIN32SYSTEM_TRUE}" && test -z "${WIN32SYSTEM_FALSE}"; then
+  as_fn_error $? "conditional \"WIN32SYSTEM\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
