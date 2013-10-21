@@ -62,7 +62,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef __WIN32__
 #include <winsock2.h>
 #include <ws2ipdef.h>
-#include <ws2ipdef.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
 #else
 #include <arpa/inet.h>
 #include <linux/un.h>
@@ -167,6 +168,13 @@ struct zobj {
 	uint16_t olen;
 	/** @brief Compressed size of data*/
 	uint16_t zlen;
+};
+
+struct ifinfo { 
+        int idx;
+        const char *ifaddr;  
+        const char *ipv4addr;
+        const char *ipv6addr;
 };
 
 /** @brief Forward decleration of structure.
@@ -433,6 +441,15 @@ extern struct fwsocket *sockbind(int family, int stype, int proto, const char *i
 extern struct fwsocket *udpbind(const char *ipaddr, const char *port, void *ssl);
 extern struct fwsocket *tcpbind(const char *ipaddr, const char *port, void *ssl, int backlog);
 extern void close_socket(struct fwsocket *sock);
+
+int score_ipv4(struct sockaddr_in *sa4, char *ipaddr, int iplen);
+int score_ipv6(struct sockaddr_in6 *sa6, char *ipaddr, int iplen);
+
+#ifdef __WIN32
+PIP_ADAPTER_ADDRESSES get_adaptorinfo(int obufsize, int tries);
+const char *inet_ntop_sa(int af, const void *src, char *dest, socklen_t size);
+struct ifinfo *get_ifinfo(const char *iface);
+#endif
 
 extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, threadcleanup cleanup);
 extern void socketserver(struct fwsocket *sock, socketrecv connectfunc, socketrecv acceptfunc, threadcleanup cleanup, void *data);
