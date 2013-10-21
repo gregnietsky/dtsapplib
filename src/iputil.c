@@ -265,7 +265,6 @@ extern const char *getnetaddr(const char *ipaddr, int cidr, char *buf, int size)
 	if (cidr) {
 		ip = ntohl(ip);
 		ip = ip & ~((1 << (32-cidr))-1);
-		ip = htonl(ip);		
 	} else {
 		ip = 0;
 	}
@@ -299,7 +298,6 @@ extern const char *getfirstaddr(const char *ipaddr, int cidr, char *buf, int siz
 		ip = ntohl(ip);
 		ip = ip & ~((1 << (32-cidr))-1);
 		ip++;
-		ip = htonl(ip);		
 	} else {
 		ip = 1;
 	}
@@ -329,7 +327,6 @@ extern const char *getbcaddr(const char *ipaddr, int cidr, char *buf, int size) 
 		mask = (1 << (32-cidr))-1;
 		ip = ntohl(ip);
 		ip = (ip & ~mask) | mask;
-		ip = htonl(ip);		
 	} else {
 		ip = 0;
 	}
@@ -359,7 +356,6 @@ extern const char *getlastaddr(const char *ipaddr, int cidr, char *buf, int size
 		ip = ntohl(ip);
 		ip = (ip & ~mask) | mask;
 		ip--;
-		ip = htonl(ip);		
 	} else {
 		ip = 0;
 	}
