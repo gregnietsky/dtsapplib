@@ -316,7 +316,7 @@ extern const char *getfirstaddr(const char *ipaddr, int cidr, char *buf, int siz
   * @returns Pointer to buffer or NULL on error.*/
 extern const char *getbcaddr(const char *ipaddr, int cidr, char *buf, int size) {
 	uint32_t ip, mask;
-	uint8_t *ipb = (uint8_t*)&mask;
+	uint8_t *ipb = (uint8_t*)&ip;
 
 #ifndef __WIN32
 	inet_pton(AF_INET, ipaddr, &ip);
@@ -344,7 +344,7 @@ extern const char *getbcaddr(const char *ipaddr, int cidr, char *buf, int size) 
   * @returns Pointer to buf with the result copied to buf.*/
 extern const char *getlastaddr(const char *ipaddr, int cidr, char *buf, int size) {
 	uint32_t ip, mask;
-	uint8_t *ipb = (uint8_t*)&mask;
+	uint8_t *ipb = (uint8_t*)&ip;
 
 #ifndef __WIN32
 	inet_pton(AF_INET, ipaddr, &ip);
