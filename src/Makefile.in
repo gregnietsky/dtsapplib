@@ -429,7 +429,8 @@ EXTRA_DIST = include
 @LINUXSYSTEM_TRUE@SYSSOURCE = unixsock.c nf_queue.c nf_ctrack.c radius.c rfc6296.c
 @WIN32SYSTEM_TRUE@SYSSOURCE = winiface.cpp
 @LINUXSYSTEM_TRUE@SYSLIBS = ./libnetlink/libnetlink.la
-@WIN32SYSTEM_TRUE@SYSLIBS = -liphlpapi -lws2_32
+@WIN32SYSTEM_TRUE@SYSLIBS = -liphlpapi -lws2_32 
+@WIN32SYSTEM_TRUE@SYSLDFLAGS = -no-undefined
 SUBDIRS = $(NLSUBDIR)
 lib_LTLIBRARIES = libdtsapp.la
 includeinstdir = $(includedir)/dtsapplib
@@ -439,7 +440,7 @@ libdtsapp_la_SOURCES = refobj.c lookup3.c thread.c main.c util.c socket.c ssluti
 
 libdtsapp_la_LIBADD = $(SYSLIBS) $(XSLT_LIBS) $(XML_LIBS) $(LDAP_LIBS) $(LIBS) $(LIBCURL)
 libdtsapp_la_CFLAGS = $(AM_CFLAGS) -I./libnetlink/include $(DEVELOPER_CFLAGS) $(XSLT_CFLAGS) $(XML_CFLAGS) $(LIBCURL_CPPFLAGS)
-libdtsapp_la_LDFLAGS = -version-info $(LT_LIBVER) -release $(VERSION)
+libdtsapp_la_LDFLAGS = -version-info $(LT_LIBVER) -release $(VERSION) $(SYSLDFLAGS)
 
 # Here are a set of rules to help you update your library version information:
 #
