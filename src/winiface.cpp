@@ -2,6 +2,12 @@
 #include <stdint.h>
 #include "include/dtsapp.h"
 
+/** @file
+  * @ingroup LIB-WIN32
+  * @brief Various routines for supporting Windows also requires C++
+  * @addtogroup LIB-WIN32
+  * @{*/
+
 static PIP_ADAPTER_ADDRESSES get_adaptorinfo(int obufsize, int tries) {
 	PIP_ADAPTER_ADDRESSES ainfo = NULL;
 	int i = 1;
@@ -27,6 +33,13 @@ static PIP_ADAPTER_ADDRESSES get_adaptorinfo(int obufsize, int tries) {
 	return ainfo;
 }
 
+/** @brief Win32 implementation of inet_ntop
+  * @note this is not a implemntation but a wrapper arround getnameinfo.
+  * @param af Address family only AF_INET or AF_INET6 are supported.
+  * @param src A pointer to in_addr or in6_addr.
+  * @param dest A buffer to place the IP address in.
+  * @param size the length of the buffer.
+  * @returns Pointer to dest on success or NULL*/
 const char *inet_ntop(int af, const void *src, char *dest, socklen_t size) {
 	union sockstruct sa;
 	int res = 0;
@@ -62,6 +75,11 @@ static void free_ifinfo(void *data) {
 	}
 }
 
+
+/** @brief Return interface info for a specified interface
+  * @param iface Interface name to return.
+  * @see ifinfo
+  * @returns Reference to interface information structure*/
 struct ifinfo *get_ifinfo(const char *iface) {
 	PIP_ADAPTER_ADDRESSES ainfo = NULL, cinfo;
 	PIP_ADAPTER_UNICAST_ADDRESS pUnicast;
@@ -134,3 +152,6 @@ struct ifinfo *get_ifinfo(const char *iface) {
 
 	return ifinf;
 }
+
+
+/** @}*/

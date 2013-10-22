@@ -170,10 +170,17 @@ struct zobj {
 	uint16_t zlen;
 };
 
+/** @ingroup LIB-WIN32
+  * @brief Data structure containing interface information
+  * @note This is specific to Windows XP SP1+*/
 struct ifinfo { 
+	/** @brief Interface index required for at least IPv6 multicast support*/
         int idx;
+	/** @brief MAC address of interface*/
         const char *ifaddr;  
+	/** @brief IPv4 address priorotised by Routed/Reserved/Zeroconf*/
         const char *ipv4addr;
+	/** @brief IPv6 address priorised by Local/6in4*/
         const char *ipv6addr;
 };
 

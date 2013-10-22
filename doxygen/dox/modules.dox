@@ -118,6 +118,10 @@ on each connection with the socket and data reference.
 \ingroup LIB
 \brief Implementation of RFC6296
 
+\defgroup LIB-WIN32 Windows Support
+\ingroup LIB
+\brief Support for building with mingw32 (Requires XP SP1+)
+
 \defgroup TLIB Distrotech Application Library (Todo)
 \brief Modules not completely documented
 

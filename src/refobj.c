@@ -324,6 +324,9 @@ static void empty_buckets(void *data) {
 	objunref(bloop);
 }
 
+/** @brief Return a reference to copy of a buffer.
+  * @param orig Original buffer to copy.
+  * @returns Reference to new instance of orig.*/
 extern void *objchar(const char *orig) {
 	int len = strlen(orig) + 1;
 	void *nobj;
