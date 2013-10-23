@@ -1,29 +1,16 @@
 var curl_8c =
 [
-    [ "bodytobuffer", "curl_8c.html#gafa12216145938352cbf58df7e79bd5a0", null ],
     [ "curl_buf2xml", "curl_8c.html#ga3741b42a5d9dec4d125e97fe9ab8471c", null ],
-    [ "curl_freeauth", "curl_8c.html#ga3d90f13c86a83117f79ef2ab235744cc", null ],
     [ "curl_geturl", "curl_8c.html#ga848a5b7417be88ee6d19b84fa4514f98", null ],
     [ "curl_newauth", "curl_8c.html#gafec30318425542909ab956159fe0a08f", null ],
     [ "curl_newpost", "curl_8c.html#ga8c73e5cb2a4773c9b79b56e4e6d69caf", null ],
     [ "curl_postitem", "curl_8c.html#ga3e62aea1a0929d16b4b4b10572c0b0dc", null ],
     [ "curl_posturl", "curl_8c.html#ga564eabe42cc85d21cfd159aeba6a6a7d", null ],
-    [ "curl_sendurl", "curl_8c.html#gaa1446cdccd680562a359759185e448eb", null ],
     [ "curl_setauth_cb", "curl_8c.html#gae187af55948eae8d0319de9fd955d519", null ],
     [ "curl_setprogress", "curl_8c.html#gacb39882769c9cec0d27ba2b0894701b7", null ],
     [ "curl_ungzip", "curl_8c.html#ga3c230c4aeeff838d02c4579debf351ff", null ],
     [ "curlclose", "curl_8c.html#gaaee74d5f000f998ebbc3b8b0a7dbdaff", null ],
-    [ "curlfree", "curl_8c.html#gac99dcd186c1e639c122a6f6fcbaf4ebc", null ],
     [ "curlinit", "curl_8c.html#ga9164da7e395ee6c92f7dfdc68e9bf594", null ],
-    [ "emptybuffer", "curl_8c.html#gadc95c65e398b321e72dfe0f5f94685ed", null ],
-    [ "free_curlpassword", "curl_8c.html#ga199fb6a087d5abf7899038df30990f6b", null ],
-    [ "free_post", "curl_8c.html#ga908be2105631c9c1e9ebeb5255f420ae", null ],
-    [ "free_progress", "curl_8c.html#ga155da99249f38e8c8b1a767df00dc43d", null ],
-    [ "headertobuffer", "curl_8c.html#gac81cd73ef1b0a5d01ff549b9f477c678", null ],
     [ "url_escape", "curl_8c.html#ga52bd70f08418e41b956872c13814a090", null ],
-    [ "url_unescape", "curl_8c.html#gad933393278466229d2a14828a4df593d", null ],
-    [ "curl", "curl_8c.html#ga6a59594ba3469ec6a1d56f6631e275e0", null ],
-    [ "curl_isinit", "curl_8c.html#ga269231fd6d35b415a6794ce41b71ba3b", null ],
-    [ "curlpassword", "curl_8c.html#ga9ba4237bb62e25c353d8998f6b4ac926", null ],
-    [ "curlprogress", "curl_8c.html#gafa7d87652bea3f8aefa1c53ccd8a9762", null ]
+    [ "url_unescape", "curl_8c.html#gad933393278466229d2a14828a4df593d", null ]
 ];

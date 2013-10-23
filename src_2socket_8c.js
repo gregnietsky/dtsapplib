@@ -1,13 +1,7 @@
 var src_2socket_8c =
 [
-    [ "_opensocket", "src_2socket_8c.html#gac34fe158e3a6272867d9b3b6b49f3c08", null ],
-    [ "_socket_handler", "src_2socket_8c.html#ga2ccaf9d4b31ce47bd65a2a2b6dae4206", null ],
-    [ "_socket_handler_clean", "src_2socket_8c.html#gabbee3908edba8dd9bac1336e3433da48", null ],
-    [ "_start_socket_handler", "src_2socket_8c.html#ga1558a5375863acaeb999965a9d5550db", null ],
     [ "accept_socket", "src_2socket_8c.html#gae6766012a1d374280a44c7d33cd88290", null ],
-    [ "clean_fwsocket", "src_2socket_8c.html#ga7f098ce4c89c5edde798b06ea5758815", null ],
     [ "close_socket", "src_2socket_8c.html#gae2172d725d57ad6446229c480f907dc7", null ],
-    [ "hash_socket", "src_2socket_8c.html#ga56ee38289cea3c3e8af9f3372eb1a97d", null ],
     [ "make_socket", "src_2socket_8c.html#gaa03b1cc30d7c0a8b82ec5ee643a95a20", null ],
     [ "mcast_socket", "src_2socket_8c.html#gab975db17c51345320346da0a8abc3750", null ],
     [ "sockaddr2ip", "src_2socket_8c.html#gafb5c8eeda8f80603661aeed3e25a8b13", null ],

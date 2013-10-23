@@ -1,27 +1,13 @@
 var config_8c =
 [
-    [ "add_conf_entry", "config_8c.html#ga1192faa4110febc3632b5aea8d9977e4", null ],
-    [ "category_callback", "config_8c.html#gac14e1dcaaa2a86153365d2793ae39ff3", null ],
     [ "config_cat_callback", "config_8c.html#ga05d72d8b45f4c0838f417923a0ce8f06", null ],
     [ "config_entry_callback", "config_8c.html#gadc8b44af6ff37b8f84d8ce70a3c0f85b", null ],
     [ "config_file_callback", "config_8c.html#ga2d71de953de42dd2d90d20a3a5467c47", null ],
-    [ "create_conf_category", "config_8c.html#gaa90e1d4c232b7b9fa7801f4601efbd01", null ],
-    [ "create_conf_file", "config_8c.html#ga10d70452ad3a661b6ff86ed19dda5bfb", null ],
-    [ "entry_callback", "config_8c.html#gaa169727e1785e6dc85c41564d9516c39", null ],
-    [ "file_callback", "config_8c.html#gadc8df4209e92724651911f4b3aca7aad", null ],
-    [ "filterconf", "config_8c.html#ga677924076f97e2d6401892378caff8dd", null ],
-    [ "free_config_category", "config_8c.html#ga8035d63d936faa9d7fc3eec775fdf008", null ],
-    [ "free_config_entry", "config_8c.html#ga0cfb422f617bd80022b51e513bbb1bfa", null ],
-    [ "free_config_file", "config_8c.html#gaaea942afdaa8726484472dad267a8667", null ],
     [ "get_category_loop", "config_8c.html#ga9f9a4e6930756767fd89ceda044e0c3d", null ],
     [ "get_category_next", "config_8c.html#gacda25f5961b62c5de343589c3a72b771", null ],
     [ "get_config_category", "config_8c.html#ga86c44d5b975637cbf0a84e034a4c3d1e", null ],
     [ "get_config_entry", "config_8c.html#gaa0c111f840cf2b807ec54b42f7c9e89b", null ],
     [ "get_config_file", "config_8c.html#gaa3e89f20af266ba0c27f389645246390", null ],
-    [ "hash_cats", "config_8c.html#ga48944502090445b1597d1ea438ecdb1d", null ],
-    [ "hash_files", "config_8c.html#ga13610ce33bd6f6b5f4a597fb8926166a", null ],
-    [ "initconfigfiles", "config_8c.html#ga8d2081f18f7d42ebc2a14c00dd6eaf9d", null ],
     [ "process_config", "config_8c.html#ga7dbeb9280e11b1b65574494a2fc01160", null ],
-    [ "unrefconfigfiles", "config_8c.html#ga7db3b481bde09a6ab984a9265c71d93a", null ],
-    [ "configfiles", "config_8c.html#ga4ae8007a41138300076fe9bc580acf0e", null ]
+    [ "unrefconfigfiles", "config_8c.html#ga7db3b481bde09a6ab984a9265c71d93a", null ]
 ];

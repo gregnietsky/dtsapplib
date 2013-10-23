@@ -1,8 +1,5 @@
 var util_8c =
 [
-    [ "_checksum", "util_8c.html#ga9bb5c585349778614e8adcf910fc9745", null ],
-    [ "_digest_cmp", "util_8c.html#af29789b0c2dabad6f3a2aa13b0613454", null ],
-    [ "_hmac", "util_8c.html#a94339e465d1e13e926279989cc664498", null ],
     [ "b64enc", "util_8c.html#gac2177c3c0bd4bd645ca27acc7bc02e9a", null ],
     [ "b64enc_buf", "util_8c.html#ga175ed23434d1c0b56ed40d09984d11a8", null ],
     [ "checksum", "util_8c.html#ga9bd22fba655f2169844ada56da1f61ae", null ],
