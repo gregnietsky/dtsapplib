@@ -17,6 +17,7 @@ they were used in the asterisk project.
 There is now a partner to this lib to support GUI applications using the wxWidgets library.
 
 \htmlonly
+<A HREF=http://github.com/gregnietsky/dtsapplib>Download from github</A><BR>
 <A HREF=dtsapplib_man.pdf>PDF Version of documentation</A>
 \endhtmlonly
 
