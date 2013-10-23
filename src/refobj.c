@@ -338,11 +338,9 @@ extern void *objchar(const char *orig) {
 }
 
 /** @}
-  *
   * @addtogroup LIB-OBJ-Bucket
-  * @{*/
-
-/** @brief Create a hashed bucket list.
+  * @{
+  * @brief Create a hashed bucket list.
   *
   * A bucket list is a ref obj the "list" element is a
   * array of "bucket" entries each has a hash

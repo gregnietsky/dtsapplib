@@ -708,6 +708,13 @@ extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
 }
 #endif
 
+/** @brief Return a score for a IPv4 addrress
+  * @ingroup LIB-IP-IP4
+  * @note This does not follow the RFC as gettaddrinfo would.
+  * @param sa4 Socket addr to check.
+  * @param ipaddr Buffer to place IP address.
+  * @param iplen Length of IP buffer.
+  * @returns Score based on the IP address Highest is "routable" lowest is Zeroconf.*/
 int score_ipv4(struct sockaddr_in *sa4, char *ipaddr, int iplen) {
 	uint32_t addr;
 	int nscore;
@@ -729,6 +736,13 @@ int score_ipv4(struct sockaddr_in *sa4, char *ipaddr, int iplen) {
 	return nscore;
 }
 
+/** @brief Return a score for a IPv6 addrress
+  * @ingroup LIB-IP-IP6
+  * @note This does not follow the RFC as gettaddrinfo would.
+  * @param sa6 Socket addr to check.
+  * @param ipaddr Buffer to place IP address.
+  * @param iplen Length of IP buffer.
+  * @returns Score based on the IP address Highest is "routable" lowest is Internal allocation.*/
 int score_ipv6(struct sockaddr_in6 *sa6, char *ipaddr, int iplen) {
 	uint32_t *ipptr, match;
 	int nscore;

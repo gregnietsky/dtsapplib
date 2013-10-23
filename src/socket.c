@@ -496,8 +496,33 @@ extern void socketclient(struct fwsocket *sock, void *data, socketrecv read, thr
 	_start_socket_handler(sock, read, NULL, cleanup, data);
 }
 
+/** @brief Return the ip address of a sockstruct addr.
+  * @param addr Socketstruct to return the address for.
+  * @param buff Buffer the IP will be copied too.
+  * @param blen Buffer length.
+  * @returns a pointer to buff.*/
+const char *sockaddr2ip(union sockstruct *addr, char *buff, int blen) {
+	if (!buff) {
+		return NULL;
+	}
+
+	switch (addr->ss.ss_family) {
+		case PF_INET:
+			inet_ntop(PF_INET, &addr->sa4.sin_addr, buff, blen);
+			break;
+		case PF_INET6:
+			inet_ntop(PF_INET6, &addr->sa6.sin6_addr, buff, blen);
+			break;
+	}
+	return buff;
+}
+
+/** @}*/
+
+
 /** @brief Create a multicast socket.
   *
+  * @ingroup LIB-Sock-MCAST
   * A multicast socket is both a client and server due to the nature of multicasting
   * writing to a multicast socket should only be done with socketwrite not socketwrite_d
   * the socket is created on a interface and the initial address can be set.
@@ -670,21 +695,4 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 	return fws;
 }
 
-const char *sockaddr2ip(union sockstruct *addr, char *buff, int blen) {
-	if (!buff) {
-		return NULL;
-	}
-
-	switch (addr->ss.ss_family) {
-		case PF_INET:
-			inet_ntop(PF_INET, &addr->sa4.sin_addr, buff, blen);
-			break;
-		case PF_INET6:
-			inet_ntop(PF_INET6, &addr->sa6.sin6_addr, buff, blen);
-			break;
-	}
-	return buff;
-}
-
-/** @}*/
 

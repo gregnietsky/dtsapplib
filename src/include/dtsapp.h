@@ -795,8 +795,6 @@ extern int ldap_saslbind(struct ldap_conn *ld, const char *mech, const char *rea
 						 const char *passwd, const char *authzid);
 extern int ldap_simplerebind(struct ldap_conn *ld, const char *initialdn, const char *initialpw, const char *base, const char *filter,
 							 const char *uidrdn, const char *uid, const char *passwd);
-extern void ldap_close(struct ldap_conn *ld);
-
 extern const char *ldap_errmsg(int res);
 
 extern struct ldap_results *ldap_search_sub(struct ldap_conn *ld, const char *base, const char *filter, int b64enc, int *res, ...);

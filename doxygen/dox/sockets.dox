@@ -1,6 +1,6 @@
 /*!
 \page sockets
-\section intro Introduction
+\section introsock Introduction
 
 The socket interface allows creating a thread per socket that passes output to a callback when available.
 
@@ -58,6 +58,16 @@ These are supported for SOCK_DGRAM and SOCK_STREAM and are capable of multiple c
 @ref unixsocket_server() and @ref unixsocket_client() return sockets (@ref fwsocket) and use of socketread_d() and socketwrite_d().
 
 SOCK_DGRAM requires creating a tempoary socket file for use as a endpoint to support multiple connections this is handled internally but its best to only use SOCK_STREAM.
+
+\section mcast Multicast Sockets
+
+Multicast sockets can be created and used as any other socket they only support SOCK_DGRAM traffic as there is no concept of client/server communication.
+A thread will be opened as a client writing to the socket should be done with socketwrite().
+
+There 2 helper routines that allow generating multicast groups mcast4_ip() and mcast6_ip().
+
+@see mcast_socket()
+@see socketclient()
 
 \section example Example Code
 

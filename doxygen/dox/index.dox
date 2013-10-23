@@ -7,7 +7,8 @@
 \page sock_ex Socket Example (Echo Server/Client)
 
 \mainpage Distrotech Application Library Manual
-\section intro Introduction
+\section mainintro Introduction
+
 This library has grown over time to include various interfaces as i have required them or have experimented with them and added them.
 
 The core functionality are the referenced lockable data structures that i reimplemented for my own experimentation to understand how and why

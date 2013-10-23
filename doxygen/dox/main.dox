@@ -1,6 +1,6 @@
 /*!
 \page main
-\section intro Using helper macro instead of main()
+\section introapp Using helper macro instead of main()
 
 This library includes functions to simplify startup.
 \li printgnu() Displays a standard message on the console at startup.

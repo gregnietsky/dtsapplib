@@ -11,6 +11,9 @@
 
 #include "include/dtsapp.h"
 
+struct ldap_results *_dtsldapsearch(struct ldap_conn *ldap, const char *base, int scope,
+					const char *filter, char **attrs, int b64enc, int *err);
+
 /** @file
   * @brief Openldap/SASL Implementation.
   * @ingroup LIB-LDAP
@@ -321,6 +324,14 @@ static int ldap_rebind_proc(LDAP *ld, LDAP_CONST char *url, ber_tag_t request, b
 	return res;
 }
 
+/** @brief Connect to a LDAP server.
+  * @param uri Server to connect too.
+  * @param starttls Starttls flags to disallow,allow or enforce SSL.
+  * @param timelimit Query timelimit.
+  * @param limit Results limit.
+  * @param debug Set LDAP_OPT_DEBUG_LEVEL and LBER_OPT_DEBUG_LEVEL to this level.
+  * @param err Pointer to a int that will contain the ldap error on failure.
+  * @returns Reference to LDAP connection if its NULL the error is returned in err.*/
 extern struct ldap_conn *ldap_connect(const char *uri, enum ldap_starttls starttls, int timelimit, int limit, int debug, int *err) {
 	struct ldap_conn *ld;
 	int version = 3;
@@ -415,6 +426,11 @@ static int dts_sasl_interact(LDAP *ld, unsigned flags, void *defaults, void *in 
 	return LDAP_SUCCESS;
 }
 
+/** @brief Bind to the connection with simple bind requireing a distingushed name and password.
+  * @param ld LDAP connection to bind to.
+  * @param dn Distinguished name to bind with.
+  * @param passwd Password for dn.
+  * @returns -1 on error.*/
 extern int ldap_simplebind(struct ldap_conn *ld, const char *dn, const char *passwd) {
 	struct ldap_simple *simple;
 	struct berval *cred;
@@ -446,6 +462,19 @@ extern int ldap_simplebind(struct ldap_conn *ld, const char *dn, const char *pas
 	return res;
 }
 
+/** @brief Bind to LDAP connection using rebind.
+  *
+  * Bind to a connection with a lower privlidge distingushed name and password search for a user dn,
+  * bind to the connection with the retrieved dn and user password.
+  * @param ldap LDAP connection to bind too.
+  * @param initialdn Initial dn to bind with.
+  * @param initialpw Password for the initial dn.
+  * @param base Search base to find user.
+  * @param filter LDAP filter to apply to find user.
+  * @param uidrdn Attribute containing user id.
+  * @param uid To search and bind as.
+  * @param passwd Password for the user id.
+  * @returns -1 on error.*/
 extern int ldap_simplerebind(struct ldap_conn *ldap, const char *initialdn, const char *initialpw, const char *base, const char *filter,
 							 const char *uidrdn, const char *uid, const char *passwd) {
 	int res, flen;
@@ -484,8 +513,15 @@ extern int ldap_simplerebind(struct ldap_conn *ldap, const char *initialdn, cons
 	return res;
 }
 
-extern int ldap_saslbind(struct ldap_conn *ld, const char *mech, const char *realm, const char *authcid,
-						 const char *passwd, const char *authzid ) {
+/** @brief Bind to the server with SASL
+  * @param ld Reference to LDAP connection.
+  * @param mech SASL mechanisim.
+  * @param realm SASL realm.
+  * @param authcid SASL auth id.
+  * @param passwd Password for authid.
+  * @param authzid Proxy authid.
+  * @returns -1 on error.*/
+extern int ldap_saslbind(struct ldap_conn *ld, const char *mech, const char *realm, const char *authcid, const char *passwd, const char *authzid ) {
 	struct sasl_defaults *sasl;
 	int res, sasl_flags = LDAP_SASL_AUTOMATIC | LDAP_SASL_QUIET;
 
@@ -534,10 +570,9 @@ extern int ldap_saslbind(struct ldap_conn *ld, const char *mech, const char *rea
 	return res;
 }
 
-extern void ldap_close(struct ldap_conn *ld) {
-	objunref(ld);
-}
-
+/** @brief Return LDAP error for a ldap error.
+  * @param res LDAP error id.
+  * @returns Error string.*/
 extern const char *ldap_errmsg(int res) {
 	return ldap_err2string(res);
 }
@@ -555,92 +590,14 @@ static int32_t searchresults_hash(const void *data, int key) {
 	return(ret);
 }
 
-struct ldap_results *dts_ldapsearch(struct ldap_conn *ld, const char *base, int scope, const char *filter, char *attrs[], int b64enc, int *err) {
-	struct timeval timeout = {0,0};
-	struct ldap_results *results;
-	struct ldap_entry *lent, *prev = NULL;
-	LDAPMessage *result, *message = NULL;
-	int res = LDAP_SUCCESS;
-
-	if (!objref(ld)) {
-		if (err) {
-			*err = LDAP_UNAVAILABLE;
-		}
-		if (attrs) {
-			free(attrs);
-		}
-		return NULL;
-	}
-
-	if ((results = objalloc(sizeof(*results), free_result))) {
-		results->entries = create_bucketlist(4, searchresults_hash);
-	}
-
-	timeout.tv_sec = ld->timelim;
-	timeout.tv_usec = 0;
-
-	objlock(ld);
-	if (!results || !results->entries ||
-			(res = ldap_search_ext_s(ld->ldap, base, scope, filter, attrs, 0, ld->sctrlsp, NULL, &timeout, ld->limit, &result))) {
-		objunlock(ld);
-		objunref(ld);
-		objunref(results);
-		ldap_msgfree(result);
-		if (err) {
-			*err = (!results || !results->entries) ? LDAP_NO_MEMORY : res;
-		}
-		if (attrs) {
-			free(attrs);
-		}
-		return NULL;
-	}
-	objunlock(ld);
-
-	if (attrs) {
-		free(attrs);
-	}
-
-	if ((results->count = ldap_count(ld->ldap, result, err)) < 0) {
-		objunref(ld);
-		objunref(results);
-		ldap_msgfree(result);
-		return NULL;
-	}
-
-	while((lent = ldap_getent(ld->ldap, &message, result, b64enc, err))) {
-		if (!results->first_entry) {
-			results->first_entry = lent;
-		}
-		if (!addtobucket(results->entries, lent)) {
-			res = LDAP_NO_MEMORY;
-			objunref(lent);
-			break;
-		}
-		lent->next = NULL;
-		if (prev) {
-			prev->next = lent;
-			lent->prev = prev;
-		} else {
-			lent->prev = NULL;
-		}
-		prev = lent;
-		objunref(lent);
-	}
-	ldap_msgfree(result);
-
-	if (err) {
-		*err = res;
-	}
-
-	if (res) {
-		objunref(results);
-		results = NULL;
-	}
-
-	objunref(ld);
-	return results;
-}
-
+/** @brief Search LDAP connection subtree.
+  * @param ld Reference to LDAP connection.
+  * @param base Search base dn.
+  * @param filter Search filter.
+  * @param b64enc Base 64 encode attributes.
+  * @param res Pointer containing LDAP error.
+  * @param ... NULL termincated list of attributes to include.
+  * @returns Search results structure.*/
 extern struct ldap_results *ldap_search_sub(struct ldap_conn *ld, const char *base, const char *filter, int b64enc, int *res, ...) {
 	va_list a_list;
 	char *attr, **tmp, **attrs = NULL;
@@ -664,9 +621,17 @@ extern struct ldap_results *ldap_search_sub(struct ldap_conn *ld, const char *ba
 		*tmp=NULL;
 	}
 
-	return dts_ldapsearch(ld, base, LDAP_SCOPE_SUBTREE, filter, attrs, b64enc, res);
+	return _dtsldapsearch(ld, base, LDAP_SCOPE_SUBTREE, filter, attrs, b64enc, res);
 }
 
+/** @brief Search LDAP connection one level.
+  * @param ld Reference to LDAP connection.
+  * @param base Search base dn.
+  * @param filter Search filter.
+  * @param b64enc Base 64 encode attributes.
+  * @param res Pointer containing LDAP error.
+  * @param ... NULL termincated list of attributes to include.
+  * @returns Search results structure.*/
 extern struct ldap_results *ldap_search_one(struct ldap_conn *ld, const char *base, const char *filter, int b64enc, int *res, ...) {
 	va_list a_list;
 	char *attr, **tmp, **attrs = NULL;
@@ -690,9 +655,17 @@ extern struct ldap_results *ldap_search_one(struct ldap_conn *ld, const char *ba
 		*tmp=NULL;
 	}
 
-	return dts_ldapsearch(ld, base, LDAP_SCOPE_ONELEVEL, filter, attrs, b64enc, res);
+	return _dtsldapsearch(ld, base, LDAP_SCOPE_ONELEVEL, filter, attrs, b64enc, res);
 }
 
+/** @brief Search LDAP connection base.
+  * @param ld Reference to LDAP connection.
+  * @param base Search base dn.
+  * @param filter Search filter.
+  * @param b64enc Base 64 encode attributes.
+  * @param res Pointer containing LDAP error.
+  * @param ... NULL termincated list of attributes to include.
+  * @returns Search results structure.*/
 extern struct ldap_results *ldap_search_base(struct ldap_conn *ld, const char *base, const char *filter, int b64enc, int *res, ...) {
 	va_list a_list;
 	char *attr, **tmp, **attrs = NULL;
@@ -716,8 +689,9 @@ extern struct ldap_results *ldap_search_base(struct ldap_conn *ld, const char *b
 		*tmp=NULL;
 	}
 
-	return dts_ldapsearch(ld, base, LDAP_SCOPE_BASE, filter, attrs, b64enc, res);
+	return _dtsldapsearch(ld, base, LDAP_SCOPE_BASE, filter, attrs, b64enc, res);
 }
+
 
 int ldap_count(LDAP *ld, LDAPMessage *message, int *err) {
 	int x;
@@ -787,7 +761,7 @@ static char *ldap_getattribute(LDAP *ld, LDAPMessage *message, BerElement **berp
 	return attr;
 }
 
-char *ldap_encattr(void *attrval, int b64enc, enum ldap_attrtype *type) {
+static char *ldap_encattr(void *attrval, int b64enc, enum ldap_attrtype *type) {
 	struct berval *val = attrval;
 	char *aval = NULL;
 	int len, pos, atype;
@@ -1079,6 +1053,9 @@ struct ldap_entry *ldap_getent(LDAP *ld, LDAPMessage **msgptr, LDAPMessage *resu
 	return ent;
 }
 
+/** @brief Remove a attribute from a entry.
+  * @param entry The entry to remove attr from.
+  * @param attr Attribute to remove.*/
 extern void ldap_unref_attr(struct ldap_entry *entry, struct ldap_attr *attr) {
 	if (!entry || !attr) {
 		return;
@@ -1094,6 +1071,9 @@ extern void ldap_unref_attr(struct ldap_entry *entry, struct ldap_attr *attr) {
 	}
 }
 
+/** @brief Remove a entry from a result.
+  * @param results The result to remove entry from.
+  * @param entry Entry to remove.*/
 extern void ldap_unref_entry(struct ldap_results *results, struct ldap_entry *entry) {
 	if (!results || !entry) {
 		return;
@@ -1109,6 +1089,10 @@ extern void ldap_unref_entry(struct ldap_results *results, struct ldap_entry *en
 	}
 }
 
+/** @brief Find and return the entry from the results for a specific dn.
+  * @param results Results to search in.
+  * @param dn DN search for.
+  * @returns Entry for a DN in the results or NULL.*/
 extern struct ldap_entry *ldap_getentry(struct ldap_results *results, const char *dn) {
 	if (!results || !dn) {
 		return NULL;
@@ -1116,6 +1100,11 @@ extern struct ldap_entry *ldap_getentry(struct ldap_results *results, const char
 	return (struct ldap_entry *)bucket_list_find_key(results->entries, dn);
 }
 
+
+/** @brief Find and return attribute in a entry.
+  * @param entry Entry to return attribute from.
+  * @param attr Atttribute to return.
+  * @returns Attribute reference matching attr.*/
 extern struct ldap_attr *ldap_getattr(struct ldap_entry *entry, const char *attr) {
 	if (!entry || !entry->attrs) {
 		return NULL;
@@ -1123,6 +1112,9 @@ extern struct ldap_attr *ldap_getattr(struct ldap_entry *entry, const char *attr
 	return (struct ldap_attr *)bucket_list_find_key(entry->attrs, attr);
 }
 
+/** @brief Create a modification reference for a DN.
+  * @param dn DN to modify.
+  * @returns Reference to a modification structure used to modify a DN.*/
 extern struct ldap_modify *ldap_modifyinit(const char *dn) {
 	struct ldap_modify *mod;
 	int cnt;
@@ -1147,7 +1139,7 @@ extern struct ldap_modify *ldap_modifyinit(const char *dn) {
 	return mod;
 }
 
-struct ldap_modreq *new_modreq(struct bucket_list *modtype, const char *attr) {
+static struct ldap_modreq *new_modreq(struct bucket_list *modtype, const char *attr) {
 	struct ldap_modreq *modr;
 
 	if (!(modr = objalloc(sizeof(*modr), free_modreq))) {
@@ -1162,7 +1154,7 @@ struct ldap_modreq *new_modreq(struct bucket_list *modtype, const char *attr) {
 	return modr;
 }
 
-struct ldap_modreq *getmodreq(struct ldap_modify *lmod, const char *attr, int modop) {
+static struct ldap_modreq *getmodreq(struct ldap_modify *lmod, const char *attr, int modop) {
 	struct bucket_list *bl = NULL;
 	struct ldap_modreq *modr = NULL;
 
@@ -1186,7 +1178,7 @@ struct ldap_modreq *getmodreq(struct ldap_modify *lmod, const char *attr, int mo
 	return modr;
 }
 
-int add_modifyval(struct ldap_modreq *modr, const char *value) {
+static int add_modifyval(struct ldap_modreq *modr, const char *value) {
 	struct ldap_modval *newval;
 
 	if (!(newval = objalloc(sizeof(*newval), free_modval))) {
@@ -1211,6 +1203,11 @@ int add_modifyval(struct ldap_modreq *modr, const char *value) {
 	return 0;
 }
 
+/** @brief Delete values from a attribute.
+  * @param lmod LDAP modification referenece.
+  * @param attr Attribute to modify.
+  * @param ... Values to remove.
+  * @returns Zero on success.*/
 extern int ldap_mod_del(struct ldap_modify *lmod, const char *attr, ...) {
 	va_list a_list;
 	char *val;
@@ -1233,6 +1230,11 @@ extern int ldap_mod_del(struct ldap_modify *lmod, const char *attr, ...) {
 	return 0;
 }
 
+/** @brief Add values to a attribute.
+  * @param lmod LDAP modification referenece.
+  * @param attr Attribute to modify.
+  * @param ... Values to add.
+  * @returns Zero on success.*/
 extern int ldap_mod_add(struct ldap_modify *lmod, const char *attr, ...) {
 	va_list a_list;
 	char *val;
@@ -1255,6 +1257,11 @@ extern int ldap_mod_add(struct ldap_modify *lmod, const char *attr, ...) {
 	return 0;
 }
 
+/** @brief Replace a attribute.
+  * @param lmod LDAP modification referenece.
+  * @param attr Attribute to modify.
+  * @param ... Values to replace.
+  * @returns Zero on success.*/
 extern int ldap_mod_rep(struct ldap_modify *lmod, const char *attr, ...) {
 	va_list a_list;
 	char *val;
@@ -1277,7 +1284,7 @@ extern int ldap_mod_rep(struct ldap_modify *lmod, const char *attr, ...) {
 	return 0;
 }
 
-LDAPMod *ldap_reqtoarr(struct ldap_modreq *modr, int type) {
+static LDAPMod *ldap_reqtoarr(struct ldap_modreq *modr, int type) {
 	LDAPMod *modi;
 	const char **mval;
 	struct ldap_modval *modv;
@@ -1325,6 +1332,10 @@ LDAPMod *ldap_reqtoarr(struct ldap_modreq *modr, int type) {
 	return modi;
 }
 
+/** @brief Apply the modification to the server.
+  * @param ld Reference to LDAP connection.
+  * @param lmod Reference to modification structure.
+  * @returns Non zero ldap error on error.*/
 extern int ldap_domodify(struct ldap_conn *ld, struct ldap_modify *lmod) {
 	struct bucket_loop *bloop;
 	struct ldap_modreq *modr;
@@ -1364,6 +1375,12 @@ extern int ldap_domodify(struct ldap_conn *ld, struct ldap_modify *lmod) {
 	return res;
 }
 
+/** @brief Delete a value from a attribute in a DN.
+  * @param ldap Reference to the connection.
+  * @param dn DN to remove values from.
+  * @param attr Attribute to remove values from.
+  * @param value Value to remove from attribute.
+  * @returns Non zero ldap error on failure*/
 extern int ldap_mod_delattr(struct ldap_conn *ldap, const char *dn, const char *attr, const char *value) {
 	struct ldap_modify *lmod;
 	int res;
@@ -1381,10 +1398,21 @@ extern int ldap_mod_delattr(struct ldap_conn *ldap, const char *dn, const char *
 	return res;
 }
 
+/** @brief Delete a attribute from a DN.
+  * @param ldap Reference to the connection.
+  * @param dn DN to remove attribute from.
+  * @param attr Attribute to remove.
+  * @returns Non zero ldap error on failure*/
 extern int ldap_mod_remattr(struct ldap_conn *ldap, const char *dn, const char *attr) {
 	return ldap_mod_delattr(ldap, dn, attr, NULL);
 }
 
+/** @brief Add a value for a attribute in a DN.
+  * @param ldap Reference to the connection.
+  * @param dn DN to remove values from.
+  * @param attr Attribute to add value to.
+  * @param value Value to remove from attribute.
+  * @returns Non zero ldap error on failure*/
 extern int ldap_mod_addattr(struct ldap_conn *ldap, const char *dn, const char *attr, const char *value) {
 	int res = 0;
 	struct ldap_modify *lmod;
@@ -1403,6 +1431,13 @@ extern int ldap_mod_addattr(struct ldap_conn *ldap, const char *dn, const char *
 	return res;
 }
 
+
+/** @brief Replace the value of a attribute in a DN.
+  * @param ldap Reference to the connection.
+  * @param dn DN to replace attribute in.
+  * @param attr Attribute to replace.
+  * @param value Value to replace attr with.
+  * @returns Non zero ldap error on failure*/
 extern int ldap_mod_repattr(struct ldap_conn *ldap, const char *dn, const char *attr, const char *value) {
 	struct ldap_modify *lmod;
 	int res;
@@ -1421,6 +1456,9 @@ extern int ldap_mod_repattr(struct ldap_conn *ldap, const char *dn, const char *
 	return res;
 }
 
+/** @brief Create a reference to add a new DN.
+  * @param dn DN to be created.
+  * @returns Reference to a structure to configure for adding a new dn.*/
 extern struct ldap_add *ldap_addinit(const char *dn) {
 	struct ldap_add *mod;
 
@@ -1442,7 +1480,7 @@ extern struct ldap_add *ldap_addinit(const char *dn) {
 	return mod;
 }
 
-struct ldap_modreq *getaddreq(struct ldap_add *ladd, const char *attr) {
+static struct ldap_modreq *getaddreq(struct ldap_add *ladd, const char *attr) {
 	struct bucket_list *bl = ladd->bl;
 	struct ldap_modreq *modr = NULL;
 
@@ -1454,6 +1492,11 @@ struct ldap_modreq *getaddreq(struct ldap_add *ladd, const char *attr) {
 	return modr;
 }
 
+/** @brief Add a attribute to new DN
+  * @param ladd Reference to new DN structure.
+  * @param attr Attribute to add.
+  * @param ... NULL terminated list of values.
+  * @returns 0 on success.*/
 extern int ldap_add_attr(struct ldap_add *ladd, const char *attr, ...) {
 	va_list a_list;
 	char *val;
@@ -1476,6 +1519,10 @@ extern int ldap_add_attr(struct ldap_add *ladd, const char *attr, ...) {
 	return 0;
 }
 
+/** @brief Write new DN to server.
+  * @param ld Reference to connection to the LDAP server.
+  * @param ladd Reference to new DN to commit to server.
+  * @returns non zero LDAP error on failure.*/
 extern int ldap_doadd(struct ldap_conn *ld, struct ldap_add *ladd) {
 	struct bucket_loop *bloop;
 	struct ldap_modreq *modr;
@@ -1508,3 +1555,89 @@ extern int ldap_doadd(struct ldap_conn *ld, struct ldap_add *ladd) {
 
 
 /** @}*/
+
+struct ldap_results *_dtsldapsearch(struct ldap_conn *ldap, const char *base, int scope, const char *filter, char **attrs, int b64enc, int *err) {
+	struct timeval timeout;
+	struct ldap_results *results;
+	struct ldap_entry *lent, *prev = NULL;
+	LDAPMessage *result, *message = NULL;
+	int res = LDAP_SUCCESS;
+
+	if (!objref(ldap)) {
+		if (err) {
+			*err = LDAP_UNAVAILABLE;
+		}
+		if (attrs) {
+			free(attrs);
+		}
+		return NULL;
+	}
+
+	if ((results = objalloc(sizeof(*results), free_result))) {
+		results->entries = create_bucketlist(4, searchresults_hash);
+	}
+
+	timeout.tv_sec = ldap->timelim;
+	timeout.tv_usec = 0;
+
+	objlock(ldap);
+	if (!results || !results->entries ||
+	    (res = ldap_search_ext_s(ldap->ldap, base, scope, filter, attrs, 0, ldap->sctrlsp, NULL, &timeout, ldap->limit, &result))) {
+		objunlock(ldap);
+		objunref(ldap);
+		objunref(results);
+		ldap_msgfree(result);
+		if (err) {
+			*err = (!results || !results->entries) ? LDAP_NO_MEMORY : res;
+		}
+		if (attrs) {
+			free(attrs);
+		}
+		return NULL;
+	}
+	objunlock(ldap);
+
+	if (attrs) {
+		free(attrs);
+	}
+
+	if ((results->count = ldap_count(ldap->ldap, result, err)) < 0) {
+		objunref(ldap);
+		objunref(results);
+		ldap_msgfree(result);
+		return NULL;
+	}
+
+	while((lent = ldap_getent(ldap->ldap, &message, result, b64enc, err))) {
+		if (!results->first_entry) {
+			results->first_entry = lent;
+		}
+		if (!addtobucket(results->entries, lent)) {
+			res = LDAP_NO_MEMORY;
+			objunref(lent);
+			break;
+		}
+		lent->next = NULL;
+		if (prev) {
+			prev->next = lent;
+			lent->prev = prev;
+		} else {
+			lent->prev = NULL;
+		}
+		prev = lent;
+		objunref(lent);
+	}
+	ldap_msgfree(result);
+
+	if (err) {
+		*err = res;
+	}
+
+	if (res) {
+		objunref(results);
+		results = NULL;
+	}
+
+	objunref(ldap);
+	return results;
+}

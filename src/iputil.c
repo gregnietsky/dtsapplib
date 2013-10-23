@@ -474,8 +474,8 @@ extern int check_ipv4(const char* ip, int cidr, const char *test) {
 	}
 }
 
-/** @breif Randomally assign a SSM Multicast address.
-  * @ingroup LIB-IP-IP6
+/** @brief Randomally assign a SSM Multicast address.
+  * @ingroup LIB-Sock-MCAST
   * param addr Ip address structure to fill out.*/
 void mcast6_ip(struct in6_addr *addr) {
 	int mip, rand;
@@ -498,9 +498,9 @@ void mcast6_ip(struct in6_addr *addr) {
 	i[3] = htonl(i[3] | mip);
 }
 
-/** @breif Randomally assign a SSM Multicast address.
-  * @ingroup LIB-IP-IP4
-  * param addr Ip address structure to fill out.*/
+/** @brief Randomally assign a SSM Multicast address.
+  * @ingroup LIB-Sock-MCAST
+  * @param addr Ip address structure to fill out.*/
 void mcast4_ip(struct in_addr *addr) {
 	uint32_t mip, rand;
 
@@ -513,6 +513,13 @@ void mcast4_ip(struct in_addr *addr) {
  	addr->s_addr = htonl(mip);
 }
 
+/** @brief Perform DNS lookup on a host/ip retun the IP address
+  * @ingroup LIB-IP
+  * @param family Protocol family either PF_INET or PF_INET6.
+  * @param host Hostname or IP address to lookup.
+  * @param addr A structure in_addr or in6_addr the result is returned in.
+  * @param len Length of the structure to place the result.
+  * @returns 0 on failure ie addr is unaltered.*/
 int inet_lookup(int family, const char *host, void *addr, socklen_t len) {
 	struct addrinfo hint, *result, *ainfo;
 	int ret = 0;
