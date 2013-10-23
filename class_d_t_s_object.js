@@ -1,0 +1,25 @@
+var class_d_t_s_object =
+[
+    [ "DTSObject", "class_d_t_s_object.html#a76f73a01ddebf90d59245dd744d491b5", null ],
+    [ "~DTSObject", "class_d_t_s_object.html#a47a4a671f875d6fb7681865c26b32546", null ],
+    [ "EventHandler", "class_d_t_s_object.html#a392c5ee37a2ca5e82e39cf11bc781eda", null ],
+    [ "GetFrame", "class_d_t_s_object.html#ae5239b912c725a7a5720954767c3537a", null ],
+    [ "GetItems", "class_d_t_s_object.html#a4cadcce0480e7e8f4a9a07a4aedd3c1f", null ],
+    [ "GetName", "class_d_t_s_object.html#aa800a3664b895617df9884469dbdf1f8", null ],
+    [ "GetPanel", "class_d_t_s_object.html#ae88ef1ea6f28346b6cd6d2d898d7acde", null ],
+    [ "GetUserData", "class_d_t_s_object.html#a5d32407be34aa68ea2b038ede768d50e", null ],
+    [ "GetXMLDoc", "class_d_t_s_object.html#ae177d1cfd85be759810b252b98f2050d", null ],
+    [ "SetUserData", "class_d_t_s_object.html#a3e39ba76f7cb701fc9b99f6f059fb49e", null ],
+    [ "SetXMLDoc", "class_d_t_s_object.html#a1ae63425d8e5770a8b0717f37fd695b2", null ],
+    [ "beenshown", "class_d_t_s_object.html#ab4249f538d36789b20bb15e29ab4121f", null ],
+    [ "buttons", "class_d_t_s_object.html#abcce46b892d3c17810d4551c495512ce", null ],
+    [ "dtsevthandler", "class_d_t_s_object.html#a132481851865629352e4aefa7f822e4b", null ],
+    [ "fitems", "class_d_t_s_object.html#a53fa1242a31d95bc3fec2824ff055cae", null ],
+    [ "frame", "class_d_t_s_object.html#a8ca3e7c6f66685caf07fa93fb5e14337", null ],
+    [ "panel", "class_d_t_s_object.html#af8c7a75701ac05261749552eef4bc6ed", null ],
+    [ "refobj", "class_d_t_s_object.html#a941fc98555b60d021a6c2f488ce9ae3e", null ],
+    [ "status", "class_d_t_s_object.html#a1292b4804b31450f0ee960fa59fcfc7a", null ],
+    [ "type", "class_d_t_s_object.html#ad191e42b5daa056f9ea8247d752df3b0", null ],
+    [ "userdata", "class_d_t_s_object.html#a783949e39ffd9e00aec15fa2b8cc12ed", null ],
+    [ "xmldoc", "class_d_t_s_object.html#a0e9b6e22629a9aa1fd5227cefaa25e6f", null ]
+];

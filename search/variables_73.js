@@ -1,0 +1,23 @@
+var searchData=
+[
+  ['sa',['sa',['../unionsockstruct.html#acc775d9a294b8cc2c9ba67e0972c5c2b',1,'sockstruct::sa()'],['../structframework__core.html#acec5b56d7bae7857308654b03b768f60',1,'framework_core::sa()']]],
+  ['sa4',['sa4',['../unionsockstruct.html#a5d01f0f31d5041a85fc8c6c16e563dc6',1,'sockstruct']]],
+  ['sa6',['sa6',['../unionsockstruct.html#aee9298f4ee0f84a40fa4bad0af075afd',1,'sockstruct']]],
+  ['saddr',['saddr',['../structpseudohdr.html#a936227ef79d9175c0608a2642a4642cc',1,'pseudohdr']]],
+  ['sasl',['sasl',['../structldap__conn.html#a8fc361c7005c408bf7927bb924e889be',1,'ldap_conn']]],
+  ['sctrlsp',['sctrlsp',['../structldap__conn.html#adabdedb622626303793358ae30f99ed5',1,'ldap_conn']]],
+  ['secret',['secret',['../structradius__server.html#afaae29c08bcfbb4106858101aab2ccab',1,'radius_server']]],
+  ['sent',['sent',['../structradius__session.html#a96e991549418a49f9e30a52cc98196ab',1,'radius_session']]],
+  ['server',['server',['../structradius__connection.html#a68299ee9d3b5a53b6730cf82efb09d58',1,'radius_connection']]],
+  ['service',['service',['../structradius__server.html#ab8c77f3bd49a40409c9f27f05926c872',1,'radius_server']]],
+  ['sessions',['sessions',['../structradius__connection.html#ac086e5d85da7f75c282c2f06c4fab552',1,'radius_connection']]],
+  ['sig_5fhandler',['sig_handler',['../structframework__core.html#ac432b2edfa7598be04eb1d76b08f7fda',1,'framework_core']]],
+  ['sighandler',['sighandler',['../structthread__pvt.html#abae8502ac984dfca665a869ba1174a52',1,'thread_pvt']]],
+  ['simple',['simple',['../structldap__conn.html#aee9186cef5ce7a373c948c71873237f6',1,'ldap_conn']]],
+  ['size',['size',['../structref__obj.html#ab77479cff3d660fbd7af49c237975b1c',1,'ref_obj']]],
+  ['sock',['sock',['../structfwsocket.html#aa08a6630d5f365c9d02702ae105d0508',1,'fwsocket::sock()'],['../structsocket__handler.html#aa549b3d815c768e7e95a73c7031d9733',1,'socket_handler::sock()'],['../structunixserv__sockthread.html#a7660c1911d39d8c776dda2d83abadc28',1,'unixserv_sockthread::sock()'],['../structunixclient__sockthread.html#a911a50c425351fa31f4c3553af26ac46',1,'unixclient_sockthread::sock()']]],
+  ['socket',['socket',['../structradius__connection.html#a9d7bc7cfd12852dfa73edc23b10b89fb',1,'radius_connection']]],
+  ['sockpath',['sockpath',['../structunixserv__sockthread.html#a3fa8cbe45b4300a42cfb4ef67e875cf0',1,'unixserv_sockthread']]],
+  ['ss',['ss',['../unionsockstruct.html#afd7c05d21fb0d22fd080f45c37e8ae2d',1,'sockstruct']]],
+  ['ssl',['ssl',['../structfwsocket.html#ab503d2715edbc834777b1d16ba0594a6',1,'fwsocket::ssl()'],['../structssldata.html#a1be68efbbb3667e5b1b795b1e2b1dde7',1,'ssldata::ssl()']]]
+];
