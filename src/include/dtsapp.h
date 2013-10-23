@@ -584,6 +584,7 @@ enum RADIUS_CODE {
 extern void addradattrint(struct radius_packet *packet, char type, unsigned int val);
 extern void addradattrip(struct radius_packet *packet, char type, char *ipaddr);
 extern void addradattrstr(struct radius_packet *packet, char type, char *str);
+unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len);
 extern struct radius_packet *new_radpacket(unsigned char code);
 extern int send_radpacket(struct radius_packet *packet, const char *userpass, radius_cb read_cb, void *cb_data);
 extern void add_radserver(const char *ipaddr, const char *auth, const char *acct, const char *secret, int timeout);
