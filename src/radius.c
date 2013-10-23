@@ -125,7 +125,7 @@ static struct bucket_list *servers = NULL;
 
 static struct radius_connection *radconnect(struct radius_server *server);
 
-static unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len) {
+unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len) {
 	unsigned char *data = packet->attrs + packet->len - RAD_AUTH_HDR_LEN;
 
 	if (!len) {

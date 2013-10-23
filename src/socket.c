@@ -567,7 +567,7 @@ struct fwsocket *mcast_socket(const char *iface, int family, const char *mcastip
 		return NULL;
 	}
 	ifidx = ifinf->idx;
-	
+
 	srcip = (family == AF_INET) ? ifinf->ipv4addr : ifinf->ipv6addr;
         if (!srcip || (getaddrinfo(srcip, port, &hint, &result) || !result)) {
 		objunref(ifinf);
