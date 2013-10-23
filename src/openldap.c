@@ -11,7 +11,7 @@
 
 #include "include/dtsapp.h"
 
-struct ldap_results *_dtsldapsearch(struct ldap_conn *ldap, const char *base, int scope,
+static struct ldap_results *_dtsldapsearch(struct ldap_conn *ldap, const char *base, int scope,
 					const char *filter, char **attrs, int b64enc, int *err);
 
 /** @file
