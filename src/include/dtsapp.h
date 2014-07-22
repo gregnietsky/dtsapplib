@@ -455,7 +455,9 @@ extern void nf_ctrack_close(void);
 extern int delete_kernvlan(char *ifname, int vid);
 extern int create_kernvlan(char *ifname, unsigned short vid);
 extern int delete_kernmac(char *macdev);
+#ifdef IFLA_MACVLAN_MODE
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac);
+#endif
 extern int interface_bind(char *iface, int protocol, int flags);
 extern void randhwaddr(unsigned char *addr);
 extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags);

@@ -22,7 +22,9 @@ extern int rcvbuf;
 extern int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions);
 extern int rtnl_open_byproto(struct rtnl_handle *rth, unsigned subscriptions, int protocol);
 extern void rtnl_close(struct rtnl_handle *rth);
+#if 0
 extern int rtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type);
+#endif
 extern int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len);
 
 typedef int (*rtnl_filter_t)(const struct sockaddr_nl *,

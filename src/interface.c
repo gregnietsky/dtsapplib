@@ -218,6 +218,7 @@ extern int delete_kernmac(char *ifname) {
 	return (delete_interface(ifname));
 }
 
+#ifdef IFLA_MACVLAN_MODE
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	struct iplink_req *req;
 	struct rtattr *data, *linkinfo;
@@ -278,6 +279,7 @@ extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 
 	return (ret);
 }
+#endif
 
 extern int set_interface_flags(int ifindex, int set, int clear) {
 	struct iplink_req *req;

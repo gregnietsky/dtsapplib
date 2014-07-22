@@ -27,6 +27,7 @@
 
 #include "rt_names.h"
 
+#if 0
 const char *ll_type_n2a(int type, char *buf, int len) {
 #define __PF(f,n) { ARPHRD_##f, #n },
 	static const struct {
@@ -117,3 +118,4 @@ const char *ll_type_n2a(int type, char *buf, int len) {
 	snprintf(buf, len, "[%d]", type);
 	return buf;
 }
+#endif

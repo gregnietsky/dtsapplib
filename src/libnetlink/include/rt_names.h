@@ -18,8 +18,9 @@ int rtnl_group_a2n(int *id, char *arg);
 const char *inet_proto_n2a(int proto, char *buf, int len);
 int inet_proto_a2n(char *buf);
 
-
+#if 0
 const char *ll_type_n2a(int type, char *buf, int len);
+#endif
 
 const char *ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int blen);
 int ll_addr_a2n(char *lladdr, int len, char *arg);
