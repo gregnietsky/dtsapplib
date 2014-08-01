@@ -86,7 +86,6 @@ int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions) {
 	return rtnl_open_byproto(rth, subscriptions, NETLINK_ROUTE);
 }
 
-#if 0
 int rtnl_wilddump_request(struct rtnl_handle *rth, int family, int type) {
 	struct {
 		struct nlmsghdr nlh;
@@ -110,7 +109,6 @@ int rtnl_wilddump_request(struct rtnl_handle *rth, int family, int type) {
 
 	return send(rth->fd, (void *)&req, sizeof(req), 0);
 }
-#endif
 
 int rtnl_send(struct rtnl_handle *rth, const void *buf, int len) {
 	return send(rth->fd, buf, len, 0);
