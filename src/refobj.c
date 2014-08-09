@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <signal.h>
 #include "include/dtsapp.h"
 
 /* add one for ref obj's*/

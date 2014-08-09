@@ -506,7 +506,7 @@ extern int delete_kernmac(char *macdev);
 #ifdef IFLA_MACVLAN_MODE
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac);
 #endif
-extern int interface_bind(char *iface, int protocol, int flags);
+extern int interface_bind(char *iface, int protocol);
 extern void randhwaddr(unsigned char *addr);
 extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags);
 extern int ifrename(const char *oldname, const char *newname);
