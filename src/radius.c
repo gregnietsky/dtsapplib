@@ -218,7 +218,7 @@ static void addradattrpasswd(struct radius_packet *packet, const char *pw, const
   * @see RADIUS_CODE
   * @param code Radius packet  type.
   * @returns reference to new radius packet of specified type.*/
-extern struct radius_packet *new_radpacket(unsigned char code) {
+extern struct radius_packet *new_radpacket(unsigned char code, unsigned char id) {
 	struct radius_packet *packet;
 
 	if ((packet = malloc(sizeof(*packet)))) {

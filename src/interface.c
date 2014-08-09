@@ -279,7 +279,7 @@ extern int delete_kernmac(char *ifname) {
   * @param macdev Base interface
   * @param mac MAC address to use or random if NULL.
   * @returns -1 on error.*/
-#ifdef IFLA_MACVLAN_MODE
+#ifdef IFLA_MACVLAN_MAX
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	struct iplink_req *req;
 	struct rtattr *data, *linkinfo;
@@ -451,8 +451,9 @@ extern int set_interface_name(int ifindex, const char *name) {
 /** @brief Bind to device fd may be a existing socket.
   * @param iface Interface to bind too.
   * @param protocol Protocol to use.
+  * @param flags Set flags in additon to UP and RUNNING
   * @returns -1 on error.*/
-extern int interface_bind(char *iface, int protocol) {
+extern int interface_bind(char *iface, int protocol, int flags) {
 	struct sockaddr_ll sll;
 	int proto = htons(protocol);
 	int fd, ifindex;
@@ -461,7 +462,7 @@ extern int interface_bind(char *iface, int protocol) {
 	if (!(ifindex = get_iface_index(iface))) {
 		return (-1);
 	}
-	set_interface_flags(ifindex, IFF_UP | IFF_RUNNING, 0);
+	set_interface_flags(ifindex, IFF_UP | IFF_RUNNING | flags, 0);
 
 	/* open network raw socket */
 	if ((fd = socket(PF_PACKET, SOCK_RAW,  proto)) < 0) {
