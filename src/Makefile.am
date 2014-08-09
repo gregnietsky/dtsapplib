@@ -23,7 +23,7 @@ libdtsapp_la_SOURCES = refobj.c lookup3.c thread.c main.c util.c socket.c ssluti
                        zlib.c libxml2.c libxslt.c openldap.c curl.c $(SYSSOURCE) fileutil.c iputil.c
 
 libdtsapp_la_LIBADD = $(SYSLIBS) $(XSLT_LIBS) $(XML_LIBS) $(LDAP_LIBS) $(LIBS) $(LIBCURL)
-libdtsapp_la_CFLAGS = $(AM_CFLAGS) -I./libnetlink/include $(DEVELOPER_CFLAGS) $(XSLT_CFLAGS) $(XML_CFLAGS) $(LIBCURL_CPPFLAGS)
+libdtsapp_la_CFLAGS = $(AM_CFLAGS) -I./libnetlink/include $(DEVELOPER_CFLAGS) $(XSLT_CFLAGS) $(XML_CFLAGS) $(LIBCURL_CPPFLAGS) -std=c99
 libdtsapp_la_LDFLAGS = -version-info $(LT_LIBVER) -release $(VERSION) $(SYSLDFLAGS)
 
 # Here are a set of rules to help you update your library version information:

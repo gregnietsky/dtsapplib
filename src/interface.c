@@ -279,6 +279,7 @@ extern int delete_kernmac(char *ifname) {
   * @param macdev Base interface
   * @param mac MAC address to use or random if NULL.
   * @returns -1 on error.*/
+#ifdef IFLA_MACVLAN_MODE
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	struct iplink_req *req;
 	struct rtattr *data, *linkinfo;
@@ -339,6 +340,7 @@ extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 
 	return (ret);
 }
+#endif
 
 /** @brief Alter interface flags.
   * @param ifindex Interface index.
