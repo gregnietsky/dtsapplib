@@ -40,11 +40,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "include/dtsapp.h"
 #include "include/private.h"
 
+/** @brief Netfilter Ctrack Flags.*/
 enum NF_CTRACK_FLAGS {
 	NFCTRACK_DONE    = 1 << 0
 };
 
-struct nfct_struct {
+static struct nfct_struct {
 	struct nfct_handle *nfct;
 	int fd;
 	int flags;

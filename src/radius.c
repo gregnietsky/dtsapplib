@@ -41,63 +41,91 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <openssl/md5.h>
 #include "include/dtsapp.h"
 
+/** @brief Radius Packet*/
 struct radius_packet {
+	/** @brief Radius packet code
+	  * @see RADIUS_CODE.*/
 	unsigned char code;
+	/** @brief Packet ID.*/
 	unsigned char id;
+	/** @brief Packet length.*/
 	unsigned short len;
+	/** @brief Authentification token.*/
 	unsigned char token[RAD_AUTH_TOKEN_LEN];
+	/** @brief Radius Attributes.*/
 	unsigned char attrs[RAD_AUTH_PACKET_LEN - RAD_AUTH_HDR_LEN];
 };
 
-/*
- * a radius session is based on a ID packet for
- * session stored till a response the request token is also stored
- */
+/** @brief Radius session.
+  *
+  * A radius session is based on a ID packet for
+  * session stored till a response the request token is also stored*/
 struct radius_session {
+	/** @brief Session id.*/
 	unsigned short id;
+	/** @brief Radius request auth token.*/
 	unsigned char request[RAD_AUTH_TOKEN_LEN];
+	/** @brief Callback data passed to callback.*/
 	void	*cb_data;
+	/** @brief Radius callback.*/
 	radius_cb read_cb;
+	/** @brief Original length of packet.*/
 	unsigned int olen;
+	/** @brief Radius packet.*/
 	struct radius_packet *packet;
+	/** @brief Time packet was sent.*/
 	struct timeval sent;
+	/** @brief Password requires special handling.*/
 	const char *passwd;
+	/** @brief Retries available.*/
 	char	retries;
+	/** @brief Minimum id of server to use.*/
 	char	minserver;
 };
 
-/*
- * connect to the server one connex holds 256 sessions
- */
+/** @brief Radius connection.
+  *
+  * connect to the server one connection holds 256 sessions*/
 struct radius_connection {
+	/** @brief Reference to socket.*/
 	struct fwsocket *socket;
+	/** @brief Connection ID.*/
 	unsigned char id;
+	/** @brief Reference to radius server.*/
 	struct radius_server *server;
-	int flags;
+	/** @brief Bucket list of sessions.*/
 	struct bucket_list *sessions;
 };
 
-/*
- * define a server with host auth/acct port and secret
- * create "connextions" on demand each with upto 256 sessions
- * servers should not be removed without removing all and reloading
- */
+/** @brief Radius Server
+  *
+  * define a server with host auth/acct port and secret
+  * create "connextions" on demand each with upto 256 sessions
+  * servers should not be removed without removing all and reloading*/
 struct radius_server {
+	/** @brief Server name.*/
 	const char	*name;
+	/** @brief Server authport.*/
 	const char	*authport;
+	/** @brief Server accounting port.*/
 	const char	*acctport;
+	/** @brief Server secret.*/
 	const char	*secret;
+	/** @brief Server hash based on server count.*/
 	unsigned char	id;
+	/** @brief Server timeout.*/
 	int		timeout;
+	/** @brief Server out of service time.*/
 	struct timeval	service;
+	/** @brief Bucket list of connextions.*/
 	struct bucket_list *connex;
 };
 
 static struct bucket_list *servers = NULL;
 
-extern struct radius_connection *radconnect(struct radius_server *server);
+static struct radius_connection *radconnect(struct radius_server *server);
 
-extern unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len) {
+unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len) {
 	unsigned char *data = packet->attrs + packet->len - RAD_AUTH_HDR_LEN;
 
 	if (!len) {
@@ -114,6 +142,10 @@ extern unsigned char *addradattr(struct radius_packet *packet, char type, unsign
 	return (data);
 }
 
+/** @brief Add a integer attribute too the packet.
+  * @param packet Radius packet to add too.
+  * @param type Attribute been added.
+  * @param val Value to add.*/
 extern void addradattrint(struct radius_packet *packet, char type, unsigned int val) {
 	unsigned int tval;
 
@@ -121,6 +153,10 @@ extern void addradattrint(struct radius_packet *packet, char type, unsigned int 
 	addradattr(packet, type, (unsigned char *)&tval, sizeof(tval));
 }
 
+/** @brief Add a integer attribute too the packet.
+  * @param packet Radius packet to add too.
+  * @param type Attribute been added.
+  * @param ipaddr IP to add.*/
 extern void addradattrip(struct radius_packet *packet, char type, char *ipaddr) {
 	unsigned int tval;
 
@@ -128,6 +164,10 @@ extern void addradattrip(struct radius_packet *packet, char type, char *ipaddr) 
 	addradattr(packet, type, (unsigned char *)&tval, sizeof(tval));
 }
 
+/** @brief Add a integer attribute too the packet.
+  * @param packet Radius packet to add too.
+  * @param type Attribute been added.
+  * @param str Value to add.*/
 extern void addradattrstr(struct radius_packet *packet, char type, char *str) {
 	addradattr(packet, type, (unsigned char *)str, strlen(str));
 }
@@ -173,7 +213,12 @@ static void addradattrpasswd(struct radius_packet *packet, const char *pw, const
 	addradattr(packet, RAD_ATTR_USER_PASSWORD, pwbuff, len);
 }
 
-extern struct radius_packet *new_radpacket(unsigned char code, unsigned char id) {
+/** @brief Create a new radius packet.
+  *
+  * @see RADIUS_CODE
+  * @param code Radius packet  type.
+  * @returns reference to new radius packet of specified type.*/
+extern struct radius_packet *new_radpacket(unsigned char code) {
 	struct radius_packet *packet;
 
 	if ((packet = malloc(sizeof(*packet)))) {
@@ -235,6 +280,12 @@ static void del_radserver(void *data) {
 	}
 }
 
+/** @brief Add new radius server to list of servers.
+  * @param ipaddr IP address or hostname of server.
+  * @param auth Athentification port.
+  * @param acct Accounting port.
+  * @param secret Shared secret.
+  * @param timeout Time to take offline on failure.*/
 extern void add_radserver(const char *ipaddr, const char *auth, const char *acct, const char *secret, int timeout) {
 	struct radius_server *server;
 
@@ -392,6 +443,12 @@ static int _send_radpacket(struct radius_packet *packet, const char *userpass, s
 	return (-1);
 }
 
+/** @brief Send radius packet.
+  * @param packet Radius packet to send.
+  * @param userpass Userpassword if required (added last requires special processing)
+  * @param read_cb Callback to call when response arrives.
+  * @param cb_data Reference to pass to callback.
+  * @returns 0 on success.*/
 extern int send_radpacket(struct radius_packet *packet, const char *userpass, radius_cb read_cb, void *cb_data) {
 	return (_send_radpacket(packet, userpass, NULL, read_cb, cb_data));
 }
@@ -543,7 +600,7 @@ static void del_radconnect(void *data) {
 	objunref(connex->socket);
 }
 
-extern struct radius_connection *radconnect(struct radius_server *server) {
+static struct radius_connection *radconnect(struct radius_server *server) {
 	struct radius_connection *connex;
 	int val = 1;
 
@@ -562,10 +619,19 @@ extern struct radius_connection *radconnect(struct radius_server *server) {
 	return (connex);
 }
 
+/** @brief Return first packet attribute.
+  *
+  * Used with radius_attr_next() to iterate through attributes.
+  * @param packet Radius packet.
+  * @returns Pointer to next attribute*/
 extern unsigned char *radius_attr_first(struct radius_packet *packet) {
 	return (packet->attrs);
 }
 
+/** @brief Return next packet attribute.
+  * @param packet Radius packet.
+  * @param attr Last attribute.
+  * @returns Pointer to next attribute.*/
 extern unsigned char *radius_attr_next(struct radius_packet *packet, unsigned char *attr) {
 	int offset = (packet->len - RAD_AUTH_HDR_LEN) - (attr - packet->attrs);
 

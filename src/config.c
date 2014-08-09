@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /** @file
+  * @ingroup LIB-INI
   * @brief INI style config file interface.
   * @addtogroup LIB-INI
   * @{*/
@@ -27,14 +28,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "include/dtsapp.h"
 
+/** @brief Configuration file category*/
 struct config_category {
+	/** @brief Category name.*/
 	const char *name;
+	/** @brief Entries in category.*/
 	struct bucket_list *entries;
 };
 
+/** @brief Config file.*/
 struct config_file {
+	/** @brief Filename.*/
 	const char *filename;
+	/** @brief File path.*/
 	const char *filepath;
+	/** @brief Categories.*/
 	struct bucket_list *cat;
 };
 
@@ -60,12 +68,13 @@ static int32_t hash_cats(const void *data, int key) {
 	return(ret);
 }
 
-extern void initconfigfiles(void) {
+static void initconfigfiles(void) {
 	if (!configfiles) {
 		configfiles = create_bucketlist(4, hash_files);
 	}
 }
 
+/** @brief Empty out and unreference config files.*/
 extern void unrefconfigfiles(void) {
 	if (configfiles) {
 		objunref(configfiles);
@@ -181,6 +190,10 @@ static char *filterconf(const char *str, int minlen) {
 	return (tmp);
 }
 
+/** @brief Process a configfile into buckets
+  * @param configname Name of the configuration.
+  * @param configfile File to load into this configuration container.
+  * @returns Zero on success.*/
 extern int process_config(const char *configname, const char *configfile) {
 	struct config_file *file;
 	struct config_category *category = NULL;
@@ -244,6 +257,9 @@ extern int process_config(const char *configname, const char *configfile) {
 	return (0);
 }
 
+/** @brief Returns the catergories bucket for a config file
+  * @param configname Name assigned to the config file when calling process_config().
+  * @returns Categories bucketlist.*/
 extern struct bucket_list *get_config_file(const char *configname) {
 	struct config_file *file;
 
@@ -261,6 +277,12 @@ extern struct bucket_list *get_config_file(const char *configname) {
 	return (NULL);
 }
 
+/** @brief Return a single category
+  *
+  * If category is NULL the category "default" is returned.
+  * @param configname Name assigned to the config file when calling process_config().
+  * @param category Configuration category to return or "default" if NULL.
+  * @returns Bucket list containing the category.*/
 extern struct bucket_list *get_config_category(const char *configname, const char *category) {
 	struct bucket_list *file;
 	struct config_category *cat;
@@ -285,6 +307,13 @@ extern struct bucket_list *get_config_category(const char *configname, const cha
 	}
 }
 
+/** @brief Iterate through categories returning the entries bucket
+  *
+  * As well as the entries returned name will be filled upto len bytes with the category name
+  * @param cloop Iterator created with get_category_loop.
+  * @param name Buffer where the category name is copied.
+  * @param len limit the number of characters copied to len.
+  * @returns Entries list for category returned in paramaater name.*/
 extern struct bucket_list *get_category_next(struct bucket_loop *cloop, char *name, int len) {
 	struct config_category *category;
 
@@ -306,6 +335,9 @@ extern struct bucket_list *get_category_next(struct bucket_loop *cloop, char *na
 	return (NULL);
 }
 
+/** @brief Return a bucket loop to allow iterating over categories
+  * @param configname Name assigned to the config file when calling process_config().
+  * @returns Bucket loop iterator.*/
 extern struct bucket_loop *get_category_loop(const char *configname) {
 	struct bucket_loop *cloop;
 	struct bucket_list *file;
@@ -325,6 +357,11 @@ static void entry_callback(void *data, void *entry_cb) {
 	callback(entry->item, entry->value);
 }
 
+/** @brief Callback Wraper that iterates through all items calling a callback for each item.
+  *
+  * @see config_entrycb
+  * @param entries Bucketlist of entries (from a category).
+  * @param entry_cb The callback to call on each entry.*/
 extern void config_entry_callback(struct bucket_list *entries, config_entrycb entry_cb) {
 	bucketlist_callback(entries, entry_callback, &entry_cb);
 }
@@ -338,6 +375,11 @@ static void category_callback(void *data, void *category_cb) {
 	cb_cat(category->entries, category->name);
 }
 
+/** @brief Callback wrapper that iterates through categories calling a callback on each category.
+  *
+  * @see config_catcb
+  * @param categories Bucketlist from a config file containing categories.
+  * @param cat_cb Callback to call on each category.*/
 extern void config_cat_callback(struct bucket_list *categories, config_catcb cat_cb) {
 	bucketlist_callback(categories, category_callback, &cat_cb);
 }
@@ -351,10 +393,18 @@ static void file_callback(void *data, void *file_cb) {
 	cb_file(file->cat, file->filename, file->filepath);
 }
 
+/** @brief Callback wrapper to iterate over all configfiles calling a callback on each file
+  *
+  * @see config_filecb
+  * @param file_cb Callback to call.*/
 extern void config_file_callback(config_filecb file_cb) {
 	bucketlist_callback(configfiles, file_callback, &file_cb);
 }
 
+/** @brief Find the entry in a config file
+  * @param categories Categories bucketlist.
+  * @param item Item to search for.
+  * @returns Reference to a entry.*/
 extern struct config_entry *get_config_entry(struct bucket_list *categories, const char *item) {
 	struct config_entry *entry;
 

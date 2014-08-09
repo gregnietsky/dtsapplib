@@ -519,17 +519,31 @@ extern int socketwrite_d(struct fwsocket *sock, const void *buf, int num, union 
 #ifndef __WIN32
 			if (sock->flags & SOCK_FLAG_UNIX) {
 				ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, (const struct sockaddr *)&addr->un, sizeof(addr->un));
+			} else if (sock->flags & SOCK_FLAG_MCAST) {
+				ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &sock->addr.sa, sizeof(sock->addr.ss));
 			} else {
 				ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &addr->sa, sizeof(*addr));
 			}
 #else
-			ret = sendto(sock->sock, buf, num, 0, &addr->sa, sizeof(*addr));
+			if (sock->flags & SOCK_FLAG_MCAST) {
+				ret = sendto(sock->sock, buf, num, 0, &sock->addr.sa, sizeof(sock->addr.ss));
+			} else {
+				ret = sendto(sock->sock, buf, num, 0, &addr->sa, sizeof(*addr));
+			}
 #endif
 		} else {
 #ifndef __WIN32
-			ret = send(sock->sock, buf, num, MSG_NOSIGNAL);
+			if (sock->flags & SOCK_FLAG_MCAST) {
+				ret = sendto(sock->sock, buf, num, MSG_NOSIGNAL, &sock->addr.sa, sizeof(sock->addr.ss));
+			} else {
+				ret = send(sock->sock, buf, num, MSG_NOSIGNAL);
+			}
 #else
-			ret = send(sock->sock, buf, num, 0);
+			if (sock->flags & SOCK_FLAG_MCAST) {
+				ret = sendto(sock->sock, buf, num, 0, &sock->addr.sa, sizeof(sock->addr.ss));
+			} else {
+				ret = send(sock->sock, buf, num, 0);
+			}
 #endif
 		}
 		if (ret == -1) {

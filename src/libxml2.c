@@ -1,5 +1,6 @@
 /** @file
   * @brief XML Interface.
+  * @ingroup LIB-XML
   * @addtogroup LIB-XML
   * @{*/
 
@@ -17,23 +18,32 @@
 #include "include/priv_xml.h"
 #include "include/dtsapp.h"
 
-extern int xmlLoadExtwDtdDefaultValue;
-
+/** @brief Iterator to traverse nodes in a xpath.*/
 struct xml_node_iter {
+	/** @brief Reference to search returned from xml_search()*/
 	struct xml_search *xsearch;
+	/** @brief current position.*/
 	int curpos;
+	/** @brief number of nodes in search path.*/
 	int cnt;
 };
 
+/** @brief XML xpath search result
+  * @see xml_search()*/
 struct xml_search {
+	/** @brief Reference to XML document.*/
 	struct xml_doc *xmldoc;
+	/** @brief Xpath object.*/
 	xmlXPathObjectPtr xpathObj;
+	/** @brief Bucket list of all nodes.*/
 	struct bucket_list *nodes;
 };
 
 static void *xml_has_init_parser = NULL;
 
-void free_buffer(void *data) {
+/** @brief Reference destructor for xml_buffer
+  * @warning do not call this directly.*/
+void xml_free_buffer(void *data) {
 	struct xml_buffer *xb = data;
 	xmlFree(xb->buffer);
 }
@@ -129,6 +139,10 @@ static struct xml_doc *xml_setup_parse(struct xml_doc *xmldata, int validate) {
 	return xmldata;
 }
 
+/** @brief Load a XML file into XML document and return reference.
+  * @param docfile Pathname to XML file.
+  * @param validate Set to non zero value to fail if validation fails.
+  * @returns XML Document or NULL on failure*/  
 extern struct xml_doc *xml_loaddoc(const char *docfile, int validate) {
 	struct xml_doc *xmldata;
 
@@ -146,6 +160,11 @@ extern struct xml_doc *xml_loaddoc(const char *docfile, int validate) {
 	return xml_setup_parse(xmldata, validate);
 }
 
+/** @brief Load a buffer into XML document returning refereence.
+  * @param buffer Buffer containing the XML.
+  * @param len Size of the buffer.
+  * @param validate Set to non zero value to fail if validation fails.
+  * @returns XML Document or NULL on failure*/
 extern struct xml_doc *xml_loadbuf(const uint8_t *buffer, uint32_t len, int validate) {
 	struct xml_doc *xmldata;
 	int flags;
@@ -169,7 +188,7 @@ extern struct xml_doc *xml_loadbuf(const uint8_t *buffer, uint32_t len, int vali
 	return xml_setup_parse(xmldata, 0);
 }
 
-struct xml_node *xml_nodetohash(struct xml_doc *xmldoc, xmlNodePtr node, const char *attrkey) {
+static struct xml_node *xml_nodetohash(struct xml_doc *xmldoc, xmlNodePtr node, const char *attrkey) {
 	struct xml_node *ninfo;
 	struct xml_attr *ainfo;
 	xmlChar *xmlstr;
@@ -214,7 +233,7 @@ struct xml_node *xml_nodetohash(struct xml_doc *xmldoc, xmlNodePtr node, const c
 	return ninfo;
 }
 
-struct xml_node *xml_gethash(struct xml_search *xpsearch, int i, const char *attrkey) {
+static struct xml_node *xml_gethash(struct xml_search *xpsearch, int i, const char *attrkey) {
 	xmlNodePtr node;
 	xmlNodeSetPtr nodeset;
 	struct xml_node *xn;
@@ -252,6 +271,8 @@ static void free_iter(void *data) {
 	objunref(xi->xsearch);
 }
 
+/** @brief Return reference to the root node.
+  * @param xmldoc XML Document to find root in.*/
 extern struct xml_node *xml_getrootnode(struct xml_doc *xmldoc) {
 	struct xml_node *rn;
 
@@ -261,6 +282,16 @@ extern struct xml_node *xml_getrootnode(struct xml_doc *xmldoc) {
 	return rn;
 }
 
+/** @brief Return reference to the first node optionally creating a iterator.
+  *
+  * Setting the optional iterator and using it on future calls to xml_getnextnode
+  * its possible to iterate through the search path.
+  * @todo Thread safety when XML doc changes.
+  * @note using xml_getnodes() returns a bucket list of nodes this is prefered.
+  * @warning This is not thread safe.
+  * @param xpsearch XML xpath search to find first node.
+  * @param iter Optional iterator created and returned (must be unreferenced)
+  * @returns Reference to first node in the path.*/
 extern struct xml_node *xml_getfirstnode(struct xml_search *xpsearch, void **iter) {
 	struct xml_node_iter *newiter;
 	struct xml_node *xn;
@@ -285,6 +316,9 @@ extern struct xml_node *xml_getfirstnode(struct xml_search *xpsearch, void **ite
 	return xn;
 }
 
+/** @brief Return the next node.
+  * @param iter Iterator set in call to from xml_getfirstnode.
+  * @returns Reference to next node.*/
 extern struct xml_node *xml_getnextnode(void *iter) {
 	struct xml_node_iter *xi = iter;
 	struct xml_node *xn;
@@ -307,14 +341,16 @@ extern struct xml_node *xml_getnextnode(void *iter) {
 	return xn;
 }
 
+/** @brief Return reference to bucket list containing nodes.
+  * @note use of this is prefered to xml_getfirstnode() / xml_getnextnode() if
+  * search order is not a issue.
+  * @param xpsearch Reference to xpath search result returned by xml_xpath.
+  * @returns Reference to bucket list containing nodes.*/
 extern struct bucket_list *xml_getnodes(struct xml_search *xpsearch) {
-	if (!xpsearch) {
-		return NULL;
-	}
-	return xpsearch->nodes;
+	return (xpsearch && objref(xpsearch->nodes)) ? xpsearch->nodes : NULL;
 }
 
-struct bucket_list *xml_setnodes(struct xml_search *xpsearch, const char *attrkey) {
+static struct bucket_list *xml_setnodes(struct xml_search *xpsearch, const char *attrkey) {
 	struct xml_node *ninfo;
 	struct bucket_list *nodes;
 	int cnt, i;
@@ -337,6 +373,11 @@ struct bucket_list *xml_setnodes(struct xml_search *xpsearch, const char *attrke
 	return nodes;
 }
 
+/** @brief Return a reference to a xpath search result.
+  * @param xmldata XML Document to search.
+  * @param xpath Xpath search to apply.
+  * @param attrkey Attribute to index by.
+  * @returns Reference to XML search result.*/ 
 extern struct xml_search *xml_xpath(struct xml_doc *xmldata, const char *xpath, const char *attrkey) {
 	struct xml_search *xpsearch;
 
@@ -366,6 +407,9 @@ extern struct xml_search *xml_xpath(struct xml_doc *xmldata, const char *xpath, 
 	return xpsearch;
 }
 
+/** @brief Return the number of nodes in the search path
+  * @param xsearch Reference to XML xpath search (xml_xpath())
+  * @returns Number of of nodes.*/
 extern int xml_nodecount(struct xml_search *xsearch) {
 	xmlNodeSetPtr nodeset;
 
@@ -376,6 +420,12 @@ extern int xml_nodecount(struct xml_search *xsearch) {
 	}
 }
 
+/** @brief Return a node in the search matching key.
+  *
+  * The key is matched against the index attribute supplied or the value of the node.
+  * @param xsearch Reference to xpath search.
+  * @param key Value to use to find node matched aginst the index attribute/value.
+  * @returns Reference to XML node.*/
 extern struct xml_node *xml_getnode(struct xml_search *xsearch, const char *key) {
 	if (!xsearch) {
 		return NULL;
@@ -383,6 +433,10 @@ extern struct xml_node *xml_getnode(struct xml_search *xsearch, const char *key)
 	return bucket_list_find_key(xsearch->nodes, key);
 }
 
+/** @brief Return value of attribute.
+  * @param xnode XML node reference.
+  * @param attr Attribute to search for.
+  * @returns Value of the attribute valid while reference to node is held.*/
 extern const char *xml_getattr(struct xml_node *xnode, const char *attr) {
 	struct xml_attr *ainfo;
 
@@ -398,6 +452,9 @@ extern const char *xml_getattr(struct xml_node *xnode, const char *attr) {
 	}
 }
 
+/** @brief Return the name of the root node.
+  * @note do not free or unref this.
+  * @param xmldoc XML Document.*/
 extern const char *xml_getrootname(struct xml_doc *xmldoc) {
 	if (xmldoc) {
 		return (const char *)xmldoc->root->name;
@@ -405,6 +462,10 @@ extern const char *xml_getrootname(struct xml_doc *xmldoc) {
 	return NULL;
 }
 
+/** @brief Modify a XML node.
+  * @param xmldoc XML Document node belongs to
+  * @param xnode XML Node to modify.
+  * @param value Value to set.*/
 extern void xml_modify(struct xml_doc *xmldoc, struct xml_node *xnode, const char *value) {
 	xmlChar *encval;
 	xmlNodePtr node;
@@ -424,6 +485,11 @@ extern void xml_modify(struct xml_doc *xmldoc, struct xml_node *xnode, const cha
 	xmlFree(encval);
 }
 
+/** @brief Modify a XML node attribute.
+  * @param xmldoc XML Document node belongs to
+  * @param xnode XML Node to modify.
+  * @param name Attribute to modify.
+  * @param value Value to set.*/
 extern void xml_setattr(struct xml_doc *xmldoc, struct xml_node *xnode, const char *name, const char *value) {
 	xmlChar *encval;
 
@@ -434,6 +500,10 @@ extern void xml_setattr(struct xml_doc *xmldoc, struct xml_node *xnode, const ch
 	xmlFree(encval);
 }
 
+/** @brief Create a path in XML document.
+  * @note xpath is not a full xpath just a path [no filters].
+  * @param xmldoc Reference to XML document.
+  * @param xpath Path to create.*/
 extern void xml_createpath(struct xml_doc *xmldoc, const char *xpath) {
 	struct xml_node *nn;
 	xmlXPathObjectPtr xpathObj;
@@ -547,6 +617,11 @@ static xmlNodePtr xml_getparent(struct xml_doc *xmldoc, const char *xpath) {
 }
 
 
+/** @brief Append a node to a path.
+  * @note The child will most likely be a node unlinked and moved.
+  * @param xmldoc Reference to XML document.
+  * @param xpath Path to add the node too.
+  * @param child XML node to append to path.*/
 extern void xml_appendnode(struct xml_doc *xmldoc, const char *xpath, struct  xml_node *child) {
 	xmlNodePtr parent;
 
@@ -565,6 +640,14 @@ extern void xml_appendnode(struct xml_doc *xmldoc, const char *xpath, struct  xm
 	objunref(xmldoc);
 }
 
+/** @brief Append a node to a path.
+  * @param xmldoc Reference to XML document.
+  * @param xpath Path to add the node too.
+  * @param name Node name.
+  * @param value Node value.
+  * @param attrkey Attribute to create on node.
+  * @param keyval Attribute value of attrkey.
+  * @returns reference to new node.*/
 extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, const char *name, const char *value,
 									const char *attrkey, const char *keyval) {
 	struct xml_node *newnode;
@@ -605,12 +688,16 @@ extern struct xml_node *xml_addnode(struct xml_doc *xmldoc, const char *xpath, c
 	return newnode;
 }
 
+/** @brief Unlink a node from the document.
+  * @param xnode Reference of node to unlink.*/
 extern void xml_unlink(struct xml_node *xnode) {
 	objlock(xnode);
 	xmlUnlinkNode(xnode->nodeptr);
 	objunlock(xnode);
 }
 
+/** @brief Delete a node from document it is not unrefd and should be.
+  * @param xnode Reference to node to delete this must be unreferenced after calling this function.*/
 extern void xml_delete(struct xml_node *xnode) {
 	objlock(xnode);
 	xmlUnlinkNode(xnode->nodeptr);
@@ -619,6 +706,9 @@ extern void xml_delete(struct xml_node *xnode) {
 	objunlock(xnode);
 }
 
+/** @brief Return the buffer of a xml_buffer structure
+  * @note only valid while reference is held to the xml_buffer struct.
+  * @param buffer Reference to a xml_buffer struct.*/
 extern char *xml_getbuffer(void *buffer) {
 	struct xml_buffer *xb = buffer;
 
@@ -628,10 +718,15 @@ extern char *xml_getbuffer(void *buffer) {
 	return (char *)xb->buffer;
 }
 
+/** @brief Return a dump of a XML document.
+  *
+  * The result can be acessed using xml_getbuffer()
+  * @param xmldoc Reference to a XML document.
+  * @returns Reference to a xml_buffer structure.*/
 extern void *xml_doctobuffer(struct xml_doc *xmldoc) {
 	struct xml_buffer *xmlbuf;
 
-	if (!(xmlbuf = objalloc(sizeof(*xmlbuf),free_buffer))) {
+	if (!(xmlbuf = objalloc(sizeof(*xmlbuf),xml_free_buffer))) {
 		return NULL;
 	}
 
@@ -641,6 +736,9 @@ extern void *xml_doctobuffer(struct xml_doc *xmldoc) {
 	return xmlbuf;
 }
 
+/** @brief Initialise/Reference the XML library
+  *
+  * Ideally this should be done on application startup but will be started and stoped as needed.*/
 extern void xml_init() {
 	if (!xml_has_init_parser) {
 		xml_has_init_parser = objalloc(0, free_parser);
@@ -654,12 +752,20 @@ extern void xml_init() {
 	}
 }
 
+/** @brief Unreference the XML library
+  *
+  * Ideally this should be done after a call to xml_init at shutdown.*/
 extern void xml_close() {
 	if (xml_has_init_parser) {
 		objunref(xml_has_init_parser);
 	}
 }
 
+/** @brief Save XML document to a file.
+  * @param xmldoc Reference to XML document to save.
+  * @param file Filename to write the XML document too.
+  * @param format Formating flag from libxml2.
+  * @param compress Compression level 0[none]-9.*/
 extern void xml_savefile(struct xml_doc *xmldoc, const char *file, int format, int compress) {
 	objlock(xmldoc);
 	xmlSetDocCompressMode(xmldoc->doc, compress);
@@ -668,7 +774,7 @@ extern void xml_savefile(struct xml_doc *xmldoc, const char *file, int format, i
 	objunlock(xmldoc);
 }
 
-extern void xml_modify2(struct xml_search *xpsearch, struct xml_node *xnode, const char *value) {
+/*static void xml_modify2(struct xml_search *xpsearch, struct xml_node *xnode, const char *value) {
 	xmlNodeSetPtr nodes;
 	int size, i;
 
@@ -678,12 +784,12 @@ extern void xml_modify2(struct xml_search *xpsearch, struct xml_node *xnode, con
 
 	size = (nodes) ? nodes->nodeNr : 0;
 
-	/*
+*/	/*
 	 * http://www.xmlsoft.org/examples/xpath2.c
 	 * remove the reference to the modified nodes from the node set
 	 * as they are processed, if they are not namespace nodes.
 	*/
-	for(i = size - 1; i >= 0; i--) {
+/*	for(i = size - 1; i >= 0; i--) {
 		if (nodes->nodeTab[i] == xnode->nodeptr) {
 			xmlNodeSetContent(nodes->nodeTab[i], (const xmlChar *)value);
 			if (nodes->nodeTab[i]->type != XML_NAMESPACE_DECL) {
@@ -691,6 +797,6 @@ extern void xml_modify2(struct xml_search *xpsearch, struct xml_node *xnode, con
 			}
 		}
 	}
-}
+}*/
 
 /** @}*/

@@ -17,10 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /** @file
+  * @ingroup LIB-IFACE
   * @brief Wrapper arround Linux libnetlink for managing network interfaces.
   * @addtogroup LIB-IFACE
   * @{*/
 
+
+#ifndef __WIN32
 #include <netinet/in.h>
 #include <linux/if_vlan.h>
 #include <linux/if_ether.h>
@@ -29,29 +32,72 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/if_arp.h>
 #include <linux/sockios.h>
 #include <linux/if.h>
+#include <ifaddrs.h>
 #include <sys/ioctl.h>
+#include <netdb.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#define ETH_ALEN 8
+#endif
+
 #include <sys/time.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "include/dtsapp.h"
+#ifndef __WIN32
 #include "libnetlink/include/libnetlink.h"
 #include "libnetlink/include/ll_map.h"
 #include "libnetlink/include/utils.h"
 
 static struct rtnl_handle *nlh;
 
+#endif
+
+
+/** @brief Order of precidence of ipv4*/
+enum ipv4_score {
+	/** @brief Zeroconf IP's 169.254/16*/
+	IPV4_SCORE_ZEROCONF = 1 << 0,
+	/** @brief Reseverd "private" ip addresses*/
+	IPV4_SCORE_RESERVED = 1 << 1,
+	/** @brief Routable IP's*/
+	IPV4_SCORE_ROUTABLE = 1 << 2
+};
+
+/** @brief Return best ipv6 address in order of FFC/7 2002/16 ...*/
+enum ipv6_score {
+	/** @brief Adminstrivly allocated addresses (FC/7)*/
+	IPV6_SCORE_RESERVED = 1 << 0,
+	/** @brief 6in4 address space*/
+	IPV6_SCORE_SIXIN4 = 1 << 1,
+	/** @brief Other routable addresses*/
+	IPV6_SCORE_ROUTABLE = 1 << 2
+};
+
+#ifndef __WIN32
+
+/** @brief IP Netlink request.*/
 struct iplink_req {
+	/** @brief Netlink message header*/
 	struct nlmsghdr		n;
+	/** @brief Interface info message*/
 	struct ifinfomsg	i;
+	/** @brief Request buffer*/
 	char			buf[1024];
 };
 
+/** @brief IP Netlink IP addr request.*/
 struct ipaddr_req {
+	/** @brief Netlink message header*/
 	struct nlmsghdr		n;
+	/** @brief Interface addr message*/
 	struct ifaddrmsg	i;
+	/** @brief Request buffer*/
 	char			buf[1024];
 };
 
@@ -80,12 +126,16 @@ static struct rtnl_handle *nlhandle(int subscriptions) {
 	return (nlh);
 }
 
+/** @brief Close netlink socket on application termination.*/
 extern void closenetlink() {
 	if (nlh) {
 		objunref(nlh);
 	}
 }
 
+/** @brief Get the netlink interface for a named interface.
+  * @param ifname Interface name.
+  * @returns Index of the interface.*/
 extern int get_iface_index(const char *ifname) {
 	int ifindex;
 
@@ -103,9 +153,9 @@ extern int get_iface_index(const char *ifname) {
 	return (ifindex);
 }
 
-/*
- * instruct the kernel to remove a link
- */
+/** @brief Delete network interface
+  * @param iface Interface name to delete.
+  * @returns -1 on error.*/
 static int delete_interface(char *iface) {
 	struct iplink_req *req;
 	int ifindex, ret;
@@ -144,6 +194,10 @@ static int delete_interface(char *iface) {
 	return (ret);
 }
 
+/** @brief Delete a VLAN.
+  * @param ifname Interface we deleting vlan from.
+  * @param vid VLAN id to delete.
+  * @returns -1 on error.*/
 extern int delete_kernvlan(char *ifname, int vid) {
 	char iface[IFNAMSIZ+1];
 
@@ -152,9 +206,11 @@ extern int delete_kernvlan(char *ifname, int vid) {
 	return (delete_interface(iface));
 }
 
-/*
- * instruct the kernel to create a VLAN
- */
+
+/** @brief Create a VLAN on a interface
+  * @param ifname Interface to add VLAN to.
+  * @param vid VLAN id to add.
+  * @returns -1 on error.*/
 extern int create_kernvlan(char *ifname, unsigned short vid) {
 	struct iplink_req *req;
 	char iface[IFNAMSIZ+1];
@@ -210,14 +266,19 @@ extern int create_kernvlan(char *ifname, unsigned short vid) {
 	return (ret);
 }
 
-/*
- * instruct the kernel to remove a VLAN
- */
+/** @brief Delete Kernel MAC VLAN
+  * @param ifname Interface to delete.
+  * @returns -1 on error.*/
 extern int delete_kernmac(char *ifname) {
 
 	return (delete_interface(ifname));
 }
 
+/** @brief Create a kernal MAC VLAN
+  * @param ifname Interface name to create
+  * @param macdev Base interface
+  * @param mac MAC address to use or random if NULL.
+  * @returns -1 on error.*/
 #ifdef IFLA_MACVLAN_MODE
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 	struct iplink_req *req;
@@ -281,6 +342,11 @@ extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac) {
 }
 #endif
 
+/** @brief Alter interface flags.
+  * @param ifindex Interface index.
+  * @param set Flags to set.
+  * @param clear Flags to clear.
+  * @returns -1 on error.*/
 extern int set_interface_flags(int ifindex, int set, int clear) {
 	struct iplink_req *req;
 	int flags;
@@ -317,6 +383,10 @@ extern int set_interface_flags(int ifindex, int set, int clear) {
 	return (0);
 }
 
+/** @brief Set interface MAC addr.
+  * @param ifindex Interface index.
+  * @param hwaddr MAC address to set.
+  * @returns -1 on error.*/
 extern int set_interface_addr(int ifindex, const unsigned char *hwaddr) {
 	struct iplink_req *req;
 
@@ -346,6 +416,10 @@ extern int set_interface_addr(int ifindex, const unsigned char *hwaddr) {
 	return (0);
 }
 
+/** @brief Rename interface
+  * @param ifindex Interface index.
+  * @param name New interface name.
+  * @returns -1 on error.*/
 extern int set_interface_name(int ifindex, const char *name) {
 	struct iplink_req *req;
 
@@ -374,10 +448,11 @@ extern int set_interface_name(int ifindex, const char *name) {
 	return (0);
 }
 
-/*
- * bind to device fd may be a existing socket
- */
-extern int interface_bind(char *iface, int protocol, int flags) {
+/** @brief Bind to device fd may be a existing socket.
+  * @param iface Interface to bind too.
+  * @param protocol Protocol to use.
+  * @returns -1 on error.*/
+extern int interface_bind(char *iface, int protocol) {
 	struct sockaddr_ll sll;
 	int proto = htons(protocol);
 	int fd, ifindex;
@@ -407,60 +482,19 @@ extern int interface_bind(char *iface, int protocol, int flags) {
 	return (fd);
 }
 
-/*
- * this method is sourced from the following IEEE publication
- * Guidelines for 64-bit Global Identifier (EUI-64TM) Registration Authority
- * mac48 is char[ETH_ALEN] eui64 is char[8]
- */
-extern int eui48to64(unsigned char *mac48, unsigned char *eui64) {
-	eui64[0] = (mac48[0] & 0xFE) ^ 0x02; /*clear multicast bit and flip local asignment*/
-	eui64[1] = mac48[1];
-	eui64[2] = mac48[2];
-	eui64[3] = 0xFF;
-	eui64[4] = 0xFE;
-	eui64[5] = mac48[3];
-	eui64[6] = mac48[4];
-	eui64[7] = mac48[5];
-
-	return (0);
-}
-
-/*
- * Unique Local IPv6 Unicast Addresses RFC 4193
- * buff is char[6]
- */
-extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
-	uint64_t ntpts;
-	unsigned char eui64[8];
-	unsigned char sha1[20];
-	unsigned char mac48[ETH_ALEN];
-	struct timeval tv;
-
-	if (ifhwaddr(iface, mac48)) {
-		return (-1);
-	}
-
-	gettimeofday(&tv, NULL);
-	ntpts = tvtontp64(&tv);
-
-	eui48to64(mac48, eui64);
-	sha1sum2(sha1, (void *)&ntpts, sizeof(ntpts), (void *)eui64, sizeof(eui64));
-
-	prefix[0] = 0xFD; /*0xFC | 0x01 FC00/7 with local bit set [8th bit]*/
-	memcpy(prefix + 1, sha1+15, 5); /*LSD 40 bits of the SHA hash*/
-
-	return (0);
-}
-
-/*
- * create random MAC address
- */
+/** @brief create random MAC address
+  * @param addr Buffer char[ETH_ALEN] filled with the new address.*/
 extern void randhwaddr(unsigned char *addr) {
 	genrand(addr, ETH_ALEN);
 	addr [0] &= 0xfe;       /* clear multicast bit */
 	addr [0] |= 0x02;       /* set local assignment bit (IEEE802) */
 }
 
+/** @brief Create a tunnel device.
+  * @param ifname Interface name to create..
+  * @param hwaddr Hardware address to assign (optionally).
+  * @param flags Flags to set device properties.
+  * @returns Tunnel FD or -1 on error.*/
 extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags) {
 	struct ifreq ifr;
 	int fd, ifindex;
@@ -496,6 +530,10 @@ extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags
 	return (fd);
 }
 
+/** @brief Set interface down.
+  * @param ifname Interface name.
+  * @param flags Additional flags to clear.
+  * @returns -1 on error 0 on success.*/
 extern int ifdown(const char *ifname, int flags) {
 	int ifindex;
 
@@ -510,6 +548,10 @@ extern int ifdown(const char *ifname, int flags) {
 	return (0);
 }
 
+/** @brief Set interface up.
+  * @param ifname Interface name.
+  * @param flags Additional flags to set.
+  * @returns -1 on error 0 on success.*/
 extern int ifup(const char *ifname, int flags) {
 	int ifindex;
 
@@ -524,6 +566,10 @@ extern int ifup(const char *ifname, int flags) {
 	return (0);
 }
 
+/** @brief Rename interface helper.
+  * @param oldname Original name.
+  * @param newname New name.
+  * @returns 0 on success.*/
 extern int ifrename(const char *oldname, const char *newname) {
 	int ifindex;
 
@@ -537,6 +583,10 @@ extern int ifrename(const char *oldname, const char *newname) {
 	return (0);
 }
 
+/** @brief Get MAC addr for interface.
+  * @param ifname Interface name
+  * @param hwaddr Buffer to place MAC in char[ETH_ALEN]
+  * @returns 0 on success.*/
 extern int ifhwaddr(const char *ifname, unsigned char *hwaddr) {
 	int ifindex;
 
@@ -556,7 +606,10 @@ extern int ifhwaddr(const char *ifname, unsigned char *hwaddr) {
 	return (0);
 }
 
-
+/** @brief Set IP addr on interface.
+  * @param ifname Interface to assign IP to
+  * @param ipaddr IP Addr to assign.
+  * @returns -1 on error.*/
 extern int set_interface_ipaddr(char *ifname, char *ipaddr) {
 	struct ipaddr_req *req;
 	inet_prefix lcl;
@@ -603,5 +656,181 @@ extern int set_interface_ipaddr(char *ifname, char *ipaddr) {
 	objunref(req);
 	return (0);
 }
-
+#endif
 /** @}*/
+
+/** @brief Generate IPv6 address from mac address.
+  *
+  * @ingroup LIB-IP-IP6
+  * this method is sourced from the following IEEE publication
+  * Guidelines for 64-bit Global Identifier (EUI-64TM) Registration Authority
+  * mac48 is char[ETH_ALEN] eui64 is char[8]
+  * @param mac48 Buffer containing MAC address 6 bytes.
+  * @param eui64 Buffer that will be written with address 8bytes.*/
+extern void eui48to64(unsigned char *mac48, unsigned char *eui64) {
+	eui64[0] = (mac48[0] & 0xFE) ^ 0x02; /*clear multicast bit and flip local asignment*/
+	eui64[1] = mac48[1];
+	eui64[2] = mac48[2];
+	eui64[3] = 0xFF;
+	eui64[4] = 0xFE;
+	eui64[5] = mac48[3];
+	eui64[6] = mac48[4];
+	eui64[7] = mac48[5];
+}
+
+/** @brief Generate Unique Local IPv6 Unicast Addresses RFC 4193.
+  *
+  * @ingroup LIB-IP-IP6
+  * @todo WIN32 support
+  * @param iface External system interface name.
+  * @param prefix A buffer char[6] that will contain the prefix.
+  * @returns -1 on error.*/
+#ifndef __WIN32
+extern int get_ip6_addrprefix(const char *iface, unsigned char *prefix) {
+	uint64_t ntpts;
+	unsigned char eui64[8];
+	unsigned char sha1[20];
+	unsigned char mac48[ETH_ALEN];
+	struct timeval tv;
+
+	if (ifhwaddr(iface, mac48)) {
+		return (-1);
+	}
+
+	gettimeofday(&tv, NULL);
+	ntpts = tvtontp64(&tv);
+
+	eui48to64(mac48, eui64);
+	sha1sum2(sha1, (void *)&ntpts, sizeof(ntpts), (void *)eui64, sizeof(eui64));
+
+	prefix[0] = 0xFD; /*0xFC | 0x01 FC00/7 with local bit set [8th bit]*/
+	memcpy(prefix + 1, sha1+15, 5); /*LSD 40 bits of the SHA hash*/
+
+	return (0);
+}
+#endif
+
+/** @brief Return a score for a IPv4 addrress
+  * @ingroup LIB-IP-IP4
+  * @note This does not follow the RFC as gettaddrinfo would.
+  * @param sa4 Socket addr to check.
+  * @param ipaddr Buffer to place IP address.
+  * @param iplen Length of IP buffer.
+  * @returns Score based on the IP address Highest is "routable" lowest is Zeroconf.*/
+int score_ipv4(struct sockaddr_in *sa4, char *ipaddr, int iplen) {
+	uint32_t addr;
+	int nscore;
+
+	addr = sa4->sin_addr.s_addr;
+
+	/* Get ipaddr string*/
+	inet_ntop(AF_INET, &sa4->sin_addr, ipaddr, iplen);
+
+	/* Score the IP*/
+	if (!((0xa9fe0000 ^  ntohl(addr)) >> 16)) {
+		nscore = IPV4_SCORE_ZEROCONF;
+	} else if (reservedip(ipaddr)) {
+		nscore = IPV4_SCORE_RESERVED;
+	} else {
+		nscore = IPV4_SCORE_ROUTABLE;
+	}
+
+	return nscore;
+}
+
+/** @brief Return a score for a IPv6 addrress
+  * @ingroup LIB-IP-IP6
+  * @note This does not follow the RFC as gettaddrinfo would.
+  * @param sa6 Socket addr to check.
+  * @param ipaddr Buffer to place IP address.
+  * @param iplen Length of IP buffer.
+  * @returns Score based on the IP address Highest is "routable" lowest is Internal allocation.*/
+int score_ipv6(struct sockaddr_in6 *sa6, char *ipaddr, int iplen) {
+	uint32_t *ipptr, match;
+	int nscore;
+
+#ifndef __WIN32
+	ipptr = sa6->sin6_addr.s6_addr32;
+#else
+	ipptr = (uint32_t*)sa6->sin6_addr.u.Word;
+#endif
+	match = ntohl(ipptr[0]) >> 16;
+
+	/* exclude link local multicast and special addresses */
+	if (!(0xFE80 ^ match) || !(0xFF ^ (match >> 8)) || !match) {
+		return 0;
+	}
+
+	/*Score ip private/sixin4/routable*/
+	if (!(0xFC ^ (match >> 9))) {
+		nscore = IPV6_SCORE_RESERVED;
+	} else if (match == 2002) {
+		nscore = IPV6_SCORE_SIXIN4;
+	} else {
+		nscore = IPV6_SCORE_ROUTABLE;
+	}
+	inet_ntop(AF_INET6, ipptr, ipaddr, iplen);
+
+	return nscore;
+}
+
+
+/** @brief Find best IP adress for a interface.
+  * @ingroup LIB-IFACE
+  * @todo WIN32 Support
+  * @param iface Interface name.
+  * @param family PF_INET or PF_INET6.
+  * @returns Best matching IP address for the interface.*/
+#ifndef __WIN32
+const char *get_ifipaddr(const char *iface, int family) {
+	struct ifaddrs *ifaddr, *ifa;
+	struct sockaddr_in *ipv4addr;
+	int score = 0, nscore, iflen;
+	uint32_t subnet = 0, match;
+	char host[NI_MAXHOST] = "", tmp[NI_MAXHOST];
+
+	if (!iface || getifaddrs(&ifaddr) == -1) {
+		return NULL;
+	}
+
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		iflen = strlen(iface);
+		if ((ifa->ifa_addr == NULL) ||  strncmp(ifa->ifa_name, iface, iflen) || (ifa->ifa_addr->sa_family != family)) {
+			continue;
+		}
+
+		/* Match aliases not vlans*/
+		if ((strlen(ifa->ifa_name) > iflen) && (ifa->ifa_name[iflen] != ':')) {
+			continue;
+		}
+
+		switch (ifa->ifa_addr->sa_family) {
+			case AF_INET:
+				/* Find best ip address for a interface lowest priority is given to zeroconf then reserved ip's
+				 * finally find hte ip with shortest subnet bits.*/
+				ipv4addr = (struct sockaddr_in*)ifa->ifa_netmask;
+				match = ntohl(~ipv4addr->sin_addr.s_addr);
+
+				nscore = score_ipv4((struct sockaddr_in*)ifa->ifa_addr, tmp, NI_MAXHOST);
+
+				/* match score and subnet*/
+				if  ((nscore > score) || ((nscore == score) && (match > subnet))) {
+					score = nscore;
+					subnet = match;
+					strncpy(host, tmp, NI_MAXHOST);
+				}
+				break;
+			case AF_INET6:
+				nscore = score_ipv6((struct sockaddr_in6*)ifa->ifa_addr, tmp, NI_MAXHOST);
+
+				if (nscore > score) {
+					score = nscore;
+					strncpy(host, tmp, NI_MAXHOST);
+				}
+				break;
+		}
+	}
+	freeifaddrs(ifaddr);
+	return (strlenzero(host)) ? NULL : strdup(host);
+}
+#endif

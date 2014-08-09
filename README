@@ -1,1 +1,8 @@
 This project includes code from other projects see AUTHORS file for more information.
+
+See INSTALL for instalation information.
+
+To build the documentation
+
+make doxygen
+make manual.pdf

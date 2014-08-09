@@ -1,4 +1,5 @@
 /** @file
+  * @ingroup LIB-XSLT
   * @brief XSLT Interface.
   * @addtogroup LIB-XSLT
   * @{*/
@@ -16,19 +17,25 @@
 #include "include/dtsapp.h"
 #include "include/priv_xml.h"
 
+/** @brief XSLT Document.*/
 struct xslt_doc {
+	/** @brief Pointer to the document.*/
 	xsltStylesheetPtr doc;
+	/** @brief Bucket list of paramaters to apply to the document.*/
 	struct bucket_list *params;
 };
 
+/** @brief XSLT Parameter name/value pair.*/
 struct xslt_param {
+	/** @brief Name of paramater.*/
 	const char *name;
+	/** @brief value of paramater.*/
 	const char *value;
 };
 
 static void *xslt_has_init_parser = NULL;
 
-void free_xsltdoc(void *data) {
+static void free_xsltdoc(void *data) {
 	struct xslt_doc *xsltdoc = data;
 
 	xsltFreeStylesheet(xsltdoc->doc);
@@ -36,7 +43,7 @@ void free_xsltdoc(void *data) {
 	xslt_close();
 }
 
-void free_parser(void *data) {
+static void free_parser(void *data) {
 	xsltCleanupGlobals();
 	xmlCleanupParser();
 }
@@ -54,6 +61,9 @@ static int32_t xslt_hash(const void *data, int key) {
 	return(ret);
 }
 
+/** @brief Open a XSLT file returning reference to it.
+  * @param xsltfile XSLT pathname to open.
+  * @returns Reference to XSLT document.*/
 extern struct xslt_doc *xslt_open(const char *xsltfile) {
 	struct xslt_doc *xsltdoc;
 
@@ -67,7 +77,7 @@ extern struct xslt_doc *xslt_open(const char *xsltfile) {
 	return xsltdoc;
 }
 
-void free_param(void *data) {
+static void free_param(void *data) {
 	struct xslt_param *param = data;
 	if (param->name) {
 		free((void *)param->name);
@@ -77,6 +87,10 @@ void free_param(void *data) {
 	}
 }
 
+/** @brief Add a parameter to the XSLT document.
+  * @param xsltdoc Reference to XSLT document.
+  * @param param Name of parameter.
+  * @param value Parameter value.*/
 extern void xslt_addparam(struct xslt_doc *xsltdoc, const char *param, const char *value) {
 	struct xslt_param *xparam;
 	int size;
@@ -96,6 +110,8 @@ extern void xslt_addparam(struct xslt_doc *xsltdoc, const char *param, const cha
 	objunref(xsltdoc);
 }
 
+/** @brief Delete all parameters of a XSLT document.
+  * @param xsltdoc Reference to XSLT document.*/
 void xslt_clearparam(struct xslt_doc *xsltdoc) {
 	if (!xsltdoc || !xsltdoc->params) {
 		return;
@@ -143,6 +159,11 @@ static const char **xslt_params(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc
 	return params;
 }
 
+/** @brief Apply XSLT document to a XML document.
+  * @param xmldoc Reference to XML document.
+  * @param xsltdoc Reference to XSLT document.
+  * @param filename File to write the result too.
+  * @param comp Compression level 0-9 [0 = none].*/
 extern void xslt_apply(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc, const char *filename, int comp) {
 	const char **params = NULL;
 	xmlDocPtr res;
@@ -170,12 +191,16 @@ extern void xslt_apply(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc, const c
 	objunref(xsltdoc);
 }
 
+/** @brief Apply XSLT document to a XML document returning result in buffer.
+  * @param xmldoc Reference to XML document.
+  * @param xsltdoc Reference to XSLT document.
+  * @returns Reference to xml_buffer containing the result of the transform.*/
 extern void *xslt_apply_buffer(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc) {
 	struct xml_buffer *xmlbuf;
 	const char **params;
 	xmlDocPtr res;
 
-	if (!(xmlbuf = objalloc(sizeof(*xmlbuf),free_buffer))) {
+	if (!(xmlbuf = objalloc(sizeof(*xmlbuf),xml_free_buffer))) {
 		return NULL;
 	}
 
@@ -199,6 +224,9 @@ extern void *xslt_apply_buffer(struct xml_doc *xmldoc, struct xslt_doc *xsltdoc)
 	return xmlbuf;
 }
 
+/** @brief Reference the XSLT parser.
+  * @note It is best if the application keeps a reference to the parser before use of XSLT and
+  * release it on termination.*/
 extern void xslt_init() {
 	if (!xslt_has_init_parser) {
 		xslt_has_init_parser=objalloc(0, free_parser);
@@ -207,6 +235,9 @@ extern void xslt_init() {
 	}
 }
 
+/** @brief Release reference to XSLT parser.
+  * @note It is best if the application keeps a reference to the parser before use of XSLT and
+  * release it on termination.*/
 extern void xslt_close() {
 	if (xslt_has_init_parser) {
 		objunref(xslt_has_init_parser);

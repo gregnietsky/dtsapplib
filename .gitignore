@@ -21,3 +21,9 @@ config.h.in~
 /*.layout
 /dtsapplib-*.*
 Doxyfile
+Doxyfile.dev
+/doxygen/html
+/doxygen/xml
+/doxygen/latex
+/doxygen/man
+

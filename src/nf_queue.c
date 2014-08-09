@@ -59,7 +59,7 @@ struct nfq_queue {
 	uint16_t num;
 };
 
-struct nfq_list {
+static struct nfq_list {
 	struct bucket_list *queues;
 }  *nfqueues = NULL;
 

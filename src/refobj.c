@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <signal.h>
 #include "include/dtsapp.h"
 
 /* add one for ref obj's*/
@@ -324,6 +325,9 @@ static void empty_buckets(void *data) {
 	objunref(bloop);
 }
 
+/** @brief Return a reference to copy of a buffer.
+  * @param orig Original buffer to copy.
+  * @returns Reference to new instance of orig.*/
 extern void *objchar(const char *orig) {
 	int len = strlen(orig) + 1;
 	void *nobj;
@@ -335,11 +339,9 @@ extern void *objchar(const char *orig) {
 }
 
 /** @}
-  *
   * @addtogroup LIB-OBJ-Bucket
-  * @{*/
-
-/** @brief Create a hashed bucket list.
+  * @{
+  * @brief Create a hashed bucket list.
   *
   * A bucket list is a ref obj the "list" element is a
   * array of "bucket" entries each has a hash

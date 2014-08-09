@@ -304,6 +304,7 @@ extern int framework_init(int argc, char *argv[], frameworkfunc callback) {
 	if (framework_core_info && framework_core_info->flags & FRAMEWORK_FLAG_DAEMONLOCK) {
 		objunref(framework_core_info);
 	}
+	unrefconfigfiles();
 	return (ret);
 }
 

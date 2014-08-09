@@ -3,9 +3,9 @@
 \brief A Collection of helper functions and wrapped up interfaces to other libraries
 
 \defgroup LIB-OBJ Referenced Lockable Objects
-\ingroup LIB
 \brief Utilities for managing referenced lockable objects.
 \see \ref refobj
+\ingroup LIB
 
 \defgroup LIB-OBJ-Bucket Hashed bucket linked lists of referenced objects
 \brief Store references in and retrive from linked lists based on a hash.
@@ -18,6 +18,9 @@
 \see \ref thread
 \brief Functions for starting and managing threads.
 
+The thread interface consists of a management thread managing
+a hashed bucket list of threads running optional clean up when done.
+
 \defgroup LIB-Sock Network socket interface
 \ingroup LIB
 \see \ref sockets
@@ -29,8 +32,8 @@
 \see LIB-Sock
 \brief TLSv1 SSLv2 SSLv3 DTLSv1 support
 
-The thread interface consists of a management thread managing
-a hashed bucket list of threads running optional clean up when done.
+This is part of the socket interface to support encrypted sockets
+a ssldata refernece will be created and passed on socket initialization.
 
 \defgroup LIB-Sock-Unix Unix domain sockets
 \ingroup LIB-Sock
@@ -38,6 +41,22 @@ a hashed bucket list of threads running optional clean up when done.
 
 A thread is started on the sockect and will start a new client thread
 on each connection with the socket and data reference.
+
+\defgroup LIB-Sock-MCAST Multicast sockets
+\ingroup LIB-Sock
+\brief Support for multicast sockets either IPv4 or IPv6
+
+\defgroup LIB-IFACE Linux network interface functions
+\ingroup LIB
+\brief Implement various interface routines from libnetlink
+
+\defgroup LIB-INI INI Style config file Interface
+\ingroup LIB
+\brief Reads a ini config file into grouped hashed buckets.
+
+\defgroup LIB-RADIUS Radius client interface
+\ingroup LIB
+\brief Simple implementation of experimental radius client
 
 \defgroup LIB-Util Micelaneous utilities.
 \ingroup LIB
@@ -63,6 +82,38 @@ on each connection with the socket and data reference.
 \ingroup LIB-Util-Hash
 \brief SHA2-512 Hashing checking and HMAC Functions
 
+\defgroup LIB-IP IPv4 and IPv6 functions
+\ingroup LIB
+\brief Helper functions for various calculations
+
+\defgroup LIB-IP-IP4 IPv4 functions
+\ingroup LIB-IP
+\brief Helper functions for various calculations
+
+\defgroup LIB-IP-IP6 IPv6 functions
+\ingroup LIB-IP
+\brief Helper functions for various calculations
+
+\defgroup LIB-FILE File utility functions
+\ingroup LIB
+\brief Convinece wrappers arround stat
+
+\defgroup LIB-LDAP Openldap/SASL Interface
+\ingroup LIB
+\brief Functions to interface with a LDAP server.
+
+\defgroup LIB-XML XML Interface
+\ingroup LIB
+\brief Utilities for managing XML documents.
+
+\defgroup LIB-XSLT XSLT Interface
+\ingroup LIB-XML
+\brief Utilities for managing XML documents.
+
+\defgroup LIB-CURL CURL Url interface.
+\ingroup LIB
+\brief Interface to libCURL.
+
 \defgroup LIB-Z Zlib Interface
 \ingroup LIB
 \brief Simplified implementation of zlib functions.
@@ -71,43 +122,16 @@ on each connection with the socket and data reference.
 \ingroup LIB
 \brief lookup3.c, by Bob Jenkins, May 2006, Public Domain (Original Documentation)
 
+\defgroup LIB-NAT6 IPv6 Nat Mapping
+\ingroup LIB
+\brief Implementation of RFC6296
+
+\defgroup LIB-WIN32 Windows Support
+\ingroup LIB
+\brief Support for building with mingw32 (Requires XP SP1+)
+
 \defgroup TLIB Distrotech Application Library (Todo)
 \brief Modules not completely documented
-
-\defgroup LIB-INI INI Style config file Interface
-\ingroup TLIB
-\brief Reads a ini config file into grouped hashed buckets.
-
-\defgroup LIB-CURL CURL Url interface.
-\ingroup TLIB
-\brief Interface to libCURL.
-
-\defgroup LIB-FILE File utility functions
-\ingroup TLIB
-\brief Convinece wrappers arround stat
-
-\defgroup LIB-IFACE Linux network interface functions
-\ingroup TLIB
-\brief Implement various interface routines from libnetlink
-
-\defgroup LIB-IP IPv4 and IPv6 functions
-\ingroup TLIB
-\brief Helper functions for various calculations
-
-\defgroup LIB-XML XML Interface
-\ingroup TLIB
-\brief Utilities for managing XML documents.
-
-\defgroup LIB-XSLT XSLT Interface
-\ingroup TLIB
-\brief Utilities for managing XML documents.
-
-This is part of the socket interface to support encrypted sockets
-a ssldata refernece will be created and passed on socket initialization.
-
-\defgroup LIB-LDAP Openldap/SASL Interface
-\ingroup TLIB
-\brief Functions to interface with a LDAP server.
 
 \defgroup LIB-NF Linux Netfilter
 \ingroup TLIB
@@ -120,13 +144,5 @@ a ssldata refernece will be created and passed on socket initialization.
 \defgroup LIB-NF-Q Queue interface
 \ingroup LIB-NF
 \brief Interface to linux netfilter queue interface
-
-\defgroup LIB-RADIUS Radius client interface
-\ingroup TLIB
-\brief Simple implementation of experimental radius client
-
-\defgroup LIB-NAT6 IPv6 Nat Mapping
-\ingroup TLIB
-\brief Implementation of RFC6296
 
 */
