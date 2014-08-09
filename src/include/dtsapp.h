@@ -503,10 +503,10 @@ extern void nf_ctrack_close(void);
 extern int delete_kernvlan(char *ifname, int vid);
 extern int create_kernvlan(char *ifname, unsigned short vid);
 extern int delete_kernmac(char *macdev);
-#ifdef IFLA_MACVLAN_MODE
+#ifdef IFLA_MACVLAN_MAX
 extern int create_kernmac(char *ifname, char *macdev, unsigned char *mac);
 #endif
-extern int interface_bind(char *iface, int protocol);
+extern int interface_bind(char *iface, int protocol, int flags);
 extern void randhwaddr(unsigned char *addr);
 extern int create_tun(const char *ifname, const unsigned char *hwaddr, int flags);
 extern int ifrename(const char *oldname, const char *newname);
@@ -587,7 +587,7 @@ extern void addradattrint(struct radius_packet *packet, char type, unsigned int 
 extern void addradattrip(struct radius_packet *packet, char type, char *ipaddr);
 extern void addradattrstr(struct radius_packet *packet, char type, char *str);
 unsigned char *addradattr(struct radius_packet *packet, char type, unsigned char *val, char len);
-extern struct radius_packet *new_radpacket(unsigned char code);
+extern struct radius_packet *new_radpacket(unsigned char code, unsigned char id);
 extern int send_radpacket(struct radius_packet *packet, const char *userpass, radius_cb read_cb, void *cb_data);
 extern void add_radserver(const char *ipaddr, const char *auth, const char *acct, const char *secret, int timeout);
 extern unsigned char *radius_attr_first(struct radius_packet *packet);
